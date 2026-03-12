@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Payouts - ViewOnce Airbnb</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF5A5F;
+            --secondary: #484848;
+            --accent: #00A699;
+            --background: #F7F7F7;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--background);
+            color: #222;
+        }
+        .sidebar { 
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 20px 0 40px rgba(0,0,0,0.3);
+            border-radius: 0 24px 24px 0;
+        }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar-backdrop { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 999;
+        }
+        .sidebar-backdrop.active { opacity: 1; visibility: visible; }
+        .sidebar-item { 
+            display: block; width: 100%; padding: 12px 16px; margin: 4px 0;
+            background: transparent; border: none; color: white; text-align: left;
+            cursor: pointer; font-weight: 500; font-size: 14px; border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .sidebar-item:hover { 
+            background: rgba(255, 90, 95, 0.15); padding-left: 20px; color: #FF5A5F;
+        }
+        .header { 
+            background: white; padding: 16px 24px; border-bottom: 1px solid #eee;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .glass {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background: var(--primary); color: white; border: none;
+            padding: 12px 24px; border-radius: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .btn-primary:hover { background: #e8484c; transform: translateY(-2px); }
+        .btn-secondary {
+            background: white; color: #222; border: 2px solid #ddd;
+            padding: 10px 20px; border-radius: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px; padding: 24px; color: white;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .stat-card.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .stat-card.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .stat-value { font-size: 32px; font-weight: bold; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+        }
+        .status-badge.success { background: #D1FAE5; color: #065F46; }
+        .status-badge.warning { background: #FEF3C7; color: #92400E; }
+        .status-badge.error { background: #FEE2E2; color: #991B1B; }
+        .status-badge.info { background: #DBEAFE; color: #1E40AF; }
+        .payout-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px; border-bottom: 1px solid #eee;
+        }
+        .payout-row:hover { background: #f9f9f9; }
+        .schedule-card {
+            background: white; border: 2px solid #eee; border-radius: 16px;
+            padding: 20px; transition: all 0.3s; cursor: pointer;
+        }
+        .schedule-card:hover, .schedule-card.active { border-color: var(--primary); transform: translateY(-2px); }
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+            padding: 20px;
+        }
+        .modal-backdrop.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 24px; padding: 32px;
+            max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;
+        }
+        .input-field {
+            width: 100%; padding: 14px 16px; border: 2px solid #eee;
+            border-radius: 12px; font-size: 14px; transition: all 0.3s;
+        }
+        .input-field:focus { outline: none; border-color: var(--primary); }
+        .progress-bar {
+            height: 8px; background: #eee; border-radius: 4px; overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%; background: linear-gradient(90deg, var(--primary), #764ba2);
+            border-radius: 4px; transition: width 0.5s;
+        }
+        .tab-btn {
+            padding: 12px 24px; border: none; background: transparent;
+            color: #767676; font-weight: 600; cursor: pointer;
+            border-bottom: 3px solid transparent; transition: all 0.3s;
+        }
+        .tab-btn:hover { color: #222; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .loading-spinner {
+            width: 40px; height: 40px; border: 4px solid #eee;
+            border-top-color: var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 20px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 16px; }
+            .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <button onclick="closeSidebar()" style="position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px;cursor:pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+        <div style="padding: 80px 16px 20px;">
+            <div class="mb-4">
+                <h2 class="font-bold text-lg text-white"><i class="fas fa-money-bill-wave mr-2"></i>Payouts</h2>
+                <p class="text-xs text-white/60">Manage your earnings</p>
+            </div>
+            <button onclick="window.location.href='host-dashboard-upgraded.html'" class="sidebar-item"><i class="fas fa-home mr-2 w-6"></i>Dashboard</button>
+            <button onclick="window.location.href='bookings.html'" class="sidebar-item"><i class="fas fa-calendar-check mr-2 w-6"></i>Bookings</button>
+            <button onclick="window.location.href='property-listing.html'" class="sidebar-item"><i class="fas fa-home mr-2 w-6"></i>My Properties</button>
+            <button onclick="window.location.href='messages.html'" class="sidebar-item"><i class="fas fa-envelope mr-2 w-6"></i>Messages</button>
+            <button onclick="window.location.href='settings.html'" class="sidebar-item"><i class="fas fa-cog mr-2 w-6"></i>Settings</button>
+            <div class="h-px bg-white/20 my-4"></div>
+            <button onclick="logout()" class="sidebar-item" style="background: rgba(239,68,68,0.3);"><i class="fas fa-sign-out-alt mr-2 w-6"></i>Logout</button>
+        </div>
+    </div>
+    <div id="sidebarBackdrop" onclick="closeSidebar()" class="sidebar-backdrop"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" style="background: #f1f1f1; border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer;">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="font-bold text-xl"><i class="fas fa-money-bill-wave text-green-500 mr-2"></i>Host Payouts</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openPayoutModal()" class="btn-primary">
+                <i class="fas fa-plus mr-2"></i>Request Payout
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-20 px-6 pb-6" style="max-width: 1400px; margin: 0 auto;">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card green">
+                <p class="text-white/80 text-sm">Available Balance</p>
+                <p class="stat-value" id="availableBalance">KSh 0</p>
+                <p class="text-xs text-white/60 mt-2">Ready for withdrawal</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-white/80 text-sm">Pending Payouts</p>
+                <p class="stat-value" id="pendingPayouts">KSh 0</p>
+                <p class="text-xs text-white/60 mt-2">Processing</p>
+            </div>
+            <div class="stat-card orange">
+                <p class="text-white/80 text-sm">This Month</p>
+                <p class="stat-value" id="monthlyEarnings">KSh 0</p>
+                <p class="text-xs text-white/60 mt-2">Total earnings</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-white/80 text-sm">Total Paid</p>
+                <p class="stat-value" id="totalPaid">KSh 0</p>
+                <p class="text-xs text-white/60 mt-2">All time</p>
+            </div>
+        </div>
+
+        <!-- Payout Settings -->
+        <div class="glass p-6 mb-6">
+            <h3 class="font-bold text-lg mb-4"><i class="fas fa-cog text-gray-500 mr-2"></i>Payout Settings</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="schedule-card active" onclick="selectSchedule('weekly', this)">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold">Weekly</span>
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </div>
+                    <p class="text-sm text-gray-500">Get paid every Monday</p>
+                </div>
+                <div class="schedule-card" onclick="selectSchedule('biweekly', this)">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold">Bi-Weekly</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Get paid every 2 weeks</p>
+                </div>
+                <div class="schedule-card" onclick="selectSchedule('monthly', this)">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold">Monthly</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Get paid on 1st of month</p>
+                </div>
+            </div>
+            
+            <!-- Payout Method -->
+            <div class="mt-6">
+                <h4 class="font-semibold mb-3">Payout Method</h4>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="selectPayoutMethod('mpesa')" class="btn-secondary" id="mpesaBtn">
+                        <i class="fas fa-mobile-alt mr-2"></i>M-Pesa
+                    </button>
+                    <button onclick="selectPayoutMethod('bank')" class="btn-secondary" id="bankBtn">
+                        <i class="fas fa-university mr-2"></i>Bank Transfer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b mb-6 overflow-x-auto">
+            <button onclick="switchTab('history')" class="tab-btn active" data-tab="history">
+                <i class="fas fa-history mr-2"></i>Payout History
+            </button>
+            <button onclick="switchTab('pending')" class="tab-btn" data-tab="pending">
+                <i class="fas fa-clock mr-2"></i>Pending
+            </button>
+            <button onclick="switchTab('earnings')" class="tab-btn" data-tab="earnings">
+                <i class="fas fa-chart-line mr-2"></i>Earnings
+            </button>
+        </div>
+
+        <!-- Payout History Tab -->
+        <div id="historyTab" class="tab-content">
+            <div class="glass p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">Payout History</h3>
+                    <div class="flex gap-2">
+                        <select id="payoutStatusFilter" class="input-field" style="width: auto;" onchange="filterPayouts()">
+                            <option value="all">All Status</option>
+                            <option value="completed">Completed</option>
+                            <option value="processing">Processing</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="payoutsList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Tab -->
+        <div id="pendingTab" class="tab-content hidden">
+            <div class="glass p-6">
+                <h3 class="font-bold text-lg mb-4">Pending Payouts</h3>
+                <div id="pendingList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Earnings Tab -->
+        <div id="earningsTab" class="tab-content hidden">
+            <div class="glass p-6">
+                <h3 class="font-bold text-lg mb-4">Earnings Breakdown</h3>
+                <div class="overflow-x-auto">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f9f9f9;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Booking</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Guest</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600;">Amount</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600;">Commission (10%)</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600;">Net Earnings</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="earningsTable">
+                            <tr>
+                                <td colspan="6" style="padding: 40px; text-align: center;">
+                                    <div class="loading-spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Request Payout Modal -->
+    <div id="payoutModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Request Payout</h2>
+                <button onclick="closeModal('payoutModal')" class="text-2xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="mb-6 p-4 bg-gray-100 rounded-xl">
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">Available Balance:</span>
+                    <span class="font-bold text-green-600" id="modalAvailableBalance">KSh 0</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Amount to Withdraw</label>
+                <input type="number" id="payoutAmount" class="input-field" placeholder="Enter amount">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Payout Method</label>
+                <select id="payoutMethod" class="input-field">
+                    <option value="mpesa">M-Pesa</option>
+                    <option value="bank">Bank Transfer</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">M-Pesa Phone Number</label>
+                <input type="tel" id="mpesaPhone" class="input-field" placeholder="2547****1234" value="2547">
+            </div>
+
+            <button onclick="requestPayout()" class="btn-primary w-full">
+                <i class="fas fa-paper-plane mr-2"></i>Request Payout
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let payouts = [];
+        let selectedSchedule = 'weekly';
+        let selectedPayoutMethod = 'mpesa';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
+
+        function initializePage() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (!isLoggedIn) {
+                window.location.href = 'welcome.html';
+                return;
+            }
+            loadPayoutData();
+        }
+
+        // Sidebar Functions
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebarBackdrop').classList.add('active');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarBackdrop').classList.remove('active');
+        }
+
+        // Tab Functions
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+        }
+
+        // Load Payout Data
+        async function loadPayoutData() {
+            try {
+                const payoutData = await api.getPayouts();
+                payouts = payoutData || [];
+                renderPayouts();
+            } catch (error) {
+                console.error('Error loading payouts:', error);
+                // Demo data
+                payouts = [
+                    { id: 'PO001', amount: 25000, status: 'completed', date: '2024-01-15', method: 'M-Pesa', bookingRef: 'BK001' },
+                    { id: 'PO002', amount: 18000, status: 'completed', date: '2024-01-08', method: 'Bank', bookingRef: 'BK002' },
+                    { id: 'PO003', amount: 12000, status: 'processing', date: '2024-01-18', method: 'M-Pesa', bookingRef: 'BK003' },
+                    { id: 'PO004', amount: 8000, status: 'pending', date: '2024-01-20', method: 'M-Pesa', bookingRef: 'BK004' }
+                ];
+            }
+            renderPayouts();
+            loadStats();
+            loadEarnings();
+        }
+
+        function loadStats() {
+            const completed = payouts.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
+            const pending = payouts.filter(p => p.status === 'pending' || p.status === 'processing').reduce((sum, p) => sum + p.amount, 0);
+            
+            document.getElementById('availableBalance').textContent = 'KSh ' + (50000).toLocaleString(); // Demo value
+            document.getElementById('pendingPayouts').textContent = 'KSh ' + pending.toLocaleString();
+            document.getElementById('monthlyEarnings').textContent = 'KSh ' + (completed + pending).toLocaleString();
+            document.getElementById('totalPaid').textContent = 'KSh ' + completed.toLocaleString();
+            document.getElementById('modalAvailableBalance').textContent = 'KSh 50,000';
+        }
+
+        function renderPayouts() {
+            const container = document.getElementById('payoutsList');
+            if (!payouts || payouts.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No payouts yet</p>';
+                return;
+            }
+
+            container.innerHTML = payouts.map(payout => `
+                <div class="payout-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center ${payout.status === 'completed' ? 'bg-green-100' : payout.status === 'pending' ? 'bg-yellow-100' : 'bg-blue-100'}">
+                            <i class="fas ${payout.status === 'completed' ? 'fa-check' : payout.status === 'pending' ? 'fa-clock' : 'fa-spinner'} ${payout.status === 'completed' ? 'text-green-500' : payout.status === 'pending' ? 'text-yellow-500' : 'text-blue-500'}"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold">Payout #${payout.id}</p>
+                            <p class="text-sm text-gray-500">${payout.method} | ${payout.date}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-lg">KSh ${(payout.amount || 0).toLocaleString()}</p>
+                        <span class="status-badge ${payout.status === 'completed' ? 'success' : payout.status === 'pending' ? 'warning' : payout.status === 'processing' ? 'info' : 'error'}">
+                            ${payout.status}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterPayouts() {
+            const status = document.getElementById('payoutStatusFilter').value;
+            if (status === 'all') {
+                renderPayouts();
+            } else {
+                const filtered = payouts.filter(p => p.status === status);
+                const container = document.getElementById('payoutsList');
+                if (filtered.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-8">No payouts with this status</p>';
+                } else {
+                    // Re-render with filtered
+                    const originalPayouts = payouts;
+                    payouts = filtered;
+                    renderPayouts();
+                    payouts = originalPayouts;
+                }
+            }
+        }
+
+        function loadEarnings() {
+            const bookings = [
+                { id: 'BK001', guest: 'John Doe', amount: 25000, status: 'completed' },
+                { id: 'BK002', guest: 'Jane Smith', amount: 18000, status: 'completed' },
+                { id: 'BK003', guest: 'Mike Johnson', amount: 12000, status: 'completed' },
+                { id: 'BK004', guest: 'Sarah Wilson', amount: 8000, status: 'pending' }
+            ];
+
+            const commissionRate = 0.10;
+            const tbody = document.getElementById('earningsTable');
+            
+            tbody.innerHTML = bookings.map(booking => {
+                const commission = booking.amount * commissionRate;
+                const net = booking.amount - commission;
+                return `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px;">${booking.id}</td>
+                        <td style="padding: 12px;">${booking.guest}</td>
+                        <td style="padding: 12px; text-align: right;">KSh ${booking.amount.toLocaleString()}</td>
+                        <td style="padding: 12px; text-align: right; color: #ef4444;">-KSh ${commission.toLocaleString()}</td>
+                        <td style="padding: 12px; text-align: right; font-weight: bold; color: #10b981;">KSh ${net.toLocaleString()}</td>
+                        <td style="padding: 12px;">
+                            <span class="status-badge ${booking.status === 'completed' ? 'success' : 'warning'}">${booking.status}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Payout Settings
+        function selectSchedule(schedule, element) {
+            document.querySelectorAll('.schedule-card').forEach(card => card.classList.remove('active'));
+            element.classList.add('active');
+            selectedSchedule = schedule;
+            // Save to backend
+            showToast('Payout schedule updated to ' + schedule);
+        }
+
+        function selectPayoutMethod(method) {
+            selectedPayoutMethod = method;
+            document.getElementById('mpesaBtn').classList.toggle('btn-primary', method === 'mpesa');
+            document.getElementById('mpesaBtn').classList.toggle('btn-secondary', method !== 'mpesa');
+            document.getElementById('bankBtn').classList.toggle('btn-primary', method === 'bank');
+            document.getElementById('bankBtn').classList.toggle('btn-secondary', method !== 'bank');
+        }
+
+        // Request Payout Modal
+        function openPayoutModal() {
+            document.getElementById('payoutModal').classList.add('active');
+        }
+
+        async function requestPayout() {
+            const amount = parseFloat(document.getElementById('payoutAmount').value);
+            const method = document.getElementById('payoutMethod').value;
+            const phone = document.getElementById('mpesaPhone').value;
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            if (amount > 50000) {
+                alert('Amount exceeds available balance');
+                return;
+            }
+
+            try {
+                // In production, this would call the API
+                // await api.createPayout({ amount, method, phone });
+                
+                showToast('Payout request submitted successfully!');
+                closeModal('payoutModal');
+                loadPayoutData();
+            } catch (error) {
+                alert('Error requesting payout: ' + error.message);
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modals on backdrop click
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+            backdrop.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        function showToast(message) {
+            alert(message);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'welcome.html';
+        }
+    </script>
+</body>
+</html>

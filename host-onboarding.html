@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Onboarding - Airbnb Stays</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #E8F4FD, #D1E7F0);
+            color: #2E2521;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-active {
+            background: #00A699;
+            color: white;
+        }
+
+        .step-completed {
+            background: #00A699;
+            color: white;
+        }
+
+        .step-pending {
+            background: #E8F4FD;
+            color: #2E2521;
+        }
+
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+
+        .file-upload {
+            border: 2px dashed #00A699;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            background: rgba(0, 166, 153, 0.1);
+        }
+
+        .file-upload.dragover {
+            background: rgba(0, 166, 153, 0.2);
+            border-color: #00A699;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-cyan-600">Airbnb Stays</h1>
+                        <span class="ml-4 text-lg text-gray-600">Host Onboarding</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="userName" class="text-gray-700"></span>
+                        <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Progress Overview -->
+            <div class="glass p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Onboarding Progress</h2>
+                    <span id="progressText" class="text-sm text-gray-600">0% Complete</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progressBar" class="progress-bar bg-cyan-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Steps -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div id="step-account" class="glass p-4 text-center step-pending cursor-pointer" onclick="goToStep('account_setup')">
+                    <div class="text-2xl mb-2">👤</div>
+                    <div class="font-semibold">Account Setup</div>
+                    <div class="text-sm text-gray-600">Complete your profile</div>
+                </div>
+                <div id="step-profile" class="glass p-4 text-center step-pending cursor-pointer" onclick="goToStep('profile_verification')">
+                    <div class="text-2xl mb-2">📋</div>
+                    <div class="font-semibold">Profile Verification</div>
+                    <div class="text-sm text-gray-600">Verify your identity</div>
+                </div>
+                <div id="step-property" class="glass p-4 text-center step-pending cursor-pointer" onclick="goToStep('property_setup')">
+                    <div class="text-2xl mb-2">🏠</div>
+                    <div class="font-semibold">Property Setup</div>
+                    <div class="text-sm text-gray-600">Add your first property</div>
+                </div>
+                <div id="step-final" class="glass p-4 text-center step-pending cursor-pointer" onclick="goToStep('final_review')">
+                    <div class="text-2xl mb-2">✅</div>
+                    <div class="font-semibold">Final Review</div>
+                    <div class="text-sm text-gray-600">Submit for approval</div>
+                </div>
+            </div>
+
+            <!-- Step Content -->
+            <div id="stepContent" class="glass p-6">
+                <!-- Account Setup Step -->
+                <div id="accountSetup" class="step-content hidden">
+                    <h3 class="text-xl font-semibold mb-4">Account Setup</h3>
+                    <form id="accountForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <input type="text" id="firstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <input type="text" id="lastName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input type="tel" id="phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                            <textarea id="bio" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent" placeholder="Tell guests about yourself..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors">
+                            Save & Continue
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Profile Verification Step -->
+                <div id="profileVerification" class="step-content hidden">
+                    <h3 class="text-xl font-semibold mb-4">Profile Verification</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="font-medium mb-2">Upload ID Document</h4>
+                            <div id="idUpload" class="file-upload">
+                                <div class="text-4xl mb-2">📄</div>
+                                <div>Click to upload ID document</div>
+                                <div class="text-sm text-gray-600">PNG, JPG, PDF up to 10MB</div>
+                                <input type="file" id="idFile" accept=".png,.jpg,.jpeg,.pdf" class="hidden">
+                            </div>
+                            <div id="idUploaded" class="hidden mt-2 text-green-600">✓ ID document uploaded successfully</div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-2">Upload Profile Photo</h4>
+                            <div id="photoUpload" class="file-upload">
+                                <div class="text-4xl mb-2">📸</div>
+                                <div>Click to upload profile photo</div>
+                                <div class="text-sm text-gray-600">PNG, JPG up to 5MB</div>
+                                <input type="file" id="photoFile" accept=".png,.jpg,.jpeg" class="hidden">
+                            </div>
+                            <div id="photoUploaded" class="hidden mt-2 text-green-600">✓ Profile photo uploaded successfully</div>
+                        </div>
+                        <button id="verifyProfileBtn" class="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors disabled:bg-gray-400" disabled>
+                            Submit for Verification
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Property Setup Step -->
+                <div id="propertySetup" class="step-content hidden">
+                    <h3 class="text-xl font-semibold mb-4">Property Setup</h3>
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">🏠</div>
+                        <h4 class="text-lg font-medium mb-2">Ready to add your first property?</h4>
+                        <p class="text-gray-600 mb-6">You'll be redirected to add your property details.</p>
+                        <button onclick="goToAddProperty()" class="bg-cyan-600 text-white py-3 px-6 rounded-lg hover:bg-cyan-700 transition-colors">
+                            Add Your Property
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Final Review Step -->
+                <div id="finalReview" class="step-content hidden">
+                    <h3 class="text-xl font-semibold mb-4">Final Review</h3>
+                    <div class="space-y-4">
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="text-green-600 text-xl mr-2">✓</div>
+                                <div>
+                                    <div class="font-medium">Account Setup</div>
+                                    <div class="text-sm text-gray-600">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="profileStatus" class="bg-yellow-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="text-yellow-600 text-xl mr-2">⏳</div>
+                                <div>
+                                    <div class="font-medium">Profile Verification</div>
+                                    <div class="text-sm text-gray-600">Pending review</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="propertyStatus" class="bg-yellow-50 p-4 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="text-yellow-600 text-xl mr-2">⏳</div>
+                                <div>
+                                    <div class="font-medium">Property Setup</div>
+                                    <div class="text-sm text-gray-600">Pending</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-medium mb-2">Terms & Conditions</h4>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="termsAccepted" class="mr-2">
+                                <label for="termsAccepted" class="text-sm">
+                                    I agree to the <a href="terms-and-conditions.html" target="_blank" class="text-cyan-600 underline">Terms & Conditions</a>
+                                </label>
+                            </div>
+                        </div>
+                        <button id="submitBtn" class="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors disabled:bg-gray-400" disabled>
+                            Submit for Approval
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentOnboarding = null;
+        let currentStep = 'account_setup';
+
+        // Initialize page
+        window.addEventListener('load', async () => {
+            const user = store.getUser();
+            if (!user || user.role !== 'host') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('userName').textContent = `${user.firstName} ${user.lastName}`;
+
+            await loadOnboardingData();
+            updateUI();
+        });
+
+        async function loadOnboardingData() {
+            try {
+                const response = await api.makeRequest('/host-onboarding', 'GET');
+                currentOnboarding = response;
+                currentStep = response.currentStep;
+                updateProgress();
+            } catch (error) {
+                console.error('Error loading onboarding data:', error);
+                // Create new onboarding if none exists
+                await createOnboarding();
+            }
+        }
+
+        async function createOnboarding() {
+            try {
+                const response = await api.makeRequest('/host-onboarding', 'POST');
+                currentOnboarding = response;
+                currentStep = response.currentStep;
+                updateProgress();
+            } catch (error) {
+                console.error('Error creating onboarding:', error);
+            }
+        }
+
+        function updateProgress() {
+            if (!currentOnboarding) return;
+
+            const progress = currentOnboarding.progressPercentage || 0;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            document.getElementById('progressText').textContent = `${progress}% Complete`;
+
+            // Update step indicators
+            const steps = ['account', 'profile', 'property', 'final'];
+            const stepMap = {
+                'account_setup': 'account',
+                'profile_verification': 'profile',
+                'property_setup': 'property',
+                'final_review': 'final'
+            };
+
+            steps.forEach(step => {
+                const element = document.getElementById(`step-${step}`);
+                element.classList.remove('step-active', 'step-completed', 'step-pending');
+            });
+
+            const currentStepKey = stepMap[currentStep];
+            if (currentStepKey) {
+                document.getElementById(`step-${currentStepKey}`).classList.add('step-active');
+            }
+
+            currentOnboarding.completedSteps.forEach(step => {
+                const stepKey = stepMap[step];
+                if (stepKey) {
+                    document.getElementById(`step-${stepKey}`).classList.add('step-completed');
+                }
+            });
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+            updateUI();
+        }
+
+        function updateUI() {
+            // Hide all step contents
+            document.querySelectorAll('.step-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+
+            // Show current step
+            const stepMap = {
+                'account_setup': 'accountSetup',
+                'profile_verification': 'profileVerification',
+                'property_setup': 'propertySetup',
+                'final_review': 'finalReview'
+            };
+
+            const stepElement = document.getElementById(stepMap[currentStep]);
+            if (stepElement) {
+                stepElement.classList.remove('hidden');
+            }
+
+            // Load step data
+            loadStepData();
+        }
+
+        async function loadStepData() {
+            const user = store.getUser();
+
+            if (currentStep === 'account_setup') {
+                document.getElementById('firstName').value = user.firstName || '';
+                document.getElementById('lastName').value = user.lastName || '';
+                document.getElementById('phone').value = user.phone || '';
+                document.getElementById('bio').value = user.bio || '';
+            }
+        }
+
+        // Account form submission
+        document.getElementById('accountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                phone: document.getElementById('phone').value,
+                bio: document.getElementById('bio').value
+            };
+
+            try {
+                await api.makeRequest('/host-onboarding/step', 'PUT', {
+                    step: 'account_setup',
+                    stepData: data
+                });
+
+                // Update user data
+                const user = store.getUser();
+                user.firstName = data.firstName;
+                user.lastName = data.lastName;
+                user.phone = data.phone;
+                user.bio = data.bio;
+                store.setUser(user);
+
+                await loadOnboardingData();
+                goToStep('profile_verification');
+            } catch (error) {
+                alert('Error saving account information: ' + error.message);
+            }
+        });
+
+        // File upload handlers
+        function setupFileUpload(uploadArea, fileInput, uploadedIndicator) {
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    handleFileUpload(fileInput, uploadedIndicator);
+                }
+            });
+
+            fileInput.addEventListener('change', () => {
+                handleFileUpload(fileInput, uploadedIndicator);
+            });
+        }
+
+        async function handleFileUpload(fileInput, uploadedIndicator) {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/host-onboarding/upload/' + fileInput.id.replace('File', '').toLowerCase(), {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${store.getToken()}`
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    uploadedIndicator.classList.remove('hidden');
+                    checkVerificationReady();
+                } else {
+                    throw new Error('Upload failed');
+                }
+            } catch (error) {
+                alert('Upload failed: ' + error.message);
+            }
+        }
+
+        function checkVerificationReady() {
+            const idUploaded = !document.getElementById('idUploaded').classList.contains('hidden');
+            const photoUploaded = !document.getElementById('photoUploaded').classList.contains('hidden');
+
+            document.getElementById('verifyProfileBtn').disabled = !(idUploaded && photoUploaded);
+        }
+
+        // Setup file uploads
+        setupFileUpload(
+            document.getElementById('idUpload'),
+            document.getElementById('idFile'),
+            document.getElementById('idUploaded')
+        );
+
+        setupFileUpload(
+            document.getElementById('photoUpload'),
+            document.getElementById('photoFile'),
+            document.getElementById('photoUploaded')
+        );
+
+        // Profile verification
+        document.getElementById('verifyProfileBtn').addEventListener('click', async () => {
+            try {
+                await api.makeRequest('/host-onboarding/verification/profile', 'PUT', { status: 'submitted' });
+                await loadOnboardingData();
+                goToStep('property_setup');
+            } catch (error) {
+                alert('Error submitting verification: ' + error.message);
+            }
+        });
+
+        function goToAddProperty() {
+            window.location.href = 'add-property.html';
+        }
+
+        // Terms acceptance
+        document.getElementById('termsAccepted').addEventListener('change', (e) => {
+            document.getElementById('submitBtn').disabled = !e.target.checked;
+        });
+
+        // Final submission
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            try {
+                await api.makeRequest('/host-onboarding/submit', 'POST');
+                alert('Your application has been submitted for review! You will be notified once approved.');
+                window.location.href = 'host-dashboard.html';
+            } catch (error) {
+                alert('Error submitting application: ' + error.message);
+            }
+        });
+
+        function logout() {
+            store.clear();
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Input Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold mb-4">Phone Input Test</h1>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Phone (type="tel")</label>
+                <input type="tel" id="phone-tel" placeholder="Phone number (tel)"
+                    class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Phone (type="text")</label>
+                <input type="text" id="phone-text" placeholder="Phone number (text)"
+                    class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Phone (type="tel" with pattern)</label>
+                <input type="tel" id="phone-pattern" placeholder="Phone number (pattern)"
+                    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+                    class="w-full p-2 border rounded">
+            </div>
+        </div>
+
+        <div id="debug-output" class="mt-4 p-4 bg-gray-50 rounded text-sm">
+            Debug output will appear here...
+        </div>
+    </div>
+
+    <script>
+        // Test different phone input types
+        const inputs = ['phone-tel', 'phone-text', 'phone-pattern'];
+        const debugOutput = document.getElementById('debug-output');
+
+        inputs.forEach(id => {
+            const input = document.getElementById(id);
+
+            input.addEventListener('focus', function() {
+                log(`📱 ${id} focused`);
+            });
+
+            input.addEventListener('input', function() {
+                log(`✏️ ${id} input: "${this.value}"`);
+            });
+
+            input.addEventListener('blur', function() {
+                log(`👁 ${id} blurred`);
+            });
+
+            input.addEventListener('change', function() {
+                log(`🔄 ${id} changed: "${this.value}"`);
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    log(`⏎ ${id} Enter pressed`);
+                }
+            });
+        });
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugOutput.innerHTML += `<div>${timestamp}: ${message}</div>`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+            console.log(message);
+        }
+
+        // Clear debug output
+        setTimeout(() => {
+            debugOutput.innerHTML = 'Debug output will appear here...<br>Try typing in each phone input field.';
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - ViewOnce Airbnb Stays</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #99CED3 0%, #7AB8C4 100%);
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      text-align: center;
+    }
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #1e293b;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #64748b;
+      font-size: 16px;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .btn {
+      display: inline-block;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 600;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    .tips {
+      margin-top: 40px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      text-align: left;
+    }
+    .tips h3 {
+      color: #1e293b;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .tips ul {
+      list-style: none;
+      padding: 0;
+    }
+    .tips li {
+      color: #64748b;
+      font-size: 13px;
+      padding: 5px 0;
+    }
+    .tips li::before {
+      content: "✓ ";
+      color: #10b981;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>It looks like you've lost your internet connection. Don't worry - some features of ViewOnce Airbnb Stays are still available!</p>
+    
+    <a href="/" class="btn" onclick="location.reload()">Try Again</a>
+    
+    <div class="tips">
+      <h3>While you wait:</h3>
+      <ul>
+        <li>Check your Wi-Fi or data connection</li>
+        <li>Try loading the page again</li>
+        <li>Your previously viewed properties may still be accessible</li>
+        <li>Bookings made offline will sync when you're back online</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "viewonce-airbnb-stays",
+  "version": "1.0.0",
+  "description": "Airbnb-like property booking platform - Frontend PWA",
+  "scripts": {
+    "build-css": "tailwindcss -i ./input.css -o ./styles.css --minify",
+    "build": "npm run build-css",
+    "preview": "npx serve -p 3000 .",
+    "deploy": "npm run build && vercel --prod"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

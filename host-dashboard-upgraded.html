@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airbnb Host Dashboard - Enhanced</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js?v=20241201"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <script src="ai-luxury-dashboard.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #36bea7;
+            --light: #f8fafc;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gold-gradient: linear-gradient(135deg, #fbbf24 0%, #16FFBD 50%, #10b981 100%);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; min-height: 100vh; overflow-x: hidden; background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #667eea, #764ba2, #f093fb, #f5576c); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: var(--dark); }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .floating-shapes { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+        .shape { position: absolute; opacity: 0.1; animation: float 20s infinite ease-in-out; }
+        .shape-1 { width: 300px; height: 300px; background: var(--primary); border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; top: 10%; left: 10%; }
+        .shape-2 { width: 200px; height: 200px; background: var(--secondary); border-radius: 50%; top: 60%; right: 15%; }
+        .shape-3 { width: 150px; height: 150px; background: var(--accent); border-radius: 30% 70% 70% 30% / 70% 30% 70% 30%; bottom: 20%; left: 20%; }
+        .shape-4 { width: 250px; height: 250px; background: var(--success); border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; top: 30%; right: 30%; }
+        @keyframes float { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(20px, -30px) rotate(5deg); } 50% { transform: translate(-10px, 20px) rotate(-3deg); } 75% { transform: translate(30px, 10px) rotate(7deg); } }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 16px; box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1); }
+        .glass-heavy { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-radius: 24px; }
+        .card-3d { perspective: 1000px; transform-style: preserve-3d; transition: transform 0.5s; }
+        .card-3d-inner { background: rgba(255, 255, 255, 0.7); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.5); transition: transform 0.5s; }
+        .card-3d:hover .card-3d-inner { transform: rotateX(5deg) rotateY(-5deg) scale(1.03); }
+        .float-3d { transition: transform 0.4s; }
+        .float-3d:hover { transform: translateY(-15px); }
+        .btn-gradient { background: var(--gradient-2); color: white; border: none; border-radius: 16px; padding: 12px 24px; font-weight: 600; box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4); transition: all 0.3s; cursor: pointer; }
+        .btn-gradient:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(245, 87, 108, 0.6); }
+        .btn-cyan { background: var(--gradient-3); color: white; border: none; border-radius: 16px; padding: 12px 24px; font-weight: 600; transition: all 0.3s; cursor: pointer; }
+        .btn-cyan:hover { transform: translateY(-3px); }
+        .sidebar { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; transform: translateX(-100%); transition: transform 0.3s; z-index: 1000; background: linear-gradient(180deg, #1e293b 0%, #334155 50%, #1e293b 100%); box-shadow: 20px 0 40px rgba(0,0,0,0.3); border-radius: 0 24px 24px 0; padding: 24px 16px; overflow-y: auto; }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: all 0.3s; z-index: 999; }
+        .sidebar-backdrop.active { opacity: 1; visibility: visible; }
+        .sidebar-item { display: block; width: 100%; padding: 12px 16px; margin: 4px 0; background: transparent; border: none; color: white; text-align: left; cursor: pointer; font-weight: 500; font-size: 14px; border-radius: 12px; transition: all 0.3s; }
+        .sidebar-item:hover { background: rgba(134, 6, 102, 0.2); padding-left: 20px; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fadeInUp 0.8s forwards; opacity: 0; }
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .dashboard-section { opacity: 0; transform: translateY(30px); transition: opacity 0.5s, transform 0.5s; }
+        .dashboard-section.visible { opacity: 1; transform: translateY(0); }
+        .carousel-img { display: none; width: 100%; border-radius: 1rem; }
+        .carousel-img.active { display: block; animation: popIn 0.5s; }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .ai-float { animation: pulseAI 2s infinite; box-shadow: 0 0 20px rgba(109,200,57,0.9); position: fixed; bottom: 20px; right: 20px; z-index: 1000; border-radius: 50px; padding: 0.75rem 1rem; font-size: 1.2rem; background: var(--gradient-1); color: white; cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; }
+        @keyframes pulseAI { 0% { transform: scale(1); box-shadow: 0 0 12px rgba(109,200,57,0.5); } 50% { transform: scale(1.2); box-shadow: 0 0 26px rgba(109,200,57,0.9); } 100% { transform: scale(1); box-shadow: 0 0 12px rgba(109,200,57,0.5); } }
+        
+        /* AI Sidebar Menu - Inside AI Page */
+        .ai-sidebar-menu { position: absolute; top: 70px; left: 20px; z-index: 10000; transform: translateY(20px); opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .ai-sidebar-menu.show { transform: translateY(0); opacity: 1; visibility: visible; }
+        .ai-sidebar-dropdown { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); overflow: hidden; min-width: 280px; }
+        .ai-sidebar-header { background: var(--gradient-1); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+        .ai-sidebar-item { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border: none; background: none; width: 100%; text-align: left; cursor: pointer; transition: all 0.3s; border-bottom: 1px solid rgba(0,0,0,0.05); color: #1e293b; font-weight: 500; }
+        .ai-sidebar-item:hover { background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%); padding-left: 22px; }
+        .ai-sidebar-item:last-child { border-bottom: none; }
+        .ai-sidebar-item i { width: 24px; text-align: center; color: var(--primary); }
+        .ai-sidebar-item .badge { margin-left: auto; background: var(--gold-gradient); color: #1a1a1a; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+        
+        .ai-chat-widget { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0.85) 100%), url('images/icon-192.png'); background-size: cover; background-position: center; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 9999; display: none; flex-direction: column; box-shadow: inset 0 0 100px rgba(99, 102, 241, 0.1); }
+        .ai-chat-widget.show { display: flex; }
+        .ai-chat-header { background: var(--gradient-1); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+.ai-chat-messages { flex: 1; padding: 20px; overflow-y: auto; max-height: calc(100vh - 180px); display: flex; flex-direction: column; gap: 12px; }
+        .ai-message { background: rgba(99, 102, 241, 0.1); padding: 12px 16px; border-radius: 16px 16px 16px 4px; max-width: 85%; font-size: 14px; }
+        .user-message { background: var(--primary); color: white; padding: 12px 16px; border-radius: 16px 16px 4px 16px; max-width: 85%; margin-left: auto; font-size: 14px; }
+        /* AI Chart Card with Neon Effects */
+        .ai-chart-card { position: fixed; bottom: 20px; left: 20px; width: 320px; background: linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.95) 100%); border-radius: 20px; padding: 20px; box-shadow: 0 0 30px rgba(99,102,241,0.3), 0 0 60px rgba(139,92,246,0.2), 0 10px 40px rgba(0,0,0,0.4); border: 1px solid rgba(139,92,246,0.5); z-index: 9998; animation: floatChart 4s ease-in-out infinite; display: none; }
+        .ai-chart-card.show { display: block; }
+        .ai-chart-card::before { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #8b5cf6, #06b6d4, #8b5cf6); border-radius: 0 0 20px 20px; animation: neonPulse 2s ease-in-out infinite; }
+        @keyframes floatChart { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes neonPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 20px #8b5cf6, 0 0 40px #06b6d4; } 50% { opacity: 0.7; box-shadow: 0 0 10px #8b5cf6, 0 0 20px #06b6d4; } }
+        .ai-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(139,92,246,0.3); }
+        .ai-chart-title { color: white; font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        .ai-chart-title i { background: linear-gradient(135deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .ai-chart-close { background: rgba(239,68,68,0.2); border: none; color: #ef4444; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
+        .ai-chart-close:hover { background: #ef4444; color: white; transform: rotate(90deg); }
+        .ai-chart-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .ai-chart-stat { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 12px; text-align: center; transition: all 0.3s; }
+        .ai-chart-stat:hover { background: rgba(139,92,246,0.25); transform: scale(1.02); }
+        .ai-chart-stat-value { font-size: 20px; font-weight: 700; color: #8b5cf6; text-shadow: 0 0 10px rgba(139,92,246,0.5); }
+        .ai-chart-stat-label { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+        .ai-chart-mini-graph { height: 60px; background: rgba(6,182,212,0.1); border-radius: 10px; margin-bottom: 16px; position: relative; overflow: hidden; }
+        .ai-chart-mini-graph::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background: linear-gradient(to top, rgba(6,182,212,0.3), transparent); clip-path: polygon(0 100%, 10% 70%, 20% 80%, 30% 50%, 40% 60%, 50% 30%, 60% 40%, 70% 20%, 80% 35%, 90% 15%, 100% 10%, 100% 100%); animation: graphWave 3s ease-in-out infinite; }
+        @keyframes graphWave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        
+        /* Quick Chart Bubble Buttons */
+        .ai-quick-bubbles { display: flex; gap: 8px; flex-wrap: wrap; }
+        .ai-quick-bubble { background: linear-gradient(135deg, rgba(139,92,246,0.3) 0%, rgba(6,182,212,0.3) 100%); border: 1px solid rgba(139,92,246,0.5); border-radius: 20px; padding: 8px 14px; color: white; font-size: 12px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 6px; animation: bubbleFloat 3s ease-in-out infinite; }
+        .ai-quick-bubble:nth-child(1) { animation-delay: 0s; }
+        .ai-quick-bubble:nth-child(2) { animation-delay: 0.5s; }
+        .ai-quick-bubble:nth-child(3) { animation-delay: 1s; }
+        .ai-quick-bubble:nth-child(4) { animation-delay: 1.5s; }
+        @keyframes bubbleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        .ai-quick-bubble:hover { background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); transform: translateY(-3px) scale(1.05); box-shadow: 0 0 20px rgba(139,92,246,0.5); }
+        .ai-quick-bubble i { font-size: 12px; }
+        
+        /* AI Floating Orb */
+        .ai-floating-orb { position: fixed; bottom: 100px; left: 20px; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #06b6d4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9997; box-shadow: 0 0 30px rgba(139,92,246,0.6), 0 0 60px rgba(6,182,212,0.4); animation: orbPulse 2s ease-in-out infinite; }
+        .ai-floating-orb::before { content: ''; position: absolute; inset: -3px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #06b6d4); z-index: -1; animation: orbRing 2s ease-in-out infinite; }
+        @keyframes orbPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes orbRing { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
+        .ai-floating-orb i { color: white; font-size: 20px; }
+        
+        .ai-chat-input { padding: 16px; border-top: 1px solid rgba(0,0,0,0.1); display: flex; gap: 8px; }
+        .ai-chat-input input { flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px; outline: none; }
+        .ai-chat-input input:focus { border-color: var(--primary); }
+        .ai-chat-input button { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 12px 16px; cursor: pointer; }
+        .voice-btn { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; border: none; cursor: pointer; }
+        .voice-btn-inactive { background: rgba(255, 255, 255, 0.2); color: white; }
+        .voice-btn-active { background: #ef4444; color: white; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .connection-status { position: fixed; top: 80px; right: 20px; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 100; display: flex; align-items: center; gap: 8px; }
+        .connection-status.online { background: rgba(16, 185, 129, 0.9); color: white; }
+        .connection-status.offline { background: rgba(239, 68, 68, 0.9); color: white; }
+        .analytics-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; color: white; }
+        .analytics-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .analytics-card.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .analytics-card.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .stat-value { font-size: 32px; font-weight: bold; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 14px; }
+        .calendar-day:hover { background: rgba(99, 102, 241, 0.1); }
+        .calendar-day.blocked { background: #fee2e2; color: #991b1b; }
+        .calendar-day.available { background: #d1fae5; color: #065f46; }
+        .calendar-day.booked { background: #dbeafe; color: #1e40af; }
+        .calendar-day.today { border: 2px solid var(--primary); }
+        .premium-badge { background: var(--gold-gradient); color: #1a1a1a; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .toast-container { position: fixed; top: 90px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 16px 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.success { background: #10b981; color: white; }
+        .toast.error { background: #ef4444; color: white; }
+        .toast.warning { background: #f59e0b; color: white; }
+        .toast.info { background: #3b82f6; color: white; }
+        .loading-spinner { width: 40px; height: 40px; border: 4px solid rgba(99, 102, 241, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .sidebar { width: 280px; } header { flex-direction: column; } .ai-chat-widget { width: calc(100vw - 40px); right: -10px; } .connection-status { top: 120px; right: 10px; } }
+        @media (min-width: 769px) { #dashboard-view { margin-left: 0; } }
+        
+        /* Glassmorphism Property Builder Styles */
+        .property-builder { max-width: 1200px; margin: 0 auto; }
+        .builder-section { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 20px; margin-bottom: 20px; overflow: hidden; transition: all 0.3s ease; }
+        .builder-section:hover { box-shadow: 0 10px 40px rgba(31, 38, 135, 0.15); }
+        .builder-section-header { padding: 20px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%); transition: all 0.3s; }
+        .builder-section-header:hover { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); }
+        .builder-section-header h3 { font-size: 18px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 12px; }
+        .builder-section-header .section-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .builder-section-content { padding: 24px; display: none; animation: slideDown 0.3s ease; }
+        .builder-section-content.active { display: block; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .section-toggle { width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.5); display: flex; align-items: center; justify-content: center; transition: transform 0.3s; }
+        .builder-section.expanded .section-toggle { transform: rotate(180deg); }
+        
+        /* Drag and Drop Uploader */
+        .drop-zone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px 20px; text-align: center; transition: all 0.3s; cursor: pointer; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%); }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%); transform: scale(1.01); }
+        .drop-zone-icon { font-size: 48px; color: var(--primary); margin-bottom: 16px; }
+        .drop-zone-text { font-size: 16px; color: #64748b; }
+        .drop-zone-text strong { color: var(--primary); }
+        
+        /* Media Preview Grid */
+        .media-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; margin-top: 20px; }
+        .media-preview-item { position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: rgba(255, 255, 255, 0.5); border: 2px solid transparent; transition: all 0.3s; }
+        .media-preview-item:hover { transform: scale(1.05); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .media-preview-item img, .media-preview-item video { width: 100%; height: 100%; object-fit: cover; }
+        .media-preview-item .media-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+        .media-preview-item .media-btn { width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.2s; }
+        .media-btn-delete { background: rgba(239, 68, 68, 0.9); color: white; }
+        .media-btn-delete:hover { background: #ef4444; transform: scale(1.1); }
+        .media-btn-category { background: rgba(99, 102, 241, 0.9); color: white; }
+        .media-btn-category:hover { background: var(--primary); transform: scale(1.1); }
+        .media-preview-item .media-category-badge { position: absolute; bottom: 8px; left: 8px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: rgba(0, 0, 0, 0.7); color: white; }
+        
+        /* Image Category Dropdown */
+        .category-dropdown { position: absolute; top: 100%; left: 0; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); padding: 8px; z-index: 100; display: none; min-width: 140px; }
+        .category-dropdown.show { display: block; animation: fadeIn 0.2s; }
+        .category-dropdown button { display: block; width: 100%; padding: 10px 14px; text-align: left; background: none; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .category-dropdown button:hover { background: rgba(99, 102, 241, 0.1); }
+        .category-dropdown button i { margin-right: 8px; }
+        
+        /* 3D Property Preview Card */
+        .preview-3d-container { perspective: 1200px; margin: 30px auto; max-width: 380px; }
+        .preview-3d-card { position: relative; width: 100%; height: 420px; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
+        .preview-3d-card.flipped { transform: rotateY(180deg); }
+        .preview-3d-front, .preview-3d-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .preview-3d-front { background: white; }
+        .preview-3d-back { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transform: rotateY(180deg); padding: 30px; color: white; display: flex; flex-direction: column; justify-content: center; }
+        .preview-image-container { position: relative; height: 220px; overflow: hidden; }
+        .preview-image-container img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-image-nav { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+        .preview-image-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.3s; }
+        .preview-image-dot.active { background: white; width: 24px; border-radius: 4px; }
+        .preview-content { padding: 20px; }
+        .preview-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1e293b; }
+        .preview-location { color: #64748b; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .preview-features { display: flex; gap: 16px; margin-bottom: 12px; font-size: 13px; color: #475569; }
+        .preview-features span { display: flex; align-items: center; gap: 4px; }
+        .preview-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+        .preview-price { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .preview-price span { font-size: 14px; font-weight: 400; color: #64748b; }
+        .preview-rating { display: flex; align-items: center; gap: 6px; background: #fef3c7; padding: 6px 12px; border-radius: 20px; font-weight: 600; }
+        .preview-flip-hint { position: absolute; bottom: 16px; right: 16px; background: rgba(0,0,0,0.6); color: white; padding: 8px 14px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+        .preview-back-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+        .preview-back-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .preview-stat { text-align: center; }
+        .preview-stat-value { font-size: 32px; font-weight: 700; }
+        .preview-stat-label { font-size: 14px; opacity: 0.9; }
+        
+        /* Upload Progress */
+        .upload-progress { position: fixed; bottom: 20px; right: 20px; background: white; border-radius: 16px; padding: 16px 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 9999; min-width: 280px; display: none; }
+        .upload-progress.show { display: block; animation: slideInRight 0.3s; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .upload-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .upload-progress-title { font-weight: 600; font-size: 14px; }
+        .upload-progress-close { background: none; border: none; cursor: pointer; font-size: 18px; color: #64748b; }
+        .upload-progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+        .upload-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 3px; transition: width 0.3s; }
+        
+        /* Amenities & Services Tags */
+        .amenity-tag, .service-tag { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(255, 255, 255, 0.6); border: 2px solid transparent; border-radius: 12px; cursor: pointer; transition: all 0.3s; font-size: 14px; }
+        .amenity-tag:hover, .service-tag:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--primary); }
+        .amenity-tag.selected, .service-tag.selected { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); border-color: var(--primary); }
+        .amenity-tag i, .service-tag i { color: var(--primary); }
+        
+        /* Advertise Property Panel */
+        .advertise-panel { position: fixed; top: 0; right: -500px; width: 500px; max-width: 100vw; height: 100vh; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); z-index: 1001; transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; box-shadow: -20px 0 60px rgba(0,0,0,0.5); }
+        .advertise-panel.open { right: 0; }
+        .advertise-panel-header { padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); z-index: 10; }
+        .advertise-panel-header h2 { color: white; font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+        .advertise-panel-close { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 20px; cursor: pointer; transition: all 0.3s; }
+        .advertise-panel-close:hover { background: rgba(239, 68, 68, 0.8); transform: rotate(90deg); }
+        .advertise-panel-content { padding: 24px; }
+        .advertise-section { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+        .advertise-section h3 { color: white; font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .advertise-section p { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 16px; }
+        
+        /* Live Video Interview */
+        .live-video-preview { aspect-ratio: 16/9; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; position: relative; overflow: hidden; }
+        .live-video-preview video { width: 100%; height: 100%; object-fit: cover; }
+        .live-video-preview .video-placeholder { text-align: center; color: white; }
+        .live-video-preview .video-placeholder i { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+        .live-controls { display: flex; gap: 12px; justify-content: center; }
+        .live-control-btn { width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+        .live-control-start { background: #ef4444; color: white; }
+        .live-control-start:hover { transform: scale(1.1); box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
+        .live-control-stop { background: #64748b; color: white; }
+        .live-control-camera { background: var(--primary); color: white; }
+        
+        /* Backdrop */
+        .advertise-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: all 0.3s; z-index: 1000; }
+        .advertise-backdrop.show { opacity: 1; visibility: visible; }
+        
+        /* Form Inputs */
+        .glass-input { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.8); }
+        .glass-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
+        .glass-select { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.8); cursor: pointer; }
+        .glass-select:focus { outline: none; border-color: var(--primary); }
+        
+        /* Section Icons */
+        .icon-details { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .icon-type { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .icon-compound { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .icon-rooms { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
+        .icon-amenities { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+        .icon-services { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #1e293b; }
+        .icon-preview { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .icon-advertise { background: linear-gradient(135deg, #fbbf24 0%, #16FFBD 50%, #10b981 100%); color: #1a1a1a; }
+        
+        /* Auto-detect badge */
+        .auto-detect-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); color: #059669; border-radius: 20px; font-size: 12px; font-weight: 600; margin-left: 12px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        /* Property Builder Styles */
+        .property-builder { max-width: 1200px; margin: 0 auto; }
+        .builder-section { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 20px; margin-bottom: 20px; overflow: hidden; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(31, 38, 135, 0.1); }
+        .builder-section:hover { box-shadow: 0 8px 30px rgba(31, 38, 135, 0.15); transform: translateY(-2px); }
+        .builder-section.expanded { border-color: rgba(99, 102, 241, 0.3); }
+        .builder-section-header { padding: 20px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%); transition: all 0.3s; border-bottom: 1px solid rgba(255,255,255,0.3); }
+        .builder-section-header:hover { background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%); }
+        .builder-section-header h3 { font-size: 18px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 12px; margin: 0; }
+        .builder-section-header .section-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .builder-section-content { padding: 24px; display: none; animation: slideDown 0.4s ease; }
+        .builder-section-content.active { display: block; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+        .section-toggle { width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 255, 255, 0.6); display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0; border: none; cursor: pointer; }
+        .section-toggle:hover { background: rgba(255, 255, 255, 0.9); transform: scale(1.1); }
+        .builder-section.expanded .section-toggle { transform: rotate(180deg); background: var(--primary); color: white; }
+        .section-optional-badge { font-size: 11px; padding: 4px 10px; background: rgba(99, 102, 241, 0.15); color: var(--primary); border-radius: 20px; margin-left: 8px; font-weight: 500; }
+        
+        /* Form Inputs */
+        .builder-input { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.9); font-family: inherit; }
+        .builder-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); background: white; }
+        .builder-input::placeholder { color: #94a3b8; }
+        .builder-select { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.9); cursor: pointer; font-family: inherit; }
+        .builder-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
+        .builder-textarea { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.9); font-family: inherit; resize: vertical; min-height: 100px; }
+        .builder-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); background: white; }
+        
+        /* Drag and Drop Uploader */
+        .drop-zone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px 20px; text-align: center; transition: all 0.3s; cursor: pointer; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%); position: relative; overflow: hidden; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.12) 100%); transform: scale(1.01); }
+        .drop-zone.dragover { border-style: solid; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); }
+        .drop-zone-icon { font-size: 52px; color: var(--primary); margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .drop-zone-text { font-size: 16px; color: #64748b; line-height: 1.6; }
+        .drop-zone-text strong { color: var(--primary); font-weight: 600; }
+        .drop-zone-hint { font-size: 13px; color: #94a3b8; margin-top: 8px; }
+        
+        /* Media Preview Grid */
+        .media-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
+        .media-preview-item { position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: rgba(255, 255, 255, 0.5); border: 3px solid transparent; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .media-preview-item:hover { transform: scale(1.05) rotate(1deg); box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
+        .media-preview-item img, .media-preview-item video { width: 100%; height: 100%; object-fit: cover; }
+        .media-preview-item .media-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.3s; }
+        .media-preview-item:hover .media-actions { opacity: 1; }
+        .media-preview-item .media-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .media-btn-delete { background: rgba(239, 68, 68, 0.95); color: white; }
+        .media-btn-delete:hover { background: #ef4444; transform: scale(1.15); }
+        .media-btn-category { background: rgba(99, 102, 241, 0.95); color: white; }
+        .media-btn-category:hover { background: var(--primary); transform: scale(1.15); }
+        .media-preview-item .media-category-badge { position: absolute; bottom: 8px; left: 8px; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: rgba(0, 0, 0, 0.75); color: white; backdrop-filter: blur(4px); display: flex; align-items: center; gap: 4px; }
+        
+        /* Image Category Dropdown */
+        .category-dropdown { position: absolute; top: 100%; left: 0; background: white; border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); padding: 8px; z-index: 100; display: none; min-width: 150px; animation: fadeIn 0.2s; }
+        .category-dropdown.show { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .category-dropdown button { display: flex; align-items: center; width: 100%; padding: 10px 14px; text-align: left; background: none; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; transition: all 0.2s; color: #475569; }
+        .category-dropdown button:hover { background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%); color: var(--primary); }
+        .category-dropdown button i { margin-right: 10px; width: 18px; text-align: center; }
+        .category-dropdown .divider { height: 1px; background: #e2e8f0; margin: 6px 0; }
+        
+        /* 3D Property Preview Card */
+        .preview-3d-container { perspective: 1200px; margin: 30px auto; max-width: 380px; }
+        .preview-3d-card { position: relative; width: 100%; height: 440px; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
+        .preview-3d-card.flipped { transform: rotateY(180deg); }
+        .preview-3d-front, .preview-3d-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+        .preview-3d-front { background: white; }
+        .preview-3d-back { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transform: rotateY(180deg); padding: 30px; color: white; display: flex; flex-direction: column; justify-content: center; }
+        .preview-image-container { position: relative; height: 220px; overflow: hidden; }
+        .preview-image-container img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .preview-3d-card:hover .preview-image-container img { transform: scale(1.05); }
+        .preview-image-nav { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+        .preview-image-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.3s; }
+        .preview-image-dot.active { background: white; width: 24px; border-radius: 4px; }
+        .preview-content { padding: 20px; }
+        .preview-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1e293b; line-height: 1.3; }
+        .preview-location { color: #64748b; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .preview-features { display: flex; gap: 16px; margin-bottom: 12px; font-size: 13px; color: #475569; flex-wrap: wrap; }
+        .preview-features span { display: flex; align-items: center; gap: 4px; }
+        .preview-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+        .preview-price { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .preview-price span { font-size: 14px; font-weight: 400; color: #64748b; }
+        .preview-rating { display: flex; align-items: center; gap: 6px; background: #fef3c7; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 13px; }
+        .preview-flip-hint { position: absolute; bottom: 16px; right: 16px; background: rgba(0,0,0,0.6); color: white; padding: 8px 14px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(4px); }
+        .preview-back-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center; }
+        .preview-back-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .preview-stat { text-align: center; padding: 16px; background: rgba(255,255,255,0.15); border-radius: 16px; }
+        .preview-stat-value { font-size: 32px; font-weight: 700; }
+        .preview-stat-label { font-size: 14px; opacity: 0.9; }
+        
+        /* Amenities & Services Tags */
+        .amenity-grid, .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+        .amenity-tag, .service-tag { display: inline-flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(255, 255, 255, 0.6); border: 2px solid transparent; border-radius: 14px; cursor: pointer; transition: all 0.3s; font-size: 14px; font-weight: 500; color: #475569; }
+        .amenity-tag:hover, .service-tag:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--primary); transform: translateY(-2px); }
+        .amenity-tag.selected, .service-tag.selected { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); border-color: var(--primary); color: var(--primary); }
+        .amenity-tag i, .service-tag i { color: var(--primary); font-size: 16px; }
+        
+        /* Upload Progress */
+        .upload-progress { position: fixed; bottom: 24px; right: 24px; background: white; border-radius: 18px; padding: 18px 22px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); z-index: 9999; min-width: 300px; display: none; }
+        .upload-progress.show { display: block; animation: slideInRight 0.3s; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .upload-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .upload-progress-title { font-weight: 600; font-size: 14px; color: #1e293b; }
+        .upload-progress-close { background: none; border: none; cursor: pointer; font-size: 20px; color: #64748b; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .upload-progress-close:hover { background: #f1f5f9; color: #ef4444; }
+        .upload-progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .upload-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 4px; transition: width 0.3s; }
+        
+        /* Property Type Cards */
+        .property-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+        .property-type-card { padding: 20px; background: rgba(255, 255, 255, 0.6); border: 2px solid transparent; border-radius: 16px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .property-type-card:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--primary); transform: translateY(-3px); }
+        .property-type-card.selected { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); border-color: var(--primary); }
+        .property-type-card i { font-size: 32px; color: var(--primary); margin-bottom: 10px; }
+        .property-type-card span { font-weight: 500; color: #475569; }
+        
+        /* Section Icons */
+        .icon-details { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .icon-type { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .icon-compound { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .icon-rooms { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
+        .icon-amenities { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+        .icon-services { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #1e293b; }
+        .icon-preview { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        
+        /* Auto-detect badge */
+        .auto-detect-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); color: #059669; border-radius: 20px; font-size: 12px; font-weight: 600; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        /* Empty State */
+        .empty-media-state { text-align: center; padding: 30px; color: #94a3b8; }
+        .empty-media-state i { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+    </div>
+    <div id="connectionStatus" class="connection-status online">
+        <span class="status-dot"></span>
+        <span id="connectionText">Connected</span>
+    </div>
+    <div id="toastContainer" class="toast-container"></div>
+    <header class="w-full flex items-center justify-between px-6 py-4 glass fixed top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-4">
+            <button id="menuBtn" onclick="toggleSidebar()" class="text-2xl bg-white/20 px-3 py-2 rounded-xl">☰</button>
+            <h1 class="font-bold text-xl text-gray-800">Airbnb Host Dashboard</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="handleSidebarAction('Messages')" class="glass px-4 py-2 rounded-xl hover:bg-white/20 hidden md:block">Messages</button>
+            <button onclick="handleSidebarAction('Payments')" class="glass px-4 py-2 rounded-xl hover:bg-white/20 hidden md:block">Earnings</button>
+            <button onclick="handleSidebarAction('Inbox')" class="glass px-4 py-2 rounded-xl hover:bg-white/20 hidden md:block">Inbox</button>
+            <button onclick="openPremiumModal()" class="premium-badge"><i class="fas fa-crown mr-1"></i>Premium</button>
+            <div class="relative z-50">
+                <button id="profileBtn" onclick="toggleProfileMenu()" class="glass px-4 py-2 rounded-xl hover:bg-white/20">
+                    <i class="fas fa-user-circle mr-2"></i>Host ▼
+                </button>
+                <div id="profileMenu" class="hidden absolute right-0 mt-2 w-48 glass p-3 rounded-xl shadow-lg z-50 bg-white/90">
+                    <button onclick="handleSidebarAction('Profile')" class="block w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-user mr-2"></i>Profile</button>
+                    <button onclick="handleSidebarAction('Settings')" class="block w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-cog mr-2"></i>Settings</button>
+                    <button onclick="toggleTheme()" class="block w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-moon mr-2"></i>Dark Mode</button>
+                    <button onclick="handleSidebarAction('Logout')" class="block w-full text-left p-2 rounded hover:bg-red-50 text-red-600"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div id="sidebar" class="sidebar">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="font-bold text-lg text-white"><i class="fas fa-bars mr-2"></i>Host Menu</h2>
+            <button onclick="closeSidebar(); event.stopPropagation();" class="bg-red-500 text-white w-10 h-10 rounded-full flex items-center justify-center text-xl hover:bg-red-600 transition-colors">×</button>
+        </div>
+        <button onclick="handleSidebarAction('Dashboard')" class="sidebar-item"><i class="fas fa-home mr-2 w-6"></i>Dashboard</button>
+        <button onclick="handleSidebarAction('Add Property')" class="sidebar-item"><i class="fas fa-plus mr-2 w-6"></i>Add Property</button>
+        <button onclick="handleSidebarAction('Manage Listings')" class="sidebar-item"><i class="fas fa-list mr-2 w-6"></i>Manage Listings</button>
+        <button onclick="handleSidebarAction('Calendar')" class="sidebar-item"><i class="fas fa-calendar-alt mr-2 w-6"></i>Calendar</button>
+        <button onclick="handleSidebarAction('Bookings')" class="sidebar-item"><i class="fas fa-book mr-2 w-6"></i>Bookings</button>
+        <button onclick="handleSidebarAction('Pricing Tools')" class="sidebar-item"><i class="fas fa-tag mr-2 w-6"></i>Pricing Tools</button>
+        <button onclick="handleSidebarAction('Payments')" class="sidebar-item"><i class="fas fa-credit-card mr-2 w-6"></i>Payments & Payouts</button>
+        <button onclick="handleSidebarAction('Reviews')" class="sidebar-item"><i class="fas fa-star mr-2 w-6"></i>Reviews</button>
+        <button onclick="handleSidebarAction('Analytics')" class="sidebar-item"><i class="fas fa-chart-line mr-2 w-6"></i>Analytics</button>
+        <button onclick="handleSidebarAction('AI Dashboard')" class="sidebar-item" style="background: linear-gradient(135deg, #8b5cf6, #06b6d4);"><i class="fas fa-robot mr-2 w-6"></i>AI Dashboard</button>
+        <button onclick="handleSidebarAction('Messages')" class="sidebar-item"><i class="fas fa-comments mr-2 w-6"></i>Messages</button>
+        <button onclick="handleSidebarAction('Contact Admin')" class="sidebar-item"><i class="fas fa-phone mr-2 w-6"></i>Contact Admin</button>
+        <button onclick="openAdvertisePanel()" class="sidebar-item" style="background: linear-gradient(135deg, #fbbf24 0%, #16FFBD 50%, #10b981 100%); color: #1a1a1a;"><i class="fas fa-bullhorn mr-2 w-6"></i>Advertise Property</button>
+        <div class="h-px bg-white/20 my-4"></div>
+        <button onclick="openPremiumModal()" class="sidebar-item" style="background: var(--gold-gradient); color: #1a1a1a;"><i class="fas fa-crown mr-2"></i>Go Premium</button>
+        <button onclick="handleSidebarAction('Logout')" class="sidebar-item text-red-400"><i class="fas fa-sign-out-alt mr-2 w-6"></i>Logout</button>
+    </div>
+    <div id="sidebarBackdrop" onclick="closeSidebar()" class="sidebar-backdrop"></div>
+    <div id="dashboard-view" class="pt-24 px-6 pb-6 relative z-10">
+        <div class="mb-8 dashboard-section animate-fade-in-up">
+            <h1 id="welcome-header" class="text-3xl font-bold text-gray-800 mb-2">Welcome back, Host!</h1>
+            <p class="text-gray-600">Manage your properties and grow your business</p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 dashboard-section animate-fade-in-up delay-100">
+            <div class="glass p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-blue-600" id="statProperties">0</div>
+                <div class="text-sm text-gray-600">Properties</div>
+            </div>
+            <div class="glass p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-green-600" id="statBookings">0</div>
+                <div class="text-sm text-gray-600">Bookings</div>
+            </div>
+            <div class="glass p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-purple-600" id="statRevenue">KSh 0</div>
+                <div class="text-sm text-gray-600">Revenue</div>
+            </div>
+            <div class="glass p-4 rounded-xl text-center">
+                <div class="text-2xl font-bold text-yellow-600" id="statRating">0.0</div>
+                <div class="text-sm text-gray-600">Avg Rating</div>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 dashboard-section animate-fade-in-up delay-200">
+            <button class="glass p-4 float-3d text-left" onclick="addNewProperty()">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white"><i class="fas fa-plus"></i></div>
+                    <div><h3 class="font-semibold">Add Property</h3><p class="text-xs text-gray-600">Create listing</p></div>
+                </div>
+            </button>
+            <button class="glass p-4 float-3d text-left" onclick="viewBookings()">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white"><i class="fas fa-calendar"></i></div>
+                    <div><h3 class="font-semibold">Bookings</h3><p class="text-xs text-gray-600">View all</p></div>
+                </div>
+            </button>
+            <button class="glass p-4 float-3d text-left" onclick="handleSidebarAction('Analytics')">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center text-white"><i class="fas fa-chart-line"></i></div>
+                    <div><h3 class="font-semibold">Analytics</h3><p class="text-xs text-gray-600">Insights</p></div>
+                </div>
+            </button>
+            <button class="glass p-4 float-3d text-left" onclick="handleSidebarAction('Payments')">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center text-white"><i class="fas fa-wallet"></i></div>
+                    <div><h3 class="font-semibold">Payouts</h3><p class="text-xs text-gray-600">Earnings</p></div>
+                </div>
+            </button>
+        </div>
+        <div class="glass p-6 mb-8 dashboard-section animate-fade-in-up delay-300">
+            <h2 class="text-xl font-bold mb-4"><i class="fas fa-building mr-2"></i>Your Properties</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="propertyGrid">
+                <div class="col-span-full text-center py-8"><div class="loading-spinner mx-auto mb-4"></div></div>
+            </div>
+        </div>
+        <button class="ai-float" onclick="toggleAIChat()"><i class="fas fa-robot"></i> AI Assistant</button>
+    </div>
+    <div id="dynamic-view" class="hidden max-w-7xl mx-auto pt-24 px-6 min-h-screen"></div>
+    <!-- AI Chat Widget -->
+    <div id="aiChatWidget" class="ai-chat-widget">
+        <div class="ai-chat-header">
+            <div class="flex items-center gap-2"><i class="fas fa-robot"></i><span class="font-semibold">AI Assistant</span></div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleAISidebar()" id="menuAIBtn" class="text-white hover:text-gray-200" title="Menu"><i class="fas fa-bars"></i></button>
+                <button onclick="toggleVoiceAI()" id="voiceAIBtn" class="voice-btn voice-btn-inactive" title="Voice"><i class="fas fa-microphone"></i></button>
+                <button onclick="toggleAIChat()" class="text-white hover:text-gray-200"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="ai-chat-messages" id="aiChatMessages">
+            <div class="ai-message">
+                <p class="font-semibold text-purple-600 mb-1">🤖 ViewOnce AI</p>
+                <p>Hello! I'm your intelligent AI assistant. I can help you with:</p>
+                <ul class="mt-2 ml-4 text-sm">
+                    <li>📊 Analytics & insights with real data</li>
+                    <li>💰 Revenue & earnings calculations</li>
+                    <li>📅 Booking management</li>
+                    <li>🏠 Property performance</li>
+                    <li>⚡ Automation & recommendations</li>
+                </ul>
+            </div>
+        </div>
+        <div class="ai-chat-input">
+            <input type="text" id="aiChatInput" placeholder="Ask me anything..." onkeypress="handleAIEnter(event)">
+            <button onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    
+    <!-- AI Sidebar Dropdown Menu -->
+    <div id="aiSidebarMenu" class="ai-sidebar-menu">
+        <div class="ai-sidebar-dropdown">
+            <div class="ai-sidebar-header">
+                <span class="font-semibold">📊 AI Tools</span>
+                <button onclick="toggleAISidebar()" class="text-white hover:text-gray-200 text-xl">×</button>
+            </div>
+            <button onclick="handleAIAction('startChart')" class="ai-sidebar-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Start Chart</span>
+            </button>
+            <button onclick="handleAIAction('recentChart')" class="ai-sidebar-item">
+                <i class="fas fa-clock"></i>
+                <span>Recent Chart</span>
+            </button>
+            <button onclick="handleAIAction('chartHistory')" class="ai-sidebar-item">
+                <i class="fas fa-history"></i>
+                <span>Chart History</span>
+            </button>
+            <button onclick="handleAIAction('automation')" class="ai-sidebar-item">
+                <i class="fas fa-robot"></i>
+                <span>Automation</span>
+                <span class="badge">PRO</span>
+            </button>
+            <button onclick="handleAIAction('analytics')" class="ai-sidebar-item">
+                <i class="fas fa-chart-pie"></i>
+                <span>Analytics</span>
+            </button>
+            <div class="h-px bg-gray-200 my-2"></div>
+            <button onclick="handleAIAction('dashboard')" class="ai-sidebar-item">
+                <i class="fas fa-home"></i>
+                <span>Go to Dashboard</span>
+            </button>
+            <button onclick="handleAIAction('bookings')" class="ai-sidebar-item">
+                <i class="fas fa-calendar-check"></i>
+                <span>View Bookings</span>
+            </button>
+            <button onclick="handleAIAction('payments')" class="ai-sidebar-item">
+                <i class="fas fa-wallet"></i>
+                <span>Payments & Payouts</span>
+            </button>
+            <button onclick="handleAIAction('properties')" class="ai-sidebar-item">
+                <i class="fas fa-building"></i>
+                <span>My Properties</span>
+            </button>
+            <button onclick="handleAIAction('reviews')" class="ai-sidebar-item">
+                <i class="fas fa-star"></i>
+                <span>Reviews</span>
+            </button>
+            <button onclick="handleAIAction('messages')" class="ai-sidebar-item">
+                <i class="fas fa-comments"></i>
+                <span>Messages</span>
+            </button>
+        </div>
+    </div>
+    <div id="premiumModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-heavy p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-yellow-600"><i class="fas fa-crown mr-2"></i>Premium</h2>
+                <button onclick="closePremiumModal()" class="text-2xl">×</button>
+            </div>
+            <div class="mb-4">
+                <div class="p-3 rounded-xl bg-green-50 mb-2 text-green-700"><i class="fas fa-microphone mr-2"></i>Voice Assistant</div>
+                <div class="p-3 rounded-xl bg-yellow-50 mb-2 text-yellow-700"><i class="fas fa-bolt mr-2"></i>Priority Support</div>
+                <div class="p-3 rounded-xl bg-blue-50 mb-2 text-blue-700"><i class="fas fa-chart-line mr-2"></i>Advanced Analytics</div>
+            </div>
+            <div class="text-center mb-4">
+                <p class="text-4xl font-bold text-yellow-600">KSh 2,500<span class="text-xl text-gray-500">/month</span></p>
+            </div>
+            <div class="space-y-3">
+                <button onclick="processMpesaPayment()" class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-green-500 text-white hover:bg-green-600"><i class="fas fa-mobile-alt text-xl"></i> M-Pesa (STK Push)</button>
+                <button onclick="processCardPayment()" class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-blue-500 text-white hover:bg-blue-600"><i class="fas fa-credit-card text-xl"></i> Credit/Debit Card</button>
+                <button onclick="processBankPayment()" class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-gray-600 text-white hover:bg-gray-700"><i class="fas fa-university text-xl"></i> Bank Transfer</button>
+            </div>
+            <button onclick="closePremiumModal()" class="w-full mt-4 bg-gray-300 py-3 rounded-xl font-bold">Cancel</button>
+        </div>
+    </div>
+    <div id="editModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-heavy p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">Edit Property</h3><button onclick="closeEditModal()" class="text-2xl">×</button></div>
+            <div id="editModalContent"></div>
+        </div>
+    </div>
+    <div id="bookingsModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-heavy p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">Property Bookings</h3><button onclick="closeBookingsModal()" class="text-2xl">×</button></div>
+            <div id="bookingsModalContent"></div>
+        </div>
+    </div>
+    <div id="analyticsModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-heavy p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">Analytics</h3><button onclick="closeAnalyticsModal()" class="text-2xl">×</button></div>
+            <div id="analyticsModalContent"></div>
+        </div>
+    </div>
+    
+    <!-- Advertise Property Panel -->
+    <div id="advertiseBackdrop" onclick="closeAdvertisePanel()" class="advertise-backdrop"></div>
+    <div id="advertisePanel" class="advertise-panel">
+        <div class="advertise-panel-header">
+            <h2><i class="fas fa-bullhorn"></i> Advertise Property</h2>
+            <button onclick="closeAdvertisePanel()" class="advertise-panel-close">×</button>
+        </div>
+        <div class="advertise-panel-content">
+            <div class="advertise-section">
+                <h3><i class="fas fa-images"></i> Promotional Media</h3>
+                <p>Upload promotional images and videos to showcase your property.</p>
+                <div class="drop-zone" id="advertiseDropZone">
+                    <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <div class="drop-zone-text">Drag & drop images/videos here<br>or <strong>click to browse</strong></div>
+                </div>
+                <input type="file" id="advertiseMediaInput" multiple accept="image/*,video/*" style="display: none;">
+                <div class="media-preview-grid" id="advertiseMediaPreview"></div>
+            </div>
+            
+            <div class="advertise-section">
+                <h3><i class="fas fa-video"></i> Live Video Review Interview</h3>
+                <p>Record a live video interview with guests to create testimonials.</p>
+                <div class="live-video-preview" id="liveVideoPreview">
+                    <div class="video-placeholder">
+                        <i class="fas fa-video-camera"></i>
+                        <p>Click to start recording</p>
+                    </div>
+                    <video id="liveVideoElement" autoplay muted style="display: none;"></video>
+                </div>
+                <div class="live-controls">
+                    <button class="live-control-btn live-control-camera" onclick="toggleCamera()" title="Camera"><i class="fas fa-camera"></i></button>
+                    <button class="live-control-btn live-control-start" onclick="startRecording()" title="Start Recording"><i class="fas fa-circle"></i></button>
+                    <button class="live-control-btn live-control-stop" onclick="stopRecording()" title="Stop Recording" style="display: none;"><i class="fas fa-stop"></i></button>
+                </div>
+            </div>
+            
+            <div class="advertise-section">
+                <h3><i class="fas fa-bullseye"></i> Advertising Options</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-white/10 cursor-pointer">
+                        <input type="radio" name="adPackage" value="basic" checked class="w-5 h-5">
+                        <div>
+                            <div class="font-semibold text-white">Basic Package</div>
+                            <div class="text-sm text-white/60">KSh 500/week - Featured in search</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-white/10 cursor-pointer">
+                        <input type="radio" name="adPackage" value="premium" class="w-5 h-5">
+                        <div>
+                            <div class="font-semibold text-white">Premium Package</div>
+                            <div class="text-sm text-white/60">KSh 1,500/week - Home page banner + Featured</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-xl bg-white/10 cursor-pointer">
+                        <input type="radio" name="adPackage" value="elite" class="w-5 h-5">
+                        <div>
+                            <div class="font-semibold text-white">Elite Package</div>
+                            <div class="text-sm text-white/60">KSh 3,000/week - All features + AI promotion</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <button onclick="submitAdvertisement()" class="btn-gradient w-full py-4 text-lg"><i class="fas fa-paper-plane mr-2"></i> Submit Advertisement</button>
+        </div>
+    </div>
+    
+    <footer class="mt-12 py-8 text-white"
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 px-6">
+            <div><h3 class="font-bold mb-2">Company</h3><ul class="text-sm opacity-80"><li>About Us</li><li>Careers</li></ul></div>
+            <div><h3 class="font-bold mb-2">Support</h3><ul class="text-sm opacity-80"><li>Help Center</li><li>Contact</li></ul></div>
+            <div><h3 class="font-bold mb-2">Legal</h3><ul class="text-sm opacity-80"><li>Terms</li><li>Privacy</li></ul></div>
+            <div><h3 class="font-bold mb-2">Follow Us</h3><ul class="flex gap-2"><li><i class="fab fa-twitter"></i></li><li><i class="fab fa-facebook"></i></li><li><i class="fab fa-instagram"></i></li></ul></div>
+        </div>
+        <div class="text-center mt-8 pt-8 border-t border-white/20 text-white/60">© 2024 ViewOnce Airbnb Stays</div>
+    </footer>
+<script>
+    let currentHostId = null;
+    let isDarkMode = false;
+    let isAIChatOpen = false;
+    let isListening = false;
+    let recognition = null;
+    let connectionCheckInterval = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!isLoggedIn) { window.location.href = 'login-signup.html'; return; }
+        if (user.role === 'customer') { window.location.href = 'customer-dashboard.html'; return; }
+        if (user.role === 'admin') { window.location.href = 'admin-dashboard.html'; return; }
+        if (user.role !== 'host') { window.location.href = 'login-signup.html'; return; }
+        currentHostId = user.id;
+        const welcomeHeader = document.getElementById('welcome-header');
+        if (welcomeHeader && user.name) welcomeHeader.textContent = `Welcome back, ${user.name}!`;
+        animateSections();
+        initializeHostDashboard();
+        checkTheme();
+        startConnectionMonitoring();
+    });
+
+    function startConnectionMonitoring() {
+        updateConnectionStatus();
+        connectionCheckInterval = setInterval(() => updateConnectionStatus(), 10000);
+        window.addEventListener('online', () => updateConnectionStatus('online'));
+        window.addEventListener('offline', () => updateConnectionStatus('offline'));
+    }
+
+    function updateConnectionStatus(status) {
+        const statusEl = document.getElementById('connectionStatus');
+        const textEl = document.getElementById('connectionText');
+        if (status === 'online') { statusEl.className = 'connection-status online'; textEl.textContent = 'Connected'; }
+        else if (status === 'offline') { statusEl.className = 'connection-status offline'; textEl.textContent = 'Offline'; }
+        else { if (navigator.onLine) { statusEl.className = 'connection-status online'; textEl.textContent = 'Connected'; } else { statusEl.className = 'connection-status offline'; textEl.textContent = 'Offline'; } }
+    }
+
+    function animateSections() { document.querySelectorAll('.dashboard-section').forEach((section, index) => { setTimeout(() => section.classList.add('visible'), index * 100); }); }
+
+    async function initializeHostDashboard() {
+        try { await loadHostProperties(); await loadStats(); }
+        catch (error) { console.error('Error:', error); showToast('Error loading dashboard', 'error'); }
+    }
+
+    async function loadStats() {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            let properties = [], bookings = [];
+            try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); } catch(e) {}
+            try { const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []); const propertyIds = properties.map(p => p.id); bookings = bookings.filter(b => propertyIds.includes(b.propertyId)); } catch(e) {}
+            const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0);
+            const avgRating = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.rating||0), 0) / properties.length : 0;
+            document.getElementById('statProperties').textContent = properties.length;
+            document.getElementById('statBookings').textContent = bookings.length;
+            document.getElementById('statRevenue').textContent = 'KSh ' + totalRevenue.toLocaleString();
+            document.getElementById('statRating').textContent = avgRating.toFixed(1);
+        } catch (e) { console.error('Error loading stats:', e); }
+    }
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.add('active'); document.getElementById('sidebarBackdrop').classList.add('active'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); document.getElementById('sidebarBackdrop').classList.remove('active'); }
+    function toggleProfileMenu() { document.getElementById('profileMenu').classList.toggle('hidden'); }
+    function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+    function closeBookingsModal() { document.getElementById('bookingsModal').classList.add('hidden'); }
+    function closeAnalyticsModal() { document.getElementById('analyticsModal').classList.add('hidden'); }
+    function closePremiumModal() { document.getElementById('premiumModal').classList.add('hidden'); }
+    document.querySelectorAll('.fixed.inset-0').forEach(modal => { modal.addEventListener('click', function(e) { if (e.target === this) this.classList.add('hidden'); }); });
+
+    async function loadHostProperties(containerId = 'propertyGrid') {
+        const grid = document.getElementById(containerId);
+        if (!grid) return;
+        grid.innerHTML = '<div class="col-span-full text-center py-8"><div class="loading-spinner mx-auto mb-4"></div></div>';
+        try {
+            let user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user.id) { user = { id: '2', name: 'Jane Smith', role: 'host' }; localStorage.setItem('user', JSON.stringify(user)); }
+            const response = await api.getMyProperties();
+            let properties = response || [];
+            if (!Array.isArray(properties)) properties = [];
+            if (properties.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-8"><div class="text-6xl mb-4">🏠</div><h3 class="text-xl font-bold mb-2">No Properties</h3><button onclick="addNewProperty()" class="btn-gradient">Add Property</button></div>'; return; }
+            grid.innerHTML = '';
+            properties.forEach((prop, index) => { const card = createPropertyCard(prop, index); grid.appendChild(card); });
+        } catch (error) { console.error('Error:', error); grid.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">Error loading</div>'; }
+    }
+
+    function createPropertyCard(prop, index) {
+        const card = document.createElement('div');
+        card.className = 'card-3d cursor-pointer';
+        const images = (prop.images && prop.images.length > 0) ? prop.images : ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800'];
+        const rating = prop.rating || 0;
+        const price = prop.price || 0;
+        const status = prop.status === 'active';
+        card.innerHTML = `<div class="card-3d-inner bg-white rounded-2xl overflow-hidden"><div class="relative h-48">${images.map((img, i) => `<img src="${img}" class="carousel-img ${i===0?'active':''}" alt="${prop.title}">`).join('')}<div class="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded text-xs font-bold">⭐ ${rating}</div><div class="absolute top-2 left-2 ${status?'bg-green-500':'bg-yellow-500'} text-white px-2 py-1 rounded text-xs font-bold">${status?'Active':'Paused'}</div></div><div class="p-4"><h3 class="font-bold text-lg mb-1">${prop.title}</h3><p class="text-gray-500 text-sm mb-2">📍 ${prop.location || 'Location'}</p><p class="text-purple-600 font-bold mb-3">KSh ${price.toLocaleString()}/night</p><div class="flex gap-2 flex-wrap"><button class="btn-gradient text-xs px-2 py-1 rounded" onclick="editProperty('${prop.id}')"><i class="fas fa-edit"></i> Edit</button><button class="btn-cyan text-xs px-2 py-1 rounded" onclick="viewBookings('${prop.id}')"><i class="fas fa-calendar"></i></button><button class="glass text-xs px-2 py-1 rounded ${status?'text-yellow-600':'text-green-600'}" onclick="toggleListingStatus('${prop.id}','${prop.status}')">${status?'⏸':'▶'}</button><button class="glass text-xs px-2 py-1 rounded text-red-500" onclick="deleteProperty('${prop.id}')"><i class="fas fa-trash"></i></button></div></div></div>`;
+        let currentImg = 0;
+        const imgs = card.querySelectorAll('.carousel-img');
+        if (imgs.length > 1) { setInterval(() => { imgs[currentImg].classList.remove('active'); currentImg = (currentImg + 1) % imgs.length; imgs[currentImg].classList.add('active'); }, 3000); }
+        return card;
+    }
+
+    function handleSidebarAction(action) {
+        closeSidebar();
+        document.getElementById('profileMenu').classList.add('hidden');
+        const dashView = document.getElementById('dashboard-view');
+        const dynView = document.getElementById('dynamic-view');
+        const showDash = () => { dashView.classList.remove('hidden'); dynView.classList.add('hidden'); };
+        const showDyn = () => { dashView.classList.add('hidden'); dynView.classList.remove('hidden'); dynView.innerHTML = ''; };
+        switch (action) {
+            case 'Dashboard': showDash(); loadHostProperties(); loadStats(); break;
+            case 'Add Property': showDyn(); renderAddPropertyView(dynView); break;
+            case 'Manage Listings': showDyn(); renderManageListingsView(dynView); break;
+            case 'Calendar': showDyn(); renderCalendarView(dynView); break;
+            case 'Bookings': showDyn(); renderBookingsView(dynView); break;
+            case 'Pricing Tools': showDyn(); renderPricingView(dynView); break;
+            case 'Payments': showDyn(); renderPaymentsView(dynView); break;
+            case 'Reviews': showDyn(); renderReviewsView(dynView); break;
+            case 'Analytics': showDyn(); renderAnalyticsView(dynView); break;
+            case 'AI Dashboard': showDyn(); renderAIDashboardView(dynView); break;
+            case 'Messages': showDyn(); renderMessagesView(dynView); break;
+            case 'Contact Admin': showDyn(); renderContactAdminView(dynView); break;
+            case 'Profile': showDyn(); renderProfileView(dynView); break;
+            case 'Settings': showDyn(); renderSettingsView(dynView); break;
+            case 'Logout': handleLogout(); break;
+        }
+    }
+
+    function editProperty(propertyId) {
+        const properties = store.state.properties;
+        const property = properties.find(p => p.id === propertyId);
+        if (!property) { alert('Property not found!'); return; }
+        const modal = document.getElementById('editModal');
+        const content = document.getElementById('editModalContent');
+        content.innerHTML = `<form id="editPropertyForm" class="space-y-4"><div><label class="block text-sm font-medium mb-1">Title</label><input type="text" id="editTitle" value="${property.title}" class="w-full p-3 border rounded-xl" required></div><div><label class="block text-sm font-medium mb-1">Location</label><input type="text" id="editLocation" value="${property.location}" class="w-full p-3 border rounded-xl" required></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium mb-1">Price</label><input type="number" id="editPrice" value="${property.price}" class="w-full p-3 border rounded-xl" required></div><div><label class="block text-sm font-medium mb-1">Rating</label><input type="number" step="0.1" id="editRating" value="${property.rating}" class="w-full p-3 border rounded-xl"></div></div><div><label class="block text-sm font-medium mb-1">Description</label><textarea id="editDescription" rows="3" class="w-full p-3 border rounded-xl">${property.description||''}</textarea></div><div class="flex gap-3 pt-4"><button type="submit" class="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold">Save</button><button type="button" onclick="closeEditModal()" class="flex-1 glass py-3 rounded-xl">Cancel</button></div></form>`;
+        document.getElementById('editPropertyForm').addEventListener('submit', async function(e) { e.preventDefault(); const updated = { title: document.getElementById('editTitle').value, location: document.getElementById('editLocation').value, price: parseInt(document.getElementById('editPrice').value), rating: parseFloat(document.getElementById('editRating').value), description: document.getElementById('editDescription').value }; try { await api.updateProperty(propertyId, updated); closeEditModal(); showToast('Updated!', 'success'); loadHostProperties(); } catch (error) { showToast('Error updating', 'error'); } });
+        modal.classList.remove('hidden');
+    }
+
+    async function toggleListingStatus(propertyId, currentStatus) {
+        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+        try { await api.updateProperty(propertyId, { status: newStatus }); showToast(`Listing ${newStatus==='active'?'activated':'paused'}!`, 'success'); loadHostProperties(); }
+        catch (error) { showToast('Error updating status', 'error'); }
+    }
+
+    async function deleteProperty(propertyId) {
+        if (!confirm('Delete this property?')) return;
+        try { await api.deleteProperty(propertyId); showToast('Deleted!', 'success'); loadHostProperties(); }
+        catch (error) { showToast('Error deleting', 'error'); }
+    }
+
+    // Property Builder State
+    let propertyBuilderData = {
+        title: '',
+        location: '',
+        price: '',
+        type: 'Apartment',
+        maxGuests: '',
+        bedrooms: '',
+        bathrooms: '',
+        description: '',
+        amenities: [],
+        services: [],
+        compoundImages: [],
+        roomImages: []
+    };
+
+    // Image category keywords for auto-detection
+    const imageCategoryKeywords = {
+        bedroom: ['bedroom', 'bed', 'room', 'sleep', 'master', 'guest room', 'bed room'],
+        bathroom: ['bathroom', 'bath', 'toilet', 'shower', 'washroom'],
+        kitchen: ['kitchen', 'kitchenette', 'cooking', 'stove', 'fridge'],
+        balcony: ['balcony', 'terrace', 'patio', 'deck', 'outdoor', 'veranda'],
+        compound: ['compound', 'exterior', 'outside', 'front', 'garden', 'yard', 'parking', 'entrance', 'facade', 'building']
+    };
+
+    // Amenities and Services lists
+    const amenitiesList = [
+        { id: 'wifi', name: 'WiFi', icon: 'fa-wifi' },
+        { id: 'parking', name: 'Free Parking', icon: 'fa-parking' },
+        { id: 'pool', name: 'Swimming Pool', icon: 'fa-swimming-pool' },
+        { id: 'ac', name: 'Air Conditioning', icon: 'fa-snowflake' },
+        { id: 'heating', name: 'Heating', icon: 'fa-fire' },
+        { id: 'kitchen', name: 'Kitchen', icon: 'fa-utensils' },
+        { id: 'washer', name: 'Washing Machine', icon: 'fa-soap' },
+        { id: 'dryer', name: 'Dryer', icon: 'fa-dryer' },
+        { id: 'tv', name: 'TV', icon: 'fa-tv' },
+        { id: 'gym', name: 'Gym', icon: 'fa-dumbbell' },
+        { id: 'security', name: '24/7 Security', icon: 'fa-shield-alt' },
+        { id: 'cleaning', name: 'Daily Cleaning', icon: 'fa-broom' },
+        { id: 'breakfast', name: 'Breakfast', icon: 'fa-coffee' },
+        { id: 'pets', name: 'Pet Friendly', icon: 'fa-paw' },
+        { id: 'smoking', name: 'Smoking Allowed', icon: 'fa-smoking' },
+        { id: 'wheelchair', name: 'Wheelchair Accessible', icon: 'fa-wheelchair' }
+    ];
+
+    const servicesList = [
+        { id: 'airport', name: 'Airport Pickup', icon: 'fa-plane-arrival' },
+        { id: 'car', name: 'Car Rental', icon: 'fa-car' },
+        { id: 'tour', name: 'Tour Guide', icon: 'fa-map' },
+        { id: 'chef', name: 'Private Chef', icon: 'fa-hat-chef' },
+        { id: 'massage', name: 'Massage Service', icon: 'fa-spa' },
+        { id: 'laundry', name: 'Laundry Service', icon: 'fa-tshirt' },
+        { id: 'grocery', name: 'Grocery Delivery', icon: 'fa-shopping-basket' },
+        { id: 'taxi', name: 'Taxi Service', icon: 'fa-taxi' },
+        { id: 'babysitting', name: 'Babysitting', icon: 'fa-baby' },
+        { id: 'reception', name: '24/7 Reception', icon: 'fa-concierge-bell' }
+    ];
+
+    function renderAddPropertyView(container) {
+        container.innerHTML = `
+            <div class="property-builder">
+                <div class="glass p-6 mb-6">
+                    <h2 class="text-2xl font-bold"><i class="fas fa-plus-circle mr-2"></i>Add Property</h2>
+                    <p class="text-gray-600 mt-2">Create your listing with our modern property builder. All sections are optional - you decide what to add!</p>
+                </div>
+
+                <!-- Property Details Section -->
+                <div class="builder-section expanded" id="section-details">
+                    <div class="builder-section-header" onclick="toggleBuilderSection('details')">
+                        <h3><span class="section-icon icon-details"><i class="fas fa-home"></i></span>Property Details <span class="section-optional-badge">Optional</span></h3>
+                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="builder-section-content active" id="content-details">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Property Title</label>
+                                <input type="text" id="title" class="builder-input" placeholder="e.g., Cozy Downtown Apartment" oninput="updatePropertyData('title', this.value); updatePreview();">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Location</label>
+                                <input type="text" id="location" class="builder-input" placeholder="e.g., Nairobi, Kenya" oninput="updatePropertyData('location', this.value); updatePreview();">
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Price per Night (KSh)</label>
+                                <input type="number" id="price" class="builder-input" placeholder="e.g., 5000" oninput="updatePropertyData('price', this.value); updatePreview();">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Max Guests</label>
+                                <input type="number" id="maxGuests" class="builder-input" placeholder="e.g., 4" oninput="updatePropertyData('maxGuests', this.value); updatePreview();">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Rating (0-5)</label>
+                                <input type="number" step="0.1" id="rating" class="builder-input" placeholder="e.g., 4.5" max="5" oninput="updatePropertyData('rating', this.value); updatePreview();">
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Bedrooms</label>
+                                <input type="number" id="bedrooms" class="builder-input" placeholder="e.g., 2" oninput="updatePropertyData('bedrooms', this.value); updatePreview();">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Bathrooms</label>
+                                <input type="number" id="bathrooms" class="builder-input" placeholder="e.g., 1" oninput="updatePropertyData('bathrooms', this.value); updatePreview();">
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium mb-2">Description</label>
+                            <textarea id="description" class="builder-textarea" placeholder="Describe your property..." rows="4" oninput="updatePropertyData('description', this.value);"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property Type Section -->
+                <div class="builder-section" id="section-type">
+                    <div class="builder-section-header" onclick="toggleBuilderSection('type')">
+                        <h3><span class="section-icon icon-type"><i class="fas fa-building"></i></span>Property Type <span class="section-optional-badge">Optional</span></h3>
+                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="builder-section-content" id="content-type">
+                        <div class="property-type-grid">
+                            <div class="property-type-card selected" data-type="Apartment" onclick="selectPropertyType(this)">
+                                <i class="fas fa-building"></i>
+                                <span>Apartment</span>
+                            </div>
+                            <div class="property-type-card" data-type="Villa" onclick="selectPropertyType(this)">
+                                <i class="fas fa-villa"></i>
+                                <span>Villa</span>
+                            </div>
+                            <div class="property-type-card" data-type="House" onclick="selectPropertyType(this)">
+                                <i class="fas fa-home"></i>
+                                <span>House</span>
+                            </div>
+                            <div class="property-type-card" data-type="Studio" onclick="selectPropertyType(this)">
+                                <i class="fas fa-door-open"></i>
+                                <span>Studio</span>
+                            </div>
+                            <div class="property-type-card" data-type="Cottage" onclick="selectPropertyType(this)">
+                                <i class="fas fa-tree"></i>
+                                <span>Cottage</span>
+                            </div>
+                            <div class="property-type-card" data-type="Cabin" onclick="selectPropertyType(this)">
+                                <i class="fas fa-campground"></i>
+                                <span>Cabin</span>
+                            </div>
+                            <div class="property-type-card" data-type="Bungalow" onclick="selectPropertyType(this)">
+                                <i class="fas fa-house-user"></i>
+                                <span>Bungalow</span>
+                            </div>
+                            <div class="property-type-card" data-type="Penthouse" onclick="selectPropertyType(this)">
+                                <i class="fas fa-city"></i>
+                                <span>Penthouse</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compound Images Section -->
+                <div class="builder-section" id="section-compound">
+                    <div class="builder-section-header" onclick="toggleBuilderSection('compound')">
+                        <h3><span class="section-icon icon-compound"><i class="fas fa-image"></i></span>Compound Images <span class="section-optional-badge">Optional</span></h3>
+                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="builder-section-content" id="content-compound">
+                        <div class="drop-zone" id="compoundDropZone" onclick="document.getElementById('compoundFileInput').click()">
+                            <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <div class="drop-zone-text">Drag & drop images/videos here<br>or <strong>click to browse</strong></div>
+                            <div class="drop-zone-hint">Supports: JPG, PNG, GIF, MP4, WebM</div>
+                        </div>
+                        <input type="file" id="compoundFileInput" multiple accept="image/*,video/*" style="display: none;" onchange="handleCompoundUpload(this.files)">
+                        <div class="media-preview-grid" id="compoundMediaPreview"></div>
+                    </div>
+                </div>
+
+                <!-- Room Images Section -->
+                <div class="builder-section" id="section-rooms">
+                    <div class="builder-section-header" onclick="toggleBuilderSection('rooms')">
+                        <h3><span class="section-icon icon-rooms"><i class="fas fa-bed"></i></span>Room Images <span class="section-optional-badge">Optional</span> <span class="auto-detect-badge"><i class="fas fa-magic"></i> Auto-detect</span></h3>
+                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="builder-section-content" id="content-rooms">
+                        <div class="drop-zone" id="roomDropZone" onclick="document.getElementById('roomFileInput').click()">
+                            <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <div class="drop-zone-text">Drag & drop room images here<br>or <strong>click to browse</strong></div>
+                            <div class="drop-zone-hint">We'll auto-detect: Bedroom, Bathroom, Kitchen, Balcony</div>
+                        </div>
+                        <input type="file" id="roomFileInput" multiple accept="image/*" style="display: none;" onchange="handleRoomUpload(this.files)">
+                        <div class="media-preview-grid" id="roomMediaPreview"></div>
+                    </div>
+                </div>
+
+                <!-- Amenities Section -->
+                <div class="builder-section" id="section-amenities">
+                    <div class="builder-section-header" onclick="toggleBuilderSection('amenities')">
+                        <h3><span class="section-icon icon-amenities"><i class="fas fa-list"></i></span>Amenities <span class="section-optional-badge">Optional</span></h3>
+                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="builder-section-content" id="content-amenities">
+                        <div class="amenity-grid">
+                            ${amenitiesList.map(a => `
+                                <div class="amenity-tag" data-id="${a.id}" onclick="toggleAmenity(this)">
+                                    <i class="fas ${a.icon}"></i>
+                                    <span>${a.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Services Section -->
+                <div class="builder-section" id="section-services">
+                    <div class="builder-section-header" onclick="toggleBuilderSection('services')">
+                        <h3><span class="section-icon icon-services"><i class="fas fa-concierge-bell"></i></span>Services <span class="section-optional-badge">Optional</span></h3>
+                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="builder-section-content" id="content-services">
+                        <div class="service-grid">
+                            ${servicesList.map(s => `
+                                <div class="service-tag" data-id="${s.id}" onclick="toggleService(this)">
+                                    <i class="fas ${s.icon}"></i>
+                                    <span>${s.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D Preview Section -->
+                <div class="builder-section" id="section-preview">
+                    <div class="builder-section-header" onclick="toggleBuilderSection('preview')">
+                        <h3><span class="section-icon icon-preview"><i class="fas fa-eye"></i></span>Property Preview <span class="section-optional-badge">Live</span></h3>
+                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="builder-section-content" id="content-preview">
+                        <p class="text-gray-600 mb-4">See how your listing will appear to guests! Click the card to flip.</p>
+                        <div class="preview-3d-container">
+                            <div class="preview-3d-card" onclick="this.classList.toggle('flipped')">
+                                <div class="preview-3d-front">
+                                    <div class="preview-image-container">
+                                        <img id="previewMainImage" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800" alt="Property">
+                                        <div class="preview-image-nav" id="previewImageNav"></div>
+                                    </div>
+                                    <div class="preview-content">
+                                        <h3 class="preview-title" id="previewTitle">Your Property Title</h3>
+                                        <p class="preview-location" id="previewLocation"><i class="fas fa-map-marker-alt"></i> <span>Location</span></p>
+                                        <div class="preview-features" id="previewFeatures">
+                                            <span><i class="fas fa-user"></i> <span id="previewGuests">0</span> guests</span>
+                                            <span><i class="fas fa-bed"></i> <span id="previewBedrooms">0</span> beds</span>
+                                            <span><i class="fas fa-bath"></i> <span id="previewBathrooms">0</span> baths</span>
+                                        </div>
+                                        <div class="preview-price-row">
+                                            <div class="preview-price" id="previewPrice">KSh 0<span>/night</span></div>
+                                            <div class="preview-rating" id="previewRating"><i class="fas fa-star"></i> <span>0.0</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="preview-flip-hint"><i class="fas fa-hand-pointer"></i> Click to flip</div>
+                                </div>
+                                <div class="preview-3d-back">
+                                    <h3 class="preview-back-title">Property Stats</h3>
+                                    <div class="preview-back-stats">
+                                        <div class="preview-stat">
+                                            <div class="preview-stat-value" id="statGuests">0</div>
+                                            <div class="preview-stat-label">Max Guests</div>
+                                        </div>
+                                        <div class="preview-stat">
+                                            <div class="preview-stat-value" id="statRooms">0</div>
+                                            <div class="preview-stat-label">Rooms</div>
+                                        </div>
+                                        <div class="preview-stat">
+                                            <div class="preview-stat-value" id="statAmenities">0</div>
+                                            <div class="preview-stat-label">Amenities</div>
+                                        </div>
+                                        <div class="preview-stat">
+                                            <div class="preview-stat-value" id="statServices">0</div>
+                                            <div class="preview-stat-label">Services</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="glass p-6 mt-6">
+                    <div class="flex gap-4 flex-wrap">
+                        <button type="button" onclick="savePropertyDraft()" class="btn-cyan flex-1 py-4">
+                            <i class="fas fa-save mr-2"></i>Save Draft
+                        </button>
+                        <button type="button" onclick="submitProperty()" class="btn-gradient flex-1 py-4">
+                            <i class="fas fa-paper-plane mr-2"></i>Publish Property
+                        </button>
+                        <button type="button" onclick="handleSidebarAction('Dashboard')" class="glass flex-1 py-4">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Initialize drag and drop for compound images
+        initDragAndDrop('compoundDropZone', 'compoundFileInput', handleCompoundUpload);
+        // Initialize drag and drop for room images
+        initDragAndDrop('roomDropZone', 'roomFileInput', handleRoomUpload);
+    }
+
+    function toggleBuilderSection(sectionId) {
+        const section = document.getElementById(`section-${sectionId}`);
+        const content = document.getElementById(`content-${sectionId}`);
+        section.classList.toggle('expanded');
+        content.classList.toggle('active');
+    }
+
+    function selectPropertyType(card) {
+        document.querySelectorAll('.property-type-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        propertyBuilderData.type = card.dataset.type;
+    }
+
+    function updatePropertyData(field, value) {
+        propertyBuilderData[field] = value;
+    }
+
+    function initDragAndDrop(dropZoneId, fileInputId, handler) {
+        const dropZone = document.getElementById(dropZoneId);
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handler(files);
+        });
+    }
+
+    function handleCompoundUpload(files) {
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const mediaItem = {
+                    id: Date.now() + Math.random(),
+                    url: e.target.result,
+                    type: file.type.startsWith('video') ? 'video' : 'image',
+                    category: 'compound',
+                    name: file.name
+                };
+                propertyBuilderData.compoundImages.push(mediaItem);
+                renderCompoundPreview();
+                updatePreview();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function handleRoomUpload(files) {
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                // Auto-detect category based on filename
+                const detectedCategory = autoDetectImageCategory(file.name);
+                const mediaItem = {
+                    id: Date.now() + Math.random(),
+                    url: e.target.result,
+                    type: 'image',
+                    category: detectedCategory,
+                    name: file.name,
+                    autoDetected: true
+                };
+                propertyBuilderData.roomImages.push(mediaItem);
+                renderRoomPreview();
+                updatePreview();
+                
+                if (detectedCategory !== 'other') {
+                    showToast(`Auto-detected: ${file.name} → ${detectedCategory}`, 'success');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function autoDetectImageCategory(filename) {
+        const lowerName = filename.toLowerCase();
+        for (const [category, keywords] of Object.entries(imageCategoryKeywords)) {
+            for (const keyword of keywords) {
+                if (lowerName.includes(keyword)) {
+                    return category;
+                }
+            }
+        }
+        return 'bedroom'; // Default category
+    }
+
+    function renderCompoundPreview() {
+        const container = document.getElementById('compoundMediaPreview');
+        if (propertyBuilderData.compoundImages.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = propertyBuilderData.compoundImages.map(item => `
+            <div class="media-preview-item" data-id="${item.id}">
+                ${item.type === 'video' 
+                    ? `<video src="${item.url}" controls></video>`
+                    : `<img src="${item.url}" alt="${item.name}">`
+                }
+                <div class="media-actions">
+                    <button class="media-btn media-btn-delete" onclick="removeCompoundImage('${item.id}')"><i class="fas fa-trash"></i></button>
+                </div>
+                <div class="media-category-badge"><i class="fas fa-image"></i> Compound</div>
+            </div>
+        `).join('');
+    }
+
+    function renderRoomPreview() {
+        const container = document.getElementById('roomMediaPreview');
+        if (propertyBuilderData.roomImages.length === 0) {
+            container.innerHTML = '<div class="empty-media-state"><i class="fas fa-images"></i><p>No room images yet</p></div>';
+            return;
+        }
+        container.innerHTML = propertyBuilderData.roomImages.map(item => `
+            <div class="media-preview-item" data-id="${item.id}">
+                <img src="${item.url}" alt="${item.name}">
+                <div class="media-actions">
+                    <button class="media-btn media-btn-category" onclick="toggleCategoryDropdown('${item.id}', event)"><i class="fas fa-tag"></i></button>
+                    <button class="media-btn media-btn-delete" onclick="removeRoomImage('${item.id}')"><i class="fas fa-trash"></i></button>
+                </div>
+                <div class="category-dropdown" id="dropdown-${item.id}">
+                    <button onclick="changeImageCategory('${item.id}', 'bedroom')"><i class="fas fa-bed"></i> Bedroom</button>
+                    <button onclick="changeImageCategory('${item.id}', 'bathroom')"><i class="fas fa-bath"></i> Bathroom</button>
+                    <button onclick="changeImageCategory('${item.id}', 'kitchen')"><i class="fas fa-utensils"></i> Kitchen</button>
+                    <button onclick="changeImageCategory('${item.id}', 'balcony')"><i class="fas fa-tree"></i> Balcony</button>
+                    <div class="divider"></div>
+                    <button onclick="changeImageCategory('${item.id}', 'other')"><i class="fas fa-question"></i> Other</button>
+                </div>
+                <div class="media-category-badge">
+                    <i class="fas fa-${getCategoryIcon(item.category)}"></i> ${item.category}
+                    ${item.autoDetected ? '<i class="fas fa-magic" style="margin-left: 4px;"></i>' : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getCategoryIcon(category) {
+        const icons = {
+            bedroom: 'bed',
+            bathroom: 'bath',
+            kitchen: 'utensils',
+            balcony: 'tree',
+            other: 'question',
+            compound: 'image'
+        };
+        return icons[category] || 'image';
+    }
+
+    function toggleCategoryDropdown(imageId, event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById(`dropdown-${imageId}`);
+        document.querySelectorAll('.category-dropdown').forEach(d => {
+            if (d !== dropdown) d.classList.remove('show');
+        });
+        dropdown.classList.toggle('show');
+    }
+
+    function changeImageCategory(imageId, category) {
+        const image = propertyBuilderData.roomImages.find(img => img.id == imageId);
+        if (image) {
+            image.category = category;
+            image.autoDetected = false;
+            renderRoomPreview();
+            showToast(`Category changed to ${category}`, 'success');
+        }
+        document.querySelectorAll('.category-dropdown').forEach(d => d.classList.remove('show'));
+    }
+
+    function removeCompoundImage(imageId) {
+        propertyBuilderData.compoundImages = propertyBuilderData.compoundImages.filter(img => img.id != imageId);
+        renderCompoundPreview();
+        updatePreview();
+    }
+
+    function removeRoomImage(imageId) {
+        propertyBuilderData.roomImages = propertyBuilderData.roomImages.filter(img => img.id != imageId);
+        renderRoomPreview();
+        updatePreview();
+    }
+
+    function toggleAmenity(element) {
+        element.classList.toggle('selected');
+        const amenityId = element.dataset.id;
+        if (element.classList.contains('selected')) {
+            if (!propertyBuilderData.amenities.includes(amenityId)) {
+                propertyBuilderData.amenities.push(amenityId);
+            }
+        } else {
+            propertyBuilderData.amenities = propertyBuilderData.amenities.filter(a => a !== amenityId);
+        }
+        updatePreview();
+    }
+
+    function toggleService(element) {
+        element.classList.toggle('selected');
+        const serviceId = element.dataset.id;
+        if (element.classList.contains('selected')) {
+            if (!propertyBuilderData.services.includes(serviceId)) {
+                propertyBuilderData.services.push(serviceId);
+            }
+        } else {
+            propertyBuilderData.services = propertyBuilderData.services.filter(s => s !== serviceId);
+        }
+        updatePreview();
+    }
+
+    function updatePreview() {
+        // Update title
+        document.getElementById('previewTitle').textContent = propertyBuilderData.title || 'Your Property Title';
+        
+        // Update location
+        const locationSpan = document.querySelector('#previewLocation span');
+        locationSpan.textContent = propertyBuilderData.location || 'Location';
+        
+        // Update guests
+        document.getElementById('previewGuests').textContent = propertyBuilderData.maxGuests || '0';
+        document.getElementById('statGuests').textContent = propertyBuilderData.maxGuests || '0';
+        
+        // Update bedrooms
+        document.getElementById('previewBedrooms').textContent = propertyBuilderData.bedrooms || '0';
+        
+        // Update bathrooms
+        document.getElementById('previewBathrooms').textContent = propertyBuilderData.bathrooms || '0';
+        
+        // Update rooms stat
+        const rooms = (parseInt(propertyBuilderData.bedrooms) || 0) + (parseInt(propertyBuilderData.bathrooms) || 0);
+        document.getElementById('statRooms').textContent = rooms;
+        
+        // Update price
+        document.getElementById('previewPrice').innerHTML = `KSh ${parseInt(propertyBuilderData.price).toLocaleString() || 0}<span>/night</span>`;
+        
+        // Update rating
+        document.getElementById('previewRating').innerHTML = `<i class="fas fa-star"></i> <span>${propertyBuilderData.rating || '0.0'}</span>`;
+        
+        // Update amenities and services stats
+        document.getElementById('statAmenities').textContent = propertyBuilderData.amenities.length;
+        document.getElementById('statServices').textContent = propertyBuilderData.services.length;
+        
+        // Update main preview image if available
+        const allImages = [...propertyBuilderData.compoundImages, ...propertyBuilderData.roomImages];
+        const firstImage = allImages.find(img => img.type === 'image');
+        if (firstImage) {
+            document.getElementById('previewMainImage').src = firstImage.url;
+        }
+        
+        // Update preview image navigation
+        const previewNav = document.getElementById('previewImageNav');
+        if (allImages.length > 1) {
+            previewNav.innerHTML = allImages.slice(0, 5).map((img, i) => 
+                `<div class="preview-image-dot ${i === 0 ? 'active' : ''}" onclick="changePreviewImage(${i})"></div>`
+            ).join('');
+        } else {
+            previewNav.innerHTML = '';
+        }
+    }
+
+    function changePreviewImage(index) {
+        const allImages = [...propertyBuilderData.compoundImages, ...propertyBuilderData.roomImages];
+        const image = allImages[index];
+        if (image && image.type === 'image') {
+            document.getElementById('previewMainImage').src = image.url;
+            document.querySelectorAll('.preview-image-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+    }
+
+    async function savePropertyDraft() {
+        const data = buildPropertyData();
+        try {
+            localStorage.setItem('propertyDraft', JSON.stringify(data));
+            showToast('Draft saved successfully!', 'success');
+        } catch (error) {
+            showToast('Error saving draft', 'error');
+        }
+    }
+
+    async function submitProperty() {
+        if (!propertyBuilderData.title) {
+            showToast('Please enter a property title', 'error');
+            return;
+        }
+        if (!propertyBuilderData.location) {
+            showToast('Please enter a location', 'error');
+            return;
+        }
+        if (!propertyBuilderData.price) {
+            showToast('Please enter a price', 'error');
+            return;
+        }
+
+        const data = buildPropertyData();
+        
+        try {
+            await api.createProperty(data);
+            showToast('Property published successfully!', 'success');
+            localStorage.removeItem('propertyDraft');
+            handleSidebarAction('Dashboard');
+        } catch (error) {
+            showToast('Error publishing property: ' + error.message, 'error');
+        }
+    }
+
+    function buildPropertyData() {
+        // Collect all images
+        const allImages = [
+            ...propertyBuilderData.compoundImages.map(img => img.url),
+            ...propertyBuilderData.roomImages.map(img => img.url)
+        ];
+        
+        // Organize room images by category
+        const roomImagesByCategory = {};
+        propertyBuilderData.roomImages.forEach(img => {
+            if (!roomImagesByCategory[img.category]) {
+                roomImagesByCategory[img.category] = [];
+            }
+            roomImagesByCategory[img.category].push(img.url);
+        });
+
+        return {
+            title: propertyBuilderData.title,
+            location: propertyBuilderData.location,
+            price: parseInt(propertyBuilderData.price) || 0,
+            type: propertyBuilderData.type,
+            maxGuests: parseInt(propertyBuilderData.maxGuests) || 1,
+            bedrooms: parseInt(propertyBuilderData.bedrooms) || 0,
+            bathrooms: parseInt(propertyBuilderData.bathrooms) || 0,
+            rating: parseFloat(propertyBuilderData.rating) || 0,
+            description: propertyBuilderData.description,
+            amenities: propertyBuilderData.amenities,
+            services: propertyBuilderData.services,
+            images: allImages,
+            roomImages: roomImagesByCategory,
+            hostId: currentHostId,
+            status: 'pending' // Properties start as pending for admin approval
+        };
+    }
+
+    function renderManageListingsView(container) { container.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Manage Listings</h2><button onclick="handleSidebarAction('Add Property')" class="btn-gradient">+ Add</button></div><div id="manage-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>`; loadHostProperties('manage-grid'); }
+    function renderCalendarView(container) { const today = new Date(); const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']; container.innerHTML = `<div class="space-y-6"><div class="flex justify-between items-center"><h2 class="text-2xl font-bold"><i class="fas fa-calendar-alt mr-2"></i>Calendar</h2><div class="flex gap-2"><button onclick="changeMonth(-1)" class="glass px-4 py-2 rounded-xl"><</button><span id="calendarMonth" class="glass px-4 py-2 rounded-xl font-semibold">${monthNames[today.getMonth()]} ${today.getFullYear()}</span><button onclick="changeMonth(1)" class="glass px-4 py-2 rounded-xl">></button></div></div><div class="glass p-6"><div class="grid grid-cols-7 gap-2 mb-4 text-center font-semibold"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div><div id="calendarDays" class="calendar-grid"></div></div></div>`; renderCalendar(today.getMonth(), today.getFullYear()); }
+    function changeMonth(delta) { showToast('Calendar navigation coming soon!', 'info'); }
+    function renderCalendar(month, year) { const container = document.getElementById('calendarDays'); const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); let html = ''; for (let i = 0; i < firstDay; i++) html += '<div></div>'; for (let day = 1; day <= daysInMonth; day++) { const today = new Date(); const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear(); const rand = Math.random(); const status = rand < 0.6 ? 'available' : rand < 0.9 ? 'booked' : 'blocked'; html += `<div class="calendar-day ${status} ${isToday?'today':''}" onclick="selectDate(${day})">${day}</div>`; } container.innerHTML = html; }
+    function selectDate(day) { showToast(`Selected: Day ${day}`, 'info'); }
+    async function renderBookingsView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} if (bookings.length === 0) { container.innerHTML = '<div class="text-center py-12"><div class="text-6xl mb-4">📋</div><h3 class="text-xl font-bold">No Bookings Yet</h3></div>'; return; } container.innerHTML = `<div class="space-y-4"><h2 class="text-2xl font-bold"><i class="fas fa-book mr-2"></i>All Bookings (${bookings.length})</h2>${bookings.map(b => { const prop = properties.find(p => p.id === b.propertyId); return `<div class="glass p-4 rounded-xl"><div class="flex justify-between items-start mb-2"><div><h4 class="font-bold">${prop?.title || 'Property'}</h4><p class="text-sm text-gray-600">${b.userName} • ${b.checkIn} to ${b.checkOut}</p></div><span class="px-3 py-1 rounded-full text-sm font-medium ${b.status==='confirmed'?'bg-green-100 text-green-800':b.status==='pending'?'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800'}">${b.status}</span></div><div class="flex justify-between"><span>${b.guests} guests</span><span class="font-bold">KSh ${(b.totalPrice||0).toLocaleString()}</span></div></div>`; }).join('')}</div>`; }
+    function renderPricingView(container) { container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">💰</div><h2 class="text-2xl font-bold">Pricing Tools</h2></div><div class="grid md:grid-cols-2 gap-6"><div class="glass p-6 rounded-xl"><h4 class="font-bold mb-3">📊 Market Analysis</h4><ul class="text-sm space-y-2"><li>• Compare with similar properties</li><li>• Seasonal pricing</li><li>• Demand forecasting</li></ul></div><div class="glass p-6 rounded-xl"><h4 class="font-bold mb-3">🎯 Dynamic Pricing</h4><ul class="text-sm space-y-2"><li>• Weekend adjustments</li><li>• Length of stay</li><li>• Occupancy-based</li></ul></div></div></div>`; }
+    async function renderPaymentsView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} const totalEarnings = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0); const pendingPayouts = bookings.filter(b => b.paymentStatus === 'pending').reduce((sum, b) => sum + (b.totalPrice||0), 0); const completedPayouts = bookings.filter(b => b.paymentStatus === 'paid').reduce((sum, b) => sum + (b.totalPrice||0), 0); container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">💳</div><h2 class="text-2xl font-bold">Payments & Payouts</h2></div><div class="grid md:grid-cols-3 gap-4"><div class="glass p-6 rounded-xl text-center"><div class="text-3xl font-bold text-green-600">KSh ${totalEarnings.toLocaleString()}</div><div class="text-gray-600">Total Earnings</div></div><div class="glass p-6 rounded-xl text-center"><div class="text-3xl font-bold text-yellow-600">KSh ${pendingPayouts.toLocaleString()}</div><div class="text-gray-600">Pending Payout</div></div><div class="glass p-6 rounded-xl text-center"><div class="text-3xl font-bold text-blue-600">KSh ${completedPayouts.toLocaleString()}</div><div class="text-gray-600">Completed Payouts</div></div></div></div>`; }
+    function renderReviewsView(container) { const mockReviews = [{ property: 'Cozy Apartment', rating: 5, text: 'Great stay!', date: '2024-01-15', guest: 'John D.' }, { property: 'Downtown Villa', rating: 4, text: 'Nice place.', date: '2024-01-10', guest: 'Sarah M.' }]; container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">⭐</div><h2 class="text-2xl font-bold"> Reviews</h2></div><div class="grid md:grid-cols-2 gap-4"><div class="glass p-6 rounded-xl text-center"><div class="text-4xl font-bold text-yellow-500">4.7 ⭐</div><div class="text-gray-600">Average Rating</div></div><div class="glass p-6 rounded-xl text-center"><div class="text-4xl font-bold">24</div><div class="text-gray-600">Total Reviews</div></div></div>${mockReviews.map(r => `<div class="glass p-4 rounded-xl"><div class="flex justify-between items-start mb-2"><div><h4 class="font-bold">${r.property}</h4><p class="text-sm text-gray-600">${r.guest} • ${r.date}</p></div><div class="text-yellow-500">${'⭐'.repeat(r.rating)}</div></div><p class="mb-3">"${r.text}"</p></div>`).join('')}</div>`; }
+    async function renderAnalyticsView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0); const avgRating = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.rating||0), 0) / properties.length : 0; container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">📊</div><h2 class="text-2xl font-bold">Analytics Dashboard</h2></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><div class="analytics-card"><p class="text-white/80 text-sm">Properties</p><p class="stat-value">${properties.length}</p></div><div class="analytics-card green"><p class="text-white/80 text-sm">Bookings</p><p class="stat-value">${bookings.length}</p></div><div class="analytics-card orange"><p class="text-white/80 text-sm">Revenue</p><p class="stat-value">KSh ${totalRevenue.toLocaleString()}</p></div><div class="analytics-card red"><p class="text-white/80 text-sm">Rating</p><p class="stat-value">${avgRating.toFixed(1)}</p></div></div></div>`; }
+    function renderMessagesView(container) { container.innerHTML = `<div class="h-[calc(100vh-140px)] flex gap-4"><div class="w-1/3 glass rounded-2xl overflow-hidden"><div class="p-4 border-b"><h3 class="font-bold">Messages</h3></div><div class="overflow-y-auto h-full p-2"><div class="text-center py-8 text-gray-500">No messages yet</div></div></div><div class="w-2/3 glass rounded-2xl flex items-center justify-center"><div class="text-center text-gray-500"><div class="text-6xl mb-4">💬</div><p>Select a conversation</p></div></div></div>`; }
+    function renderContactAdminView(container) { container.innerHTML = `<div class="text-center py-12"><div class="text-6xl mb-4">📞</div><h2 class="text-2xl font-bold mb-4">Contact Admin</h2><div class="max-w-md mx-auto glass p-6 rounded-xl"><div class="space-y-4"><div class="flex justify-between"><span>📧 Email</span><a href="mailto:support@airbnb-stays.com" class="text-blue-600">support@airbnb-stays.com</a></div><div class="flex justify-between"><span>📱 Phone</span><span>+254 700 123 456</span></div><div class="flex justify-between"><span>💬 Live Chat</span><span class="text-green-600">Available 24/7</span></div></div></div></div>`; }
+    function renderProfileView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); container.innerHTML = `<div class="max-w-2xl mx-auto py-12"><div class="glass p-8 rounded-3xl text-center"><div class="w-24 h-24 bg-gray-300 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">${user.name?.charAt(0)||'👤'}</div><h2 class="text-2xl font-bold mb-1">${user.name||'Host'}</h2><p class="text-gray-600 mb-6">${user.email||'host@example.com'}</p><div class="grid grid-cols-2 gap-4 text-left mb-8"><div class="bg-white/50 p-4 rounded-xl"><span class="text-xs text-gray-500">Role</span><span class="font-bold">Host</span></div><div class="bg-white/50 p-4 rounded-xl"><span class="text-xs text-gray-500">Member Since</span><span class="font-bold">Jan 2024</span></div></div><button class="bg-blue-500 text-white px-6 py-2 rounded-xl">Edit Profile</button></div></div>`; }
+    function renderSettingsView(container) { container.innerHTML = `<div class="max-w-2xl mx-auto py-12"><h2 class="text-2xl font-bold mb-6">Settings</h2><div class="glass p-6 rounded-3xl space-y-6"><div class="flex items-center justify-between"><div><h4 class="font-bold">Notifications</h4><p class="text-sm text-gray-600">Receive email updates</p></div><input type="checkbox" checked class="w-5 h-5"></div><div class="flex items-center justify-between"><div><h4 class="font-bold">SMS Alerts</h4><p class="text-sm text-gray-600">Receive SMS for bookings</p></div><input type="checkbox" class="w-5 h-5"></div><div class="pt-4 border-t"><button class="text-red-500 font-bold">Delete Account</button></div></div></div>`; }
+    function addNewProperty() { handleSidebarAction('Add Property'); }
+    function viewBookings() { handleSidebarAction('Bookings'); }
+
+    function toggleAIChat() { const widget = document.getElementById('aiChatWidget'); isAIChatOpen = !isAIChatOpen; if (isAIChatOpen) widget.classList.add('show'); else widget.classList.remove('show'); }
+    function toggleAISidebar() { const menu = document.getElementById('aiSidebarMenu'); if (menu) menu.classList.toggle('show'); }
+    
+    // Handle AI Sidebar Actions - Direct to actual pages
+    function handleAIAction(action) {
+        toggleAISidebar();
+        switch(action) {
+            case 'startChart':
+                addAIMessage('Opening Chart Dashboard...', 'ai');
+                handleSidebarAction('Analytics');
+                break;
+            case 'recentChart':
+                addAIMessage('Loading Recent Charts...', 'ai');
+                handleSidebarAction('Analytics');
+                break;
+            case 'chartHistory':
+                addAIMessage('Opening Chart History...', 'ai');
+                handleSidebarAction('Analytics');
+                break;
+            case 'automation':
+                addAIMessage('Opening Automation Settings...', 'ai');
+                showToast('Automation panel opening...', 'info');
+                break;
+            case 'analytics':
+                addAIMessage('Opening Analytics Dashboard...', 'ai');
+                handleSidebarAction('Analytics');
+                break;
+            case 'dashboard':
+                addAIMessage('Navigating to Dashboard...', 'ai');
+                handleSidebarAction('Dashboard');
+                break;
+            case 'bookings':
+                addAIMessage('Opening Bookings...', 'ai');
+                handleSidebarAction('Bookings');
+                break;
+            case 'payments':
+                addAIMessage('Opening Payments & Payouts...', 'ai');
+                handleSidebarAction('Payments');
+                break;
+            case 'properties':
+                addAIMessage('Opening Properties...', 'ai');
+                handleSidebarAction('Manage Listings');
+                break;
+            case 'reviews':
+                addAIMessage('Opening Reviews...', 'ai');
+                handleSidebarAction('Reviews');
+                break;
+            case 'messages':
+                addAIMessage('Opening Messages...', 'ai');
+                handleSidebarAction('Messages');
+                break;
+            default:
+                addAIMessage('Opening selected section...', 'ai');
+        }
+    }
+    
+    function toggleVoiceAI() { if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) { showToast('Voice not supported', 'error'); return; } if (isListening) { if (recognition) recognition.stop(); isListening = false; document.getElementById('voiceAIBtn').className = 'voice-btn voice-btn-inactive'; } else { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; recognition = new SpeechRecognition(); recognition.continuous = false; recognition.onstart = function() { isListening = true; document.getElementById('voiceAIBtn').className = 'voice-btn voice-btn-active'; showToast('Listening...', 'info'); }; recognition.onresult = function(event) { const transcript = event.results[0][0].transcript; document.getElementById('aiChatInput').value = transcript; sendAIMessage(); }; recognition.onend = function() { isListening = false; document.getElementById('voiceAIBtn').className = 'voice-btn voice-btn-inactive'; }; recognition.start(); } }
+    function handleAIEnter(event) { if (event.key === 'Enter') sendAIMessage(); }
+    async function sendAIMessage() { const input = document.getElementById('aiChatInput'); const message = input.value.trim(); if (!message) return; addAIMessage(message, 'user'); input.value = ''; showAITyping(); try { const response = await api.sendAIMessage(message); removeAITyping(); if (response && (response.reply || response.message)) { addAIMessage(response.reply || response.message, 'ai'); } else { addAIMessage(await getSmartHostResponse(message), 'ai'); } } catch (error) { removeAITyping(); addAIMessage(await getSmartHostResponse(message), 'ai'); } }
+    function addAIMessage(text, type) { const container = document.getElementById('aiChatMessages'); const div = document.createElement('div'); if (type === 'user') { div.className = 'user-message'; div.textContent = text; } else { div.className = 'ai-message'; div.innerHTML = `<p class="font-semibold text-purple-600 mb-1">🤖 ViewOnce AI</p><p>${text}</p>`; } container.appendChild(div); container.scrollTop = container.scrollHeight; }
+    function showAITyping() { const container = document.getElementById('aiChatMessages'); const div = document.createElement('div'); div.id = 'aiTyping'; div.className = 'ai-message'; div.innerHTML = '<p>Typing...</p>'; container.appendChild(div); container.scrollTop = container.scrollHeight; }
+    function removeAITyping() { const typing = document.getElementById('aiTyping'); if (typing) typing.remove(); }
+    async function getSmartHostResponse(message) { const lower = message.toLowerCase(); const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0); const avgRating = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.rating||0), 0) / properties.length : 0; if (lower.includes('revenue') || lower.includes('earning')) return `Your total revenue is <strong>KSh ${totalRevenue.toLocaleString()}</strong> from ${bookings.length} bookings.`; if (lower.includes('booking')) return `You have ${bookings.length} booking(s) across your ${properties.length} properties.`; if (lower.includes('rating') || lower.includes('review')) return `Your average rating is <strong>${avgRating.toFixed(1)} stars</strong> across ${properties.length} properties.`; if (lower.includes('property') || lower.includes('listing')) return `You have ${properties.length} active property listing(s).`; return `I can help you with:\n\n📊 Analytics - View your revenue\n💰 Pricing - Optimize rates\n📅 Bookings - Manage reservations\n\nWhat would you like to know?`; }
+
+    function processMpesaPayment() { const phone = prompt('Enter M-Pesa phone (e.g., 254712345678):'); if (phone) { showToast('STK Push sent to ' + phone, 'info'); setTimeout(() => activatePremium('M-Pesa'), 2000); } }
+    function processCardPayment() { showToast('Card payment coming soon', 'info'); setTimeout(() => activatePremium('Card'), 2000); }
+    function processBankPayment() { showToast('Bank transfer details sent', 'info'); setTimeout(() => activatePremium('Bank'), 2000); }
+    function activatePremium(method) { const user = JSON.parse(localStorage.getItem('user') || '{}'); user.isPremium = true; user.premiumMethod = method; localStorage.setItem('user', JSON.stringify(user)); localStorage.setItem('isPremium', 'true'); closePremiumModal(); showToast('🎉 Premium activated!', 'success'); }
+    function openPremiumModal() { document.getElementById('premiumModal').classList.remove('hidden'); }
+    function toggleTheme() { isDarkMode = !isDarkMode; document.body.style.background = isDarkMode ? 'linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)' : 'linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #667eea, #764ba2, #f093fb, #f5576c)'; localStorage.setItem('theme', isDarkMode ? 'dark' : 'light'); showToast(isDarkMode ? 'Dark mode' : 'Light mode', 'info'); }
+    function checkTheme() { if (localStorage.getItem('theme') === 'dark') { isDarkMode = true; document.body.style.background = 'linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)'; } }
+    function handleLogout() { localStorage.clear(); window.location.href = 'index.html'; }
+    
+    // Test backend connection
+    async function testBackendConnection() {
+        try {
+            const response = await fetch('/api/properties', { method: 'GET' });
+            if (response.ok) {
+                console.log('✅ Backend connected');
+                showToast('Backend connected', 'success');
+            } else {
+                console.log('⚠️ Backend responded with error');
+                showToast('Backend error: ' + response.status, 'warning');
+            }
+        } catch (error) {
+            console.log('❌ Backend not reachable:', error.message);
+            showToast('Backend offline - using local data', 'warning');
+        }
+    }
+    
+    // Run connection test on load
+    setTimeout(testBackendConnection, 2000);
+    function showToast(message, type = 'info') { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<span>${message}</span>`; container.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 5000); }
+
+    // Advertise Property Panel Functions
+    function openAdvertisePanel() { document.getElementById('advertisePanel').classList.add('open'); document.getElementById('advertiseBackdrop').classList.add('show'); closeSidebar(); }
+    function closeAdvertisePanel() { document.getElementById('advertisePanel').classList.remove('open'); document.getElementById('advertiseBackdrop').classList.remove('show'); }
+    
+    // Live Video Recording
+    let mediaStream = null; let mediaRecorder = null; let recordedChunks = [];
+    async function toggleCamera() { const videoElement = document.getElementById('liveVideoElement'); const placeholder = document.querySelector('.video-placeholder'); try { if (mediaStream && mediaStream.active) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; videoElement.style.display = 'none'; placeholder.style.display = 'block'; showToast('Camera off', 'info'); } else { mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); videoElement.srcObject = mediaStream; videoElement.style.display = 'block'; placeholder.style.display = 'none'; showToast('Camera on', 'success'); } } catch (error) { showToast('Camera error: ' + error.message, 'error'); } }
+    function startRecording() { if (!mediaStream) { showToast('Turn on camera first', 'warning'); return; } try { mediaRecorder = new MediaRecorder(mediaStream); recordedChunks = []; mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); }; mediaRecorder.onstop = () => { showToast('Recording saved!', 'success'); }; mediaRecorder.start(); showToast('Recording...', 'success'); document.querySelector('.live-control-start').style.display = 'none'; document.querySelector('.live-control-stop').style.display = 'flex'; } catch (error) { showToast('Recording error: ' + error.message, 'error'); } }
+    function stopRecording() { if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); showToast('Recording stopped', 'success'); document.querySelector('.live-control-start').style.display = 'flex'; document.querySelector('.live-control-stop').style.display = 'none'; } }
+    function submitAdvertisement() { const adPackage = document.querySelector('input[name="adPackage"]:checked').value; showToast('Advertisement submitted!', 'success'); closeAdvertisePanel(); }
+
+    // Initialize advertise drop zone
+    function initAdvertiseDropZone() { const dropZone = document.getElementById('advertiseDropZone'); const fileInput = document.getElementById('advertiseMediaInput'); if (!dropZone || !fileInput) return; dropZone.addEventListener('click', () => fileInput.click()); dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); }); dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover')); dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleAdvertiseUpload(e.dataTransfer.files); }); fileInput.addEventListener('change', (e) => handleAdvertiseUpload(e.target.files)); }
+    function handleAdvertiseUpload(files) { Array.from(files).forEach(file => { const reader = new FileReader(); reader.onload = (e) => { const preview = document.getElementById('advertiseMediaPreview'); const isVideo = file.type.startsWith('video'); const item = document.createElement('div'); item.className = 'media-preview-item'; item.innerHTML = (isVideo ? `<video src="${e.target.result}" controls></video>` : `<img src="${e.target.result}" alt="${file.name}">`) + `<div class="media-actions"><button class="media-btn media-btn-delete" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-trash"></i></button></div><div class="media-category-badge"><i class="fas fa-${isVideo ? 'video' : 'image'}"></i> ${isVideo ? 'Video' : 'Image'}</div>`; preview.appendChild(item); }; reader.readAsDataURL(file); }); }
+    document.addEventListener('DOMContentLoaded', initAdvertiseDropZone);
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms & Conditions - ViewOnce Airbnb</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #F6DDE3; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen py-10 px-4">
+    <div class="max-w-4xl mx-auto glass rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-8 border-b border-gray-200">
+            <h1 class="text-3xl font-bold text-gray-800">Terms & Conditions</h1>
+            <p class="text-gray-600 mt-2">Last updated: February 2026</p>
+        </div>
+        
+        <div class="p-8 h-[60vh] overflow-y-auto space-y-8 text-gray-700 leading-relaxed" id="termsContent">
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">1. Account Creation and Responsibilities</h2>
+                <p>By creating an account, you agree to provide accurate, current, and complete information. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must be at least 18 years old to use this platform.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">2. Bookings and Payments</h2>
+                <p>Guests agree to pay all charges associated with their booking, including the listing price, fees, and taxes. Payments are processed securely. Hosts agree to honor accepted bookings and provide the accommodation as described.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">3. Host and Guest Responsibilities</h2>
+                <p><strong>Hosts:</strong> Must provide safe, clean, and accurately described accommodations. Hosts must comply with all local laws and regulations.<br>
+                <strong>Guests:</strong> Must treat the property with respect, follow house rules, and leave the accommodation in a reasonable condition.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">4. Cancellations and Refunds</h2>
+                <p>Cancellation policies are set by the host and displayed on the listing. Refunds are processed according to these policies. The platform may override policies in extenuating circumstances (e.g., natural disasters).</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">5. Dispute Resolution</h2>
+                <p>Users agree to first attempt to resolve disputes directly. If unresolved, the platform provides a mediation service. Decisions made by the platform's dispute resolution team are final.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">6. Payout Rules</h2>
+                <p>Host payouts are released 24 hours after guest check-in to ensure guest satisfaction. Payouts are subject to service fees as detailed in the fee schedule.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">7. Account Suspension</h2>
+                <p>We reserve the right to suspend or terminate accounts for violations of these terms, fraudulent activity, or safety concerns. Suspended users may appeal the decision through our support channel.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">8. Platform Rights</h2>
+                <p>We grant you a limited, non-exclusive license to use the platform. We retain all rights to the platform's content, design, and technology. We may monitor platform usage to ensure compliance.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-bold text-gray-900 mb-3">9. Updates to Terms</h2>
+                <p>We may update these terms at any time. Continued use of the platform constitutes acceptance of the new terms. Significant changes will be notified via email.</p>
+            </section>
+        </div>
+
+        <div class="p-8 border-t border-gray-200 bg-gray-50 flex justify-between items-center" id="termsFooter">
+            <div class="flex items-center">
+                <p class="text-sm text-gray-500">Please read carefully before accepting.</p>
+            </div>
+            <div class="space-x-4">
+                <button onclick="window.close()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-lg">Close</button>
+            </div>
+        </div>
+
+        <!-- Host Invitation Acceptance Section -->
+        <div class="p-8 border-t border-gray-200 bg-gray-50 hidden" id="hostAcceptanceSection">
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Accept Terms & Conditions</h3>
+                <p class="text-gray-600 mb-6">By accepting these terms, you agree to become a host on our platform.</p>
+                <button id="acceptHostTermsBtn" class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-lg">
+                    Accept Terms & Become Host
+                </button>
+                <div id="hostAcceptanceError" class="mt-4 text-red-600 hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        // Check for invitation token in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        if (token) {
+            // Validate invitation token
+            fetch(`http://localhost:3001/properties/host-invitations/validate/${token}`)
+                .then(response => response.json())
+                .then(invitation => {
+                    if (invitation) {
+                        // Show host acceptance section
+                        document.getElementById('termsFooter').classList.add('hidden');
+                        document.getElementById('hostAcceptanceSection').classList.remove('hidden');
+
+                        // Handle acceptance
+                        document.getElementById('acceptHostTermsBtn').addEventListener('click', async () => {
+                            try {
+                                // First, create user account
+                                const signupData = {
+                                    email: invitation.email,
+                                    password: 'temp123', // This should be set by user, but for now temp
+                                    firstName: 'Host',
+                                    lastName: 'User',
+                                    phone: invitation.phone,
+                                    role: 'host'
+                                };
+
+                                const userResponse = await api.signup(signupData);
+                                const user = userResponse.user;
+
+                                // Record terms acceptance
+                                await fetch('http://localhost:3001/terms-acceptance', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${userResponse.token}`
+                                    },
+                                    body: JSON.stringify({
+                                        type: 'host_invitation',
+                                        invitationToken: token
+                                    })
+                                });
+
+                                // Use invitation
+                                await fetch(`http://localhost:3001/properties/host-invitations/use/${token}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Authorization': `Bearer ${userResponse.token}`
+                                    }
+                                });
+
+                                alert('Welcome to ViewOnce Airbnb! You are now a host. Please change your password.');
+                                window.location.href = 'host-dashboard.html';
+                            } catch (error) {
+                                document.getElementById('hostAcceptanceError').classList.remove('hidden');
+                                document.getElementById('hostAcceptanceError').textContent = error.message;
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Invalid invitation:', error);
+                    alert('Invalid or expired invitation link.');
+                });
+        }
+    </script>
+</body>
+</html>

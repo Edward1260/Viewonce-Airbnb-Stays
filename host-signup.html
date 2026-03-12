@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViewOnce Stays - Host Signup</title>
+    <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #e6e7ee;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 1400px;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .left-section {
+            flex: 1;
+            position: relative;
+            height: 100vh;
+            overflow: hidden;
+            animation: fadeInLeft 1s ease-out;
+        }
+        
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .auth-image-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(2px);
+            transform: scale(1.05);
+        }
+        
+        .auth-image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(212,175,55,0.4) 0%, rgba(255,215,0,0.2) 50%, rgba(255,255,255,0.1) 100%);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+        }
+        
+        .welcome-messages {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            text-align: center;
+            z-index: 5;
+        }
+        
+        .welcome-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+        
+        .welcome-message.active {
+            animation: fadeMoveUp 4s ease-in-out infinite;
+        }
+        
+        @keyframes fadeMoveUp {
+            0% { opacity: 0; transform: translateY(20px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        
+        .center-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            animation: fadeInScale 1s ease-out 0.3s both;
+            z-index: 10;
+            margin-left: 60px;
+            margin-right: 60px;
+        }
+        
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .liquid-card {
+            width: 420px;
+            min-height: 550px;
+            border-radius: 50%;
+            background: #e6e7ee;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 20px 20px 60px #c5c6cf, -20px -20px 60px #ffffff;
+            overflow: hidden;
+            padding: 30px 0;
+        }
+        
+        .card-bubble {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.3;
+            filter: blur(2px);
+        }
+        
+        .card-bubble-1 {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #D4AF37, #F4D03F);
+            top: 30px;
+            right: 50px;
+            animation: floatBubble 4s ease-in-out infinite;
+        }
+        
+        .card-bubble-2 {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #F4D03F, #D4AF37);
+            bottom: 60px;
+            left: 40px;
+            animation: floatBubble 4s ease-in-out infinite 1s;
+        }
+        
+        @keyframes floatBubble {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.1); }
+        }
+        
+        .card-content {
+            width: 85%;
+            text-align: center;
+            z-index: 5;
+            position: relative;
+        }
+        
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2D3436;
+            margin-bottom: 25px;
+            transition: all 0.5s ease;
+        }
+        
+        .invitation-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #D4AF37, #F4D03F);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .form-group { margin-bottom: 18px; position: relative; }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 25px;
+            background: #e6e7ee;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            color: #2D3436;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 5px 5px 10px #c5c6cf, inset -5px -5px 10px #ffffff;
+        }
+        
+        .form-input:focus {
+            box-shadow: inset 3px 3px 6px #c5c6cf, inset -3px -3px 6px #ffffff, 0 0 0 3px rgba(212,175,55,0.3);
+        }
+        
+        .form-input::placeholder { color: #a0a0a0; }
+        
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #D4AF37, #F4D03F);
+            color: #000;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 5px 20px rgba(212,175,55,0.3);
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(212,175,55,0.4);
+        }
+        
+        .switch-text {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #636E72;
+        }
+        
+        .switch-text a {
+            color: #D4AF37;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .switch-text a:hover { text-decoration: underline; }
+        
+        @media (max-width: 900px) {
+            body { overflow-y: auto; min-height: auto; padding: 10px; }
+            .auth-container { flex-direction: column; gap: 15px; padding: 10px; min-height: auto; }
+            .left-section { display: block; width: 100%; height: 220px; flex: none; border-radius: 15px; overflow: hidden; }
+            .center-section { margin-left: 0; margin-right: 0; width: 100%; }
+            .liquid-card { width: 100%; max-width: 360px; min-height: 520px; border-radius: 25px; padding: 20px 0; }
+            .card-content { width: 90%; }
+            .welcome-message { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="left-section">
+            <img src="authentication image/auth image.png" alt="Welcome" class="auth-image-bg">
+            <div class="auth-image-overlay"></div>
+            <div class="welcome-messages">
+                <div class="welcome-message" id="msg1">Become a Host!</div>
+                <div class="welcome-message" id="msg2">Start Earning Today</div>
+                <div class="welcome-message" id="msg3">List Your Property</div>
+            </div>
+        </div>
+        
+        <div class="center-section">
+            <div class="liquid-card">
+                <div class="card-bubble card-bubble-1"></div>
+                <div class="card-bubble card-bubble-2"></div>
+                
+                <div class="card-content">
+                    <h2 class="card-title">Host Registration</h2>
+                    <div class="invitation-badge">🎉 You're invited to become a Host!</div>
+                    
+                    <form onsubmit="handleHostSignup(event)">
+                        <div class="form-group">
+                            <input type="text" class="form-input" placeholder="Full Name" id="name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" class="form-input" placeholder="Email address" id="email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="tel" class="form-input" placeholder="Phone Number" id="phone" pattern="[0-9+\-\s]*">
+                        </div>
+                        <div class="form-group">
+                            <input type="password" class="form-input" placeholder="Password" id="password" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" class="form-input" placeholder="Confirm Password" id="confirmPassword" required>
+                        </div>
+                        <button type="submit" class="login-btn">Create Host Account</button>
+                    </form>
+                    
+                    <p class="switch-text">
+                        Already have an account? <a href="auth.html">Sign In</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Role to Dashboard Mapping
+        const roleDashboardMap = {
+            'customer': 'customer-dashboard.html',
+            'host': 'host-dashboard-upgraded.html',
+            'admin': 'admin-dashboard.html',
+            'support': 'support-dashboard-upgraded.html',
+            'platform_master_hub': 'platform-master-hub-fixed.html'
+        };
+        
+        function getDashboardByRole(role) {
+            return roleDashboardMap[role] || 'customer-dashboard.html';
+        }
+        
+        // Welcoming Messages Animation
+        const messages = document.querySelectorAll('.welcome-message');
+        let currentMessage = 0;
+        
+        function showNextMessage() {
+            messages.forEach(msg => msg.classList.remove('active'));
+            messages[currentMessage].classList.add('active');
+            currentMessage = (currentMessage + 1) % messages.length;
+        }
+        
+        showNextMessage();
+        setInterval(showNextMessage, 4000);
+        
+        // Check for invitation token
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const role = urlParams.get('role');
+            
+            if (token) {
+                localStorage.setItem('invitationToken', token);
+                localStorage.setItem('invitationRole', role || 'host');
+            }
+            
+            // Check if already logged in
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (isLoggedIn) {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (user.role) {
+                    window.location.href = getDashboardByRole(user.role);
+                }
+            }
+        })();
+        
+        // Handle Host Signup
+        async function handleHostSignup(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const invitationToken = localStorage.getItem('invitationToken');
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            console.log('Host signup attempt:', { name, email, phone, invitationToken });
+            
+            // Split name into first and last name
+            const nameParts = name.split(' ');
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' ') || '';
+            
+            try {
+                // Call the API for signup
+                const response = await api.signup({
+                    email,
+                    password,
+                    firstName,
+                    lastName,
+                    phone,
+                    role: 'host',
+                    invitationToken: invitationToken
+                });
+                
+                console.log('Signup response:', response);
+                
+                // Store auth data
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('token', response.token || response.accessToken);
+                localStorage.setItem('refreshToken', response.refreshToken);
+                
+                // Create user object
+                const user = {
+                    id: response.userId || response.id,
+                    email: email,
+                    name: name,
+                    role: 'host',
+                    profile: response
+                };
+                
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Clear invitation data
+                localStorage.removeItem('invitationToken');
+                localStorage.removeItem('invitationRole');
+                
+                // Redirect to host dashboard
+                setTimeout(() => {
+                    window.location.href = 'host-dashboard-upgraded.html';
+                }, 500);
+                
+            } catch (error) {
+                console.error('Signup error:', error);
+                
+                // Fallback to demo mode
+                console.log('Using demo mode');
+                
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('user', JSON.stringify({ name, email, phone, role: 'host' }));
+                localStorage.setItem('token', 'demo-host-token');
+                localStorage.removeItem('invitationToken');
+                localStorage.removeItem('invitationRole');
+                
+                setTimeout(() => {
+                    window.location.href = 'host-dashboard-upgraded.html';
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html>

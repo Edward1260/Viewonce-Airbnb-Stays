@@ -1,0 +1,3187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViewOnce Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js?v=20241201"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <script src="ai-luxury-dashboard.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-light: #a78bfa;
+            --primary-dark: #7c3aed;
+            --secondary: #06b6d4;
+            --accent: #f472b6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f8fafc;
+            --gold: #fbbf24;
+            --neon-cyan: #00f5ff;
+            --neon-purple: #a855f7;
+            --neon-pink: #ec4899;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #0f172a, #1e1b4b);
+            background-size: 400% 400%;
+            animation: gradientBG 20s ease infinite;
+            color: white;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Floating 3D Shapes */
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .shape {
+            position: absolute;
+            opacity: 0.15;
+            animation: float 20s infinite ease-in-out;
+            filter: blur(1px);
+        }
+        
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+        
+        .shape-2 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, var(--neon-pink), var(--warning));
+            border-radius: 40% 60% 70% 30% / 40% 70% 30% 60%;
+            top: 50%;
+            right: -50px;
+            animation-delay: -5s;
+        }
+        
+        .shape-3 {
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, var(--success), var(--secondary));
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            bottom: 10%;
+            left: 20%;
+            animation-delay: -10s;
+        }
+        
+        .shape-4 {
+            width: 350px;
+            height: 350px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50% 50% 30% 70% / 50% 30% 70% 50%;
+            bottom: -100px;
+            right: 20%;
+            animation-delay: -15s;
+        }
+        
+        .shape-5 {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, var(--gold), var(--danger));
+            border-radius: 40% 60% 50% 50% / 60% 40% 60% 40%;
+            top: 30%;
+            left: 40%;
+            animation-delay: -8s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            20% { transform: translate(30px, -40px) rotate(10deg) scale(1.05); }
+            40% { transform: translate(-20px, 20px) rotate(-5deg) scale(0.95); }
+            60% { transform: translate(40px, 30px) rotate(15deg) scale(1.02); }
+            80% { transform: translate(-10px, -20px) rotate(-8deg) scale(0.98); }
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .glass-heavy {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(30px);
+            border-radius: 24px;
+        }
+        
+        .glass-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.1));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(139, 92, 246, 0.3);
+            border-color: rgba(139, 92, 246, 0.6);
+        }
+        
+        /* 3D Effects */
+        .card-3d {
+            perspective: 1200px;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+        
+        .card-3d-inner {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8));
+            border-radius: 24px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+        }
+        
+        .card-3d:hover .card-3d-inner {
+            transform: rotateX(5deg) rotateY(-5deg) scale(1.03);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .float-3d {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .float-3d:hover {
+            transform: translateY(-15px) scale(1.05);
+        }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 14px 28px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-gradient::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-gradient:hover::before {
+            left: 100%;
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.6);
+        }
+        
+        .btn-neon {
+            background: transparent;
+            color: var(--neon-cyan);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 12px;
+        }
+        
+        .btn-neon:hover {
+            background: var(--neon-cyan);
+            color: var(--dark);
+            box-shadow: 0 0 30px var(--neon-cyan);
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
+            box-shadow: 20px 0 60px rgba(0, 0, 0, 0.5);
+            border-radius: 0 24px 24px 0;
+            padding: 24px 16px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        .sidebar.active {
+            transform: translateX(0);
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 3px;
+        }
+        
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 999;
+            backdrop-filter: blur(5px);
+        }
+        
+        .sidebar-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            padding: 14px 18px;
+            margin: 6px 0;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: left;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            border-radius: 14px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transition: width 0.3s;
+            border-radius: 14px;
+            z-index: -1;
+        }
+        
+        .sidebar-item:hover {
+            color: white;
+            padding-left: 24px;
+        }
+        
+        .sidebar-item:hover::before {
+            width: 100%;
+        }
+        
+        .sidebar-item.active {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+        
+        .sidebar-item i {
+            width: 24px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+        }
+        
+        .sidebar-logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(139, 92, 246, 0.8), 0 0 60px rgba(6, 182, 212, 0.4);
+            }
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        .animate-fade-in-up {
+            animation: fadeInUp 0.8s forwards;
+            opacity: 0;
+        }
+        
+        .animate-fade-in-left {
+            animation: fadeInLeft 0.6s forwards;
+            opacity: 0;
+        }
+        
+        .animate-fade-in-right {
+            animation: fadeInRight 0.6s forwards;
+            opacity: 0;
+        }
+        
+        .animate-scale-in {
+            animation: scaleIn 0.5s forwards;
+            opacity: 0;
+        }
+        
+        .animate-glow {
+            animation: glow 2s infinite;
+        }
+        
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-400 { animation-delay: 0.4s; }
+        .delay-500 { animation-delay: 0.5s; }
+        
+        .dashboard-section {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+        
+        .dashboard-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+        
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+        
+        .stat-icon.purple {
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            color: white;
+        }
+        
+        .stat-icon.cyan {
+            background: linear-gradient(135deg, #06b6d4, #22d3ee);
+            color: white;
+        }
+        
+        .stat-icon.pink {
+            background: linear-gradient(135deg, #ec4899, #f472b6);
+            color: white;
+        }
+        
+        .stat-icon.green {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+        }
+        
+        .stat-icon.orange {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: white;
+        }
+        
+        .stat-icon.red {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, white, rgba(255,255,255,0.7));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+        
+        .stat-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        
+        .stat-change.up {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .stat-change.down {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .data-table th {
+            background: rgba(139, 92, 246, 0.2);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.7);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        .data-table th:first-child {
+            border-radius: 12px 0 0 12px;
+        }
+        
+        .data-table th:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+        
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+        
+        .data-table tr {
+            transition: all 0.3s;
+        }
+        
+        .data-table tbody tr:hover {
+            background: rgba(139, 92, 246, 0.1);
+            transform: scale(1.01);
+        }
+        
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Status badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        
+        .status-badge.active, .status-badge.approved, .status-badge.confirmed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .status-badge.pending, .status-badge.pending-approval {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        
+        .status-badge.inactive, .status-badge.rejected, .status-badge.cancelled {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 280px;
+            height: 80px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            z-index: 100;
+            transition: left 0.3s;
+        }
+        
+        .header.sidebar-collapsed {
+            left: 80px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .menu-toggle {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 18px;
+        }
+        
+        .menu-toggle:hover {
+            background: var(--primary);
+            transform: scale(1.05);
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, white, var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .header-search {
+            position: relative;
+        }
+        
+        .header-search input {
+            width: 280px;
+            padding: 12px 16px 12px 44px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .header-search input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .header-search input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+            width: 320px;
+        }
+        
+        .header-search i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .header-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .header-btn:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .header-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 20px;
+            height: 20px;
+            background: var(--danger);
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .user-avatar:hover {
+            transform: scale(1.1);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 100px 32px 32px;
+            min-height: 100vh;
+            transition: margin-left 0.3s;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .main-content.sidebar-collapsed {
+            margin-left: 80px;
+        }
+        
+        /* Page transitions */
+        .page {
+            display: none;
+            animation: fadeInUp 0.5s forwards;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        /* Map */
+        #activityMap {
+            height: 300px;
+            border-radius: 16px;
+            z-index: 1;
+        }
+        
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.8);
+        }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 100px;
+            right: 32px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .toast {
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideInRight 0.3s ease;
+            min-width: 320px;
+            font-weight: 500;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .toast.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .toast.info {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+        
+        /* Loading */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(139, 92, 246, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* AI Elements */
+        .ai-float {
+            animation: pulseAI 2s infinite;
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            border-radius: 50px;
+            padding: 14px 20px;
+            font-size: 16px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .ai-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.8);
+        }
+        
+        @keyframes pulseAI {
+            0% { transform: scale(1); box-shadow: 0 0 15px rgba(139, 92, 246, 0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(139, 92, 246, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 15px rgba(139, 92, 246, 0.5); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+            .header {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-search {
+                display: none;
+            }
+            .page-title {
+                font-size: 18px;
+            }
+            .stat-value {
+                font-size: 24px;
+            }
+        .grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* AI Sidebar Styles */
+        .ai-sidebar {
+            position: fixed;
+            top: 80px;
+            left: 0;
+            height: calc(100vh - 80px);
+            width: 300px;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border-right: 1px solid rgba(139, 92, 246, 0.3);
+            padding: 20px 0;
+            overflow-y: auto;
+            z-index: 50;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 20px 0 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .ai-sidebar.active {
+            transform: translateX(0);
+        }
+        
+        .ai-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .ai-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 3px;
+        }
+        
+        .ai-sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+        }
+        
+        .ai-sidebar-title {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ai-sidebar-subtitle {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+        
+        .ai-menu-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: left;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .ai-menu-item:hover {
+            background: rgba(139, 92, 246, 0.2);
+            color: white;
+            padding-left: 25px;
+        }
+        
+        .ai-menu-item.active {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+        
+        .ai-menu-item i {
+            width: 24px;
+            text-align: center;
+            font-size: 16px;
+            margin-right: 12px;
+        }
+        
+        .ai-menu-item .menu-arrow {
+            margin-left: auto;
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+        
+        .ai-menu-item.has-submenu.expanded .menu-arrow {
+            transform: rotate(90deg);
+        }
+        
+        .ai-submenu {
+            max-height: 0;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            transition: max-height 0.4s ease-out;
+        }
+        
+        .ai-submenu.show {
+            max-height: 500px;
+        }
+        
+        .ai-submenu-item {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 10px 20px 10px 56px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        
+        .ai-submenu-item:hover {
+            background: rgba(139, 92, 246, 0.15);
+            color: white;
+            padding-left: 60px;
+        }
+        
+        .ai-submenu-item i {
+            width: 16px;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+        
+        .premium-badge {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        
+        .restricted-badge {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        
+        .locked-badge {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        
+        .ai-sidebar-toggle {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            color: white;
+            cursor: pointer;
+            z-index: 60;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s;
+        }
+        
+        .ai-sidebar-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.6);
+        }
+        
+        .ai-sidebar-toggle.show {
+            display: flex;
+        }
+        
+        .ai-content {
+            margin-left: 0;
+            transition: margin-left 0.4s;
+        }
+        
+        .ai-content.sidebar-open {
+            margin-left: 300px;
+        }
+        
+        /* Permission Modal */
+        .permission-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .permission-modal.show {
+            display: flex;
+        }
+        
+        .permission-modal-content {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .permission-modal-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+        }
+        
+        .permission-modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+        }
+        
+        .permission-modal-text {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        
+        .permission-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .permission-modal-btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+        
+        .permission-modal-btn.primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+        }
+        
+        .permission-modal-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+        
+        .permission-modal-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .permission-modal-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Floating Shapes Background -->
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+        <div class="shape shape-5"></div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="connection-status online" style="position: fixed; top: 90px; right: 32px; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 101; display: flex; align-items: center; gap: 8px;">
+        <span class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+        <span id="connectionText">Connected</span>
+    </div>
+    
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="sidebar-logo" style="margin-bottom: 0;">
+                <div class="sidebar-logo-icon">🏠</div>
+                <div class="sidebar-logo-text">ViewOnce</div>
+            </div>
+            <button id="sidebarCloseBtn" onclick="closeSidebar()" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <button onclick="navigateTo('dashboard', this)" class="sidebar-item active" data-page="dashboard">
+            <i class="fas fa-th-large"></i>
+            <span>Dashboard</span>
+        </button>
+        
+        <button onclick="navigateTo('hosts', this)" class="sidebar-item" data-page="hosts">
+            <i class="fas fa-home"></i>
+            <span>Hosts</span>
+        </button>
+        
+        <button onclick="navigateTo('customers', this)" class="sidebar-item" data-page="customers">
+            <i class="fas fa-users"></i>
+            <span>Customers</span>
+        </button>
+        
+        <button onclick="navigateTo('properties', this)" class="sidebar-item" data-page="properties">
+            <i class="fas fa-building"></i>
+            <span>Properties</span>
+        </button>
+        
+        <button onclick="navigateTo('bookings', this)" class="sidebar-item" data-page="bookings">
+            <i class="fas fa-calendar-check"></i>
+            <span>Bookings</span>
+        </button>
+        
+        <button onclick="navigateTo('analytics', this)" class="sidebar-item" data-page="analytics">
+            <i class="fas fa-chart-line"></i>
+            <span>Analytics</span>
+        </button>
+        
+        <button onclick="navigateTo('revenue', this)" class="sidebar-item" data-page="revenue">
+            <i class="fas fa-dollar-sign"></i>
+            <span>Revenue</span>
+        </button>
+        
+        <button onclick="window.location.href='admin-payments.html'" class="sidebar-item">
+            <i class="fas fa-credit-card"></i>
+            <span>Payments</span>
+            <span class="badge" style="margin-left: auto; background: var(--danger); padding: 2px 8px; border-radius: 10px; font-size: 10px;">3</span>
+        </button>
+        
+        <button onclick="navigateTo('reviews', this)" class="sidebar-item" data-page="reviews">
+            <i class="fas fa-star"></i>
+            <span>Reviews</span>
+        </button>
+        
+        <button onclick="navigateTo('messages', this)" class="sidebar-item" data-page="messages">
+            <i class="fas fa-envelope"></i>
+            <span>Messages</span>
+            <span class="badge" style="margin-left: auto; background: var(--danger); padding: 2px 8px; border-radius: 10px; font-size: 10px;">3</span>
+        </button>
+        
+        <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 16px 0;"></div>
+        
+        <button onclick="navigateTo('settings', this)" class="sidebar-item" data-page="settings">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </button>
+        
+        <button onclick="navigateTo('ai-dashboard', this)" class="sidebar-item" style="background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3));">
+            <i class="fas fa-robot"></i>
+            <span>AI Assistant</span>
+        </button>
+        
+        <button onclick="handleLogout()" class="sidebar-item" style="margin-top: auto; color: rgba(239,68,68,0.8);">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </button>
+    </aside>
+    
+    <div id="sidebarBackdrop" onclick="closeSidebar()" class="sidebar-backdrop"></div>
+    
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header-left">
+            <button class="menu-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title" id="pageTitle">Dashboard</h1>
+        </div>
+        
+        <div class="header-right">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search hosts, customers, properties..." id="headerSearch">
+            </div>
+            
+            <button class="header-btn" onclick="showNotifications()">
+                <i class="fas fa-bell"></i>
+                <span class="badge">5</span>
+            </button>
+            
+            <div class="user-avatar" onclick="toggleProfileMenu()" id="userAvatar">
+                A
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        
+        <!-- Dashboard Page -->
+        <div id="dashboardPage" class="page active">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="glass-card stat-card p-6 animate-fade-in-up">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="stat-value" id="totalHosts">0</div>
+                    <div class="stat-label">Total Hosts</div>
+                    <div class="stat-change up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+12%</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card stat-card p-6 animate-fade-in-up delay-100">
+                    <div class="stat-icon cyan">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-value" id="totalCustomers">0</div>
+                    <div class="stat-label">Total Customers</div>
+                    <div class="stat-change up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+8%</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card stat-card p-6 animate-fade-in-up delay-200">
+                    <div class="stat-icon pink">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="stat-value" id="totalProperties">0</div>
+                    <div class="stat-label">Total Properties</div>
+                    <div class="stat-change up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+15%</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card stat-card p-6 animate-fade-in-up delay-300">
+                    <div class="stat-icon green">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-value" id="totalRevenue">KSh 0</div>
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-change up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+23%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="glass-card p-6 lg:col-span-2 animate-fade-in-up delay-300">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-area text-purple-400"></i>
+                        Revenue Overview
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="glass-card p-6 animate-fade-in-up delay-400">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-cyan-400"></i>
+                        Property Status
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="propertyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map and Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="glass-card p-6 animate-fade-in-up delay-400">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i class="fas fa-map-marker-alt text-pink-400"></i>
+                        Activity Map
+                    </h3>
+                    <div id="activityMap" class="rounded-xl overflow-hidden"></div>
+                </div>
+                
+                <div class="glass-card p-6 animate-fade-in-up delay-500">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i class="fas fa-clock text-yellow-400"></i>
+                        Recent Activities
+                    </h3>
+                    <div class="space-y-4" id="recentActivities">
+                        <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5">
+                            <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center text-green-400">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">New host registered</p>
+                                <p class="text-xs text-white/50">2 minutes ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5">
+                            <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">New property added</p>
+                                <p class="text-xs text-white/50">15 minutes ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Booking confirmed</p>
+                                <p class="text-xs text-white/50">1 hour ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5">
+                            <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center text-yellow-400">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">New review received</p>
+                                <p class="text-xs text-white/50">3 hours ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending Approvals -->
+            <div class="glass-card p-6 animate-fade-in-up delay-500">
+                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle text-orange-400"></i>
+                    Pending Approvals
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="pendingTable">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTableBody">
+                            <tr>
+                                <td><span class="text-purple-400"><i class="fas fa-home"></i> Host</span></td>
+                                <td>John Doe</td>
+                                <td>john@example.com</td>
+                                <td>2024-01-15</td>
+                                <td><span class="status-badge pending">Pending</span></td>
+                                <td>
+                                    <button class="btn-gradient py-2 px-4 text-xs" onclick="approveItem('host', '1')">Approve</button>
+                                    <button class="btn-neon py-2 px-4 text-xs ml-2" onclick="rejectItem('host', '1')">Reject</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="text-cyan-400"><i class="fas fa-building"></i> Property</span></td>
+                                <td>Luxury Villa</td>
+                                <td>host@example.com</td>
+                                <td>2024-01-14</td>
+                                <td><span class="status-badge pending-approval">Pending</span></td>
+                                <td>
+                                    <button class="btn-gradient py-2 px-4 text-xs" onclick="approveItem('property', '1')">Approve</button>
+                                    <button class="btn-neon py-2 px-4 text-xs ml-2" onclick="rejectItem('property', '1')">Reject</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hosts Page -->
+        <div id="hostsPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Host Management</h2>
+                    <div class="flex gap-4">
+                        <input type="text" placeholder="Search hosts..." class="glass-input px-4 py-2 rounded-xl" style="width: 250px;">
+                        <button class="btn-gradient" onclick="showInviteHostModal()">
+                            <i class="fas fa-user-plus mr-2"></i>Invite Host
+                        </button>
+                        <button class="btn-gradient" style="background: linear-gradient(135deg, #06b6d4, #22d3ee);">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="hostsTable">
+                        <thead>
+                            <tr>
+                                <th>Host</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Properties</th>
+                                <th>Revenue</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hostsTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center py-8">
+                                    <div class="loading-spinner mx-auto"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Customers Page -->
+        <div id="customersPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Customer Management</h2>
+                    <div class="flex gap-4">
+                        <input type="text" placeholder="Search customers..." class="glass-input px-4 py-2 rounded-xl" style="width: 250px;">
+                        <button class="btn-gradient">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="customersTable">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Bookings</th>
+                                <th>Total Spent</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center py-8">
+                                    <div class="loading-spinner mx-auto"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Properties Page -->
+        <div id="propertiesPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Property Management</h2>
+                    <div class="flex gap-4">
+                        <select class="glass-input px-4 py-2 rounded-xl">
+                            <option>All Status</option>
+                            <option>Active</option>
+                            <option>Pending</option>
+                            <option>Inactive</option>
+                        </select>
+                        <button class="btn-gradient">
+                            <i class="fas fa-plus mr-2"></i>Add Property
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="propertiesTable">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Host</th>
+                                <th>Location</th>
+                                <th>Price</th>
+                                <th>Rating</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="propertiesTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center py-8">
+                                    <div class="loading-spinner mx-auto"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bookings Page -->
+        <div id="bookingsPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Booking Management</h2>
+                    <div class="flex gap-4">
+                        <input type="date" class="glass-input px-4 py-2 rounded-xl">
+                        <select class="glass-input px-4 py-2 rounded-xl">
+                            <option>All Status</option>
+                            <option>Confirmed</option>
+                            <option>Pending</option>
+                            <option>Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="bookingsTable">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Customer</th>
+                                <th>Property</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingsTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-8">
+                                    <div class="loading-spinner mx-auto"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analytics Page -->
+        <div id="analyticsPage" class="page">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="glass-card p-6 animate-fade-in-up">
+                    <h3 class="text-lg font-semibold mb-4">Performance Analytics</h3>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="glass-card p-6 animate-fade-in-up delay-100">
+                    <h3 class="text-lg font-semibold mb-4">User Growth</h3>
+                    <div class="chart-container">
+                        <canvas id="userGrowthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card p-6 animate-fade-in-up delay-200">
+                <h3 class="text-lg font-semibold mb-4">Top Performing Properties</h3>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Host</th>
+                                <th>Bookings</th>
+                                <th>Revenue</th>
+                                <th>Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Luxury Downtown Apartment</td>
+                                <td>Jane Smith</td>
+                                <td>45</td>
+                                <td>KSh 450,000</td>
+                                <td><span class="text-yellow-400">⭐ 4.9</span></td>
+                            </tr>
+                            <tr>
+                                <td>Beachfront Villa</td>
+                                <td>Mike Johnson</td>
+                                <td>38</td>
+                                <td>KSh 760,000</td>
+                                <td><span class="text-yellow-400">⭐ 4.8</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mountain Retreat</td>
+                                <td>Sarah Williams</td>
+                                <td>32</td>
+                                <td>KSh 320,000</td>
+                                <td><span class="text-yellow-400">⭐ 4.7</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Revenue Page -->
+        <div id="revenuePage" class="page">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="glass-card p-6 animate-fade-in-up">
+                    <div class="stat-icon green mb-4">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-value">KSh 2.5M</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+                <div class="glass-card p-6 animate-fade-in-up delay-100">
+                    <div class="stat-icon cyan mb-4">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-value">KSh 850K</div>
+                    <div class="stat-label">This Month</div>
+                </div>
+                <div class="glass-card p-6 animate-fade-in-up delay-200">
+                    <div class="stat-icon orange mb-4">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value">KSh 120K</div>
+                    <div class="stat-label">Pending Payouts</div>
+                </div>
+            </div>
+            
+            <div class="glass-card p-6 animate-fade-in-up delay-300">
+                <h3 class="text-lg font-semibold mb-4">Revenue Transactions</h3>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>Host</th>
+                                <th>Amount</th>
+                                <th>Platform Fee</th>
+                                <th>Net</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#TXN-001</td>
+                                <td>Jane Smith</td>
+                                <td>KSh 50,000</td>
+                                <td>KSh 5,000</td>
+                                <td>KSh 45,000</td>
+                                <td>2024-01-15</td>
+                                <td><span class="status-badge confirmed">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>#TXN-002</td>
+                                <td>Mike Johnson</td>
+                                <td>KSh 75,000</td>
+                                <td>KSh 7,500</td>
+                                <td>KSh 67,500</td>
+                                <td>2024-01-14</td>
+                                <td><span class="status-badge confirmed">Completed</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reviews Page -->
+        <div id="reviewsPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <h3 class="text-lg font-semibold mb-4">Review Management</h3>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Customer</th>
+                                <th>Rating</th>
+                                <th>Review</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Luxury Downtown</td>
+                                <td>John D.</td>
+                                <td><span class="text-yellow-400">⭐⭐⭐⭐⭐</span></td>
+                                <td>Amazing stay! Highly recommend...</td>
+                                <td>2024-01-15</td>
+                                <td>
+                                    <button class="btn-neon py-1 px-3 text-xs">View</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Beachfront Villa</td>
+                                <td>Sarah M.</td>
+                                <td><span class="text-yellow-400">⭐⭐⭐⭐</span></td>
+                                <td>Great location but could be cleaner...</td>
+                                <td>2024-01-14</td>
+                                <td>
+                                    <button class="btn-neon py-1 px-3 text-xs">View</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Messages Page -->
+        <div id="messagesPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <h3 class="text-lg font-semibold mb-4">Support Messages</h3>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>From</th>
+                                <th>Subject</th>
+                                <th>Message</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Jane Smith</td>
+                                <td>Payment Issue</td>
+                                <td>I haven't received my payout...</td>
+                                <td>2024-01-15</td>
+                                <td><span class="status-badge pending">Unread</span></td>
+                                <td>
+                                    <button class="btn-gradient py-1 px-3 text-xs">Reply</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Mike Johnson</td>
+                                <td>Property Approval</td>
+                                <td>When will my property be approved?</td>
+                                <td>2024-01-14</td>
+                                <td><span class="status-badge active">Read</span></td>
+                                <td>
+                                    <button class="btn-gradient py-1 px-3 text-xs">Reply</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Page -->
+        <div id="settingsPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <h3 class="text-lg font-semibold mb-6">Admin Settings</h3>
+                
+                <div class="space-y-6">
+                    <div class="p-4 rounded-xl bg-white/5">
+                        <h4 class="font-semibold mb-4">Platform Settings</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Maintenance Mode</p>
+                                    <p class="text-sm text-white/50">Put the platform in maintenance mode</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer">
+                                    <div class="w-14 h-7 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">New Host Approval</p>
+                                    <p class="text-sm text-white/50">Require admin approval for new hosts</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" checked>
+                                    <div class="w-14 h-7 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Property Approval</p>
+                                    <p class="text-sm text-white/50">Require admin approval for new properties</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" checked>
+                                    <div class="w-14 h-7 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 rounded-xl bg-white/5">
+                        <h4 class="font-semibold mb-4">Commission Settings</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm mb-2">Platform Fee (%)</label>
+                                <input type="number" value="10" class="glass-input px-4 py-2 rounded-xl w-full">
+                            </div>
+                            <div>
+                                <label class="block text-sm mb-2">Payment Processing (%)</label>
+                                <input type="number" value="2.5" class="glass-input px-4 py-2 rounded-xl w-full">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-gradient">
+                        <i class="fas fa-save mr-2"></i>Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI Dashboard Page -->
+        <div id="aiDashboardPage" class="page">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="glass-card p-6 animate-fade-in-up">
+                    <div class="stat-icon purple mb-4">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3 class="font-semibold mb-2">AI Insights</h3>
+                    <p class="text-sm text-white/60 mb-4">Get AI-powered recommendations</p>
+                    <button class="btn-gradient w-full" onclick="toggleAIChat()">
+                        <i class="fas fa-robot mr-2"></i>Ask AI
+                    </button>
+                </div>
+                
+                <div class="glass-card p-6 animate-fade-in-up delay-100">
+                    <div class="stat-icon cyan mb-4">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="font-semibold mb-2">Predictions</h3>
+                    <p class="text-sm text-white/60 mb-4">Forecast revenue & bookings</p>
+                    <button class="btn-gradient w-full">
+                        <i class="fas fa-crystal-ball mr-2"></i>View Predictions
+                    </button>
+                </div>
+                
+                <div class="glass-card p-6 animate-fade-in-up delay-200">
+                    <div class="stat-icon pink mb-4">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h3 class="font-semibold mb-2">Automation</h3>
+                    <p class="text-sm text-white/60 mb-4">Automate routine tasks</p>
+                    <button class="btn-gradient w-full">
+                        <i class="fas fa-cogs mr-2"></i>Configure
+                    </button>
+                </div>
+            </div>
+            
+            <div class="glass-card p-6 animate-fade-in-up delay-300">
+                <h3 class="text-lg font-semibold mb-4">AI Recommendations</h3>
+                <div class="space-y-4">
+                    <div class="p-4 rounded-xl bg-purple-500/20 border border-purple-500/30">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
+                                <i class="fas fa-lightbulb text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Optimize Pricing</h4>
+                                <p class="text-sm text-white/70 mt-1">Your properties in Nairobi could earn 15% more with dynamic pricing.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-cyan-500/20 border border-cyan-500/30">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center">
+                                <i class="fas fa-bullhorn text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Marketing Opportunity</h4>
+                                <p class="text-sm text-white/70 mt-1">Mombasa properties have 40% higher demand this season.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-pink-500/20 border border-pink-500/30">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-pink-500 flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Action Required</h4>
+                                <p class="text-sm text-white/70 mt-1">5 properties have pending reviews that need attention.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- AI Chat Widget -->
+    <div id="aiChatWidget" class="ai-chat-widget" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.95)); z-index: 9999; flex-direction: column;">
+        <div class="ai-chat-header" style="background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="flex items-center gap-2"><i class="fas fa-robot"></i><span class="font-semibold">AI Assistant</span></div>
+            <button onclick="toggleAIChat()" class="text-white hover:text-gray-200"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="ai-chat-messages" id="aiChatMessages" style="flex: 1; padding: 20px; overflow-y: auto;">
+            <div class="ai-message" style="background: rgba(139, 92, 246, 0.2); padding: 16px; border-radius: 16px; max-width: 85%;">
+                <p class="font-semibold text-purple-400 mb-2">🤖 ViewOnce AI</p>
+                <p>Hello! I'm your AI assistant. I can help you with:</p>
+                <ul class="mt-3 ml-4 text-sm space-y-1">
+                    <li>📊 Platform analytics & insights</li>
+                    <li>💰 Revenue optimization</li>
+                    <li>👥 User management</li>
+                    <li>🏠 Property performance</li>
+                    <li>⚡ Automation recommendations</li>
+                </ul>
+            </div>
+        </div>
+        <div class="ai-chat-input" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px;">
+            <input type="text" id="aiChatInput" placeholder="Ask me anything..." style="flex: 1; padding: 14px 18px; border: 2px solid rgba(139,92,246,0.3); border-radius: 12px; background: rgba(255,255,255,0.1); color: white; font-size: 14px;">
+            <button onclick="sendAIMessage()" style="background: var(--primary); color: white; border: none; border-radius: 12px; padding: 14px 20px; cursor: pointer;"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    
+    <!-- AI Floating Button -->
+    <button class="ai-float" onclick="window.location.href='admin-ai.html'">
+        <i class="fas fa-robot"></i>
+        <span>AI Assistant</span>
+    </button>
+
+    <!-- Invite Host Modal -->
+    <div id="inviteHostModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="modal-content" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 24px; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 700;">
+                    <i class="fas fa-user-plus mr-2" style="color: #8b5cf6;"></i>
+                    Invite New Host
+                </h3>
+                <button onclick="closeInviteHostModal()" style="background: none; border: none; color: rgba(255, 255, 255, 0.5); font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <form id="inviteHostForm" onsubmit="sendHostInvitation(event)">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Host Name</label>
+                    <input type="text" id="hostName" required placeholder="Enter host's full name" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px;">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Email Address</label>
+                    <input type="email" id="hostEmail" required placeholder="Enter host's email address" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px;">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Phone Number (for WhatsApp)</label>
+                    <input type="tel" id="hostPhone" placeholder="+254712345678" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px;">
+                    <small style="color: rgba(255, 255, 255, 0.5); font-size: 12px;">Include country code for WhatsApp (e.g., +254)</small>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Invitation Message</label>
+                    <textarea id="inviteMessage" rows="3" placeholder="Add a personal message (optional)" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+                
+                <div id="generatedLinkContainer" style="margin-bottom: 24px; display: none;">
+                    <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Generated Invitation Link</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="generatedLink" readonly style="flex: 1; padding: 12px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 12px; font-family: monospace;">
+                        <button type="button" onclick="copyLink()" style="padding: 12px 16px; border: none; border-radius: 12px; background: #8b5cf6; color: white; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button type="submit" class="btn-gradient" style="flex: 1; min-width: 150px;">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Send Invitation
+                    </button>
+                    <button type="button" id="whatsappBtn" onclick="sendViaWhatsApp('host')" disabled style="padding: 14px 24px; border: none; border-radius: 16px; background: #25D366; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; opacity: 0.5;">
+                        <i class="fab fa-whatsapp"></i>
+                        WhatsApp
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Link Sharing Modal for Platform Master Hub -->
+    <div id="linkSharingModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="modal-content" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 24px; padding: 32px; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 700;">
+                    <i class="fas fa-link mr-2" style="color: #8b5cf6;"></i>
+                    Share Dashboard Links
+                </h3>
+                <button onclick="closeLinkSharingModal()" style="background: none; border: none; color: rgba(255, 255, 255, 0.5); font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div id="linkOptions" style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Admin Dashboard Link -->
+                <div class="link-option" style="padding: 20px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6, #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0; color: white; font-weight: 600;">Admin Dashboard</h4>
+                                <p style="margin: 4px 0 0; color: rgba(255, 255, 255, 0.5); font-size: 12px;">Share admin dashboard access link</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="generateLink('admin')" style="padding: 10px 16px; border: none; border-radius: 10px; background: #8b5cf6; color: white; cursor: pointer; font-weight: 600;">
+                                <i class="fas fa-link mr-1"></i> Generate
+                            </button>
+                            <button onclick="shareViaWhatsApp('admin')" id="whatsappAdminBtn" disabled style="padding: 10px 16px; border: none; border-radius: 10px; background: #25D366; color: white; cursor: pointer; opacity: 0.5;">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="adminLinkContainer" style="margin-top: 12px; display: none;">
+                        <input type="text" id="adminLink" readonly style="width: 100%; padding: 10px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 12px;">
+                    </div>
+                </div>
+                
+                <!-- Host Dashboard Link -->
+                <div class="link-option" style="padding: 20px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(6, 182, 212, 0.3);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #06b6d4, #22d3ee); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                <i class="fas fa-home"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0; color: white; font-weight: 600;">Host Dashboard</h4>
+                                <p style="margin: 4px 0 0; color: rgba(255, 255, 255, 0.5); font-size: 12px;">Share host dashboard access link</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="generateLink('host')" style="padding: 10px 16px; border: none; border-radius: 10px; background: #06b6d4; color: white; cursor: pointer; font-weight: 600;">
+                                <i class="fas fa-link mr-1"></i> Generate
+                            </button>
+                            <button onclick="shareViaWhatsApp('host')" id="whatsappHostBtn" disabled style="padding: 10px 16px; border: none; border-radius: 10px; background: #25D366; color: white; cursor: pointer; opacity: 0.5;">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="hostLinkContainer" style="margin-top: 12px; display: none;">
+                        <input type="text" id="hostLink" readonly style="width: 100%; padding: 10px; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 12px;">
+                    </div>
+                </div>
+                
+                <!-- Support Dashboard Link -->
+                <div class="link-option" style="padding: 20px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(236, 72, 153, 0.3);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #ec4899, #f472b6); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                <i class="fas fa-headset"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0; color: white; font-weight: 600;">Support Dashboard</h4>
+                                <p style="margin: 4px 0 0; color: rgba(255, 255, 255, 0.5); font-size: 12px;">Share support dashboard access link</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="generateLink('support')" style="padding: 10px 16px; border: none; border-radius: 10px; background: #ec4899; color: white; cursor: pointer; font-weight: 600;">
+                                <i class="fas fa-link mr-1"></i> Generate
+                            </button>
+                            <button onclick="shareViaWhatsApp('support')" id="whatsappSupportBtn" disabled style="padding: 10px 16px; border: none; border-radius: 10px; background: #25D366; color: white; cursor: pointer; opacity: 0.5;">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="supportLinkContainer" style="margin-top: 12px; display: none;">
+                        <input type="text" id="supportLink" readonly style="width: 100%; padding: 10px; border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 12px;">
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 24px; text-align: center;">
+                <button onclick="closeLinkSharingModal()" class="btn-neon" style="padding: 12px 32px;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // Global state
+    let sidebarCollapsed = false;
+    let currentPage = 'dashboard';
+    let isAIChatOpen = false;
+    
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check authentication - redirect to index if not logged in
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        // For demo purposes, allow access without authentication
+        // In production, uncomment the following lines:
+        // if (!isLoggedIn || user.role !== 'admin') {
+        //     window.location.href = 'index.html';
+        //     return;
+        // }
+        
+        // Set user avatar
+        const userAvatar = document.getElementById('userAvatar');
+        if (userAvatar && user.name) {
+            userAvatar.textContent = user.name.charAt(0).toUpperCase();
+        }
+        
+        // Initialize
+        animateSections();
+        initializeCharts();
+        initializeMap();
+        loadDashboardData();
+        
+        // Start connection monitoring
+        startConnectionMonitoring();
+    });
+    
+    // Connection monitoring
+    function startConnectionMonitoring() {
+        updateConnectionStatus();
+        setInterval(() => updateConnectionStatus(), 10000);
+        window.addEventListener('online', () => updateConnectionStatus('online'));
+        window.addEventListener('offline', () => updateConnectionStatus('offline'));
+    }
+    
+    function updateConnectionStatus(status) {
+        const statusEl = document.getElementById('connectionStatus');
+        const textEl = document.getElementById('connectionText');
+        
+        if (status === 'online' || navigator.onLine) {
+            statusEl.className = 'connection-status online';
+            statusEl.style.background = 'rgba(16, 185, 129, 0.9)';
+            textEl.textContent = 'Connected';
+        } else {
+            statusEl.className = 'connection-status offline';
+            statusEl.style.background = 'rgba(239, 68, 68, 0.9)';
+            textEl.textContent = 'Offline';
+        }
+    }
+    
+    // Sidebar functions
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const header = document.getElementById('header');
+        const mainContent = document.getElementById('mainContent');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        
+        if (window.innerWidth <= 1024) {
+            if (sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+                backdrop.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                backdrop.classList.add('active');
+            }
+        } else {
+            sidebarCollapsed = !sidebarCollapsed;
+            if (sidebarCollapsed) {
+                sidebar.style.width = '80px';
+                sidebar.classList.add('collapsed');
+                header.classList.add('sidebar-collapsed');
+                mainContent.classList.add('sidebar-collapsed');
+            } else {
+                sidebar.style.width = '280px';
+                sidebar.classList.remove('collapsed');
+                header.classList.remove('sidebar-collapsed');
+                mainContent.classList.remove('sidebar-collapsed');
+            }
+        }
+    }
+    
+    function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        sidebar.classList.remove('active');
+        backdrop.classList.remove('active');
+    }
+    
+    // Navigation
+    function navigateTo(page, element) {
+        currentPage = page;
+        
+        // Update sidebar active state
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        if (element) {
+            element.classList.add('active');
+        }
+        
+        // Update page title
+        const titles = {
+            'dashboard': 'Dashboard',
+            'hosts': 'Host Management',
+            'customers': 'Customer Management',
+            'properties': 'Property Management',
+            'bookings': 'Booking Management',
+            'analytics': 'Analytics',
+            'revenue': 'Revenue',
+            'reviews': 'Reviews',
+            'messages': 'Messages',
+            'settings': 'Settings',
+            'ai-dashboard': 'AI Dashboard'
+        };
+        document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
+        
+        // Show page
+        document.querySelectorAll('.page').forEach(p => {
+            p.classList.remove('active');
+        });
+        
+        const pageEl = document.getElementById(page + 'Page');
+        if (pageEl) {
+            pageEl.classList.add('active');
+            animatePageSections(pageEl);
+        }
+        
+        // Close mobile sidebar
+        closeSidebar();
+        
+        // Load page-specific data
+        loadPageData(page);
+    }
+    
+    function animatePageSections(pageEl) {
+        pageEl.querySelectorAll('.dashboard-section, .animate-fade-in-up').forEach((section, index) => {
+            setTimeout(() => {
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    }
+    
+    // Animate sections on page load
+    function animateSections() {
+        document.querySelectorAll('.dashboard-section, .animate-fade-in-up').forEach((section, index) => {
+            setTimeout(() => {
+                section.classList.add('visible');
+            }, index * 100);
+        });
+        
+        // Auto-open sidebar on desktop
+        if (window.innerWidth > 1024) {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.add('active');
+        }
+    }
+    
+    // Initialize Charts
+    function initializeCharts() {
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueCtx) {
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Revenue (KSh)',
+                        data: [850000, 920000, 780000, 1150000, 1320000, 1410000, 1580000, 1620000, 1390000, 1210000, 1180000, 1275000],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', callback: (value) => 'KSh ' + (value/1000) + 'K' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Property Status Chart
+        const propertyCtx = document.getElementById('propertyChart');
+        if (propertyCtx) {
+            new Chart(propertyCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active', 'Pending', 'Inactive'],
+                    datasets: [{
+                        data: [65, 25, 10],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#fff' } }
+                    }
+                }
+            });
+        }
+        
+        // Performance Chart
+        const perfCtx = document.getElementById('performanceChart');
+        if (perfCtx) {
+            new Chart(perfCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Bookings',
+                        data: [45, 52, 38, 65],
+                        backgroundColor: 'rgba(139, 92, 246, 0.8)',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#fff' } } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } },
+                        x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } }
+                    }
+                }
+            });
+        }
+        
+        // User Growth Chart
+        const userCtx = document.getElementById('userGrowthChart');
+        if (userCtx) {
+            new Chart(userCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'New Hosts',
+                        data: [12, 19, 15, 25, 22, 30],
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'New Customers',
+                        data: [28, 35, 42, 38, 55, 62],
+                        borderColor: '#ec4899',
+                        backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#fff' } } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } },
+                        x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Initialize Map
+    function initializeMap() {
+        const mapEl = document.getElementById('activityMap');
+        if (!mapEl || typeof L === 'undefined') return;
+        
+        try {
+            const map = L.map('activityMap').setView([-1.2864, 36.8172], 6);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            
+            const locations = [
+                { lat: -1.2864, lng: 36.8172, intensity: 10, city: 'Nairobi' },
+                { lat: -4.0435, lng: 39.6682, intensity: 8, city: 'Mombasa' },
+                { lat: 0.5143, lng: 35.2698, intensity: 6, city: 'Eldoret' },
+                { lat: -0.0917, lng: 34.7679, intensity: 5, city: 'Kisumu' },
+                { lat: -0.3031, lng: 36.0800, intensity: 4, city: 'Nakuru' }
+            ];
+            
+            locations.forEach(loc => {
+                L.circle([loc.lat, loc.lng], {
+                    color: '#8b5cf6',
+                    fillColor: '#8b5cf6',
+                    fillOpacity: 0.3,
+                    radius: loc.intensity * 10000
+                }).addTo(map).bindPopup(`<b>${loc.city}</b><br>Activity: ${loc.intensity}/10`);
+            });
+        } catch (e) {
+            console.log('Map initialization skipped');
+        }
+    }
+    
+    // Load Dashboard Data
+    async function loadDashboardData() {
+        try {
+            let hosts = [], customers = [], properties = [], bookings = [];
+            
+            if (window.api) {
+                try { const h = await api.getUsers('host'); hosts = h.data || h || []; } catch(e) { hosts = []; }
+                try { const c = await api.getUsers('customer'); customers = c.data || c || []; } catch(e) { customers = []; }
+                try { const p = await api.getProperties(); properties = p.data || p || []; } catch(e) { properties = []; }
+                try { const b = await api.getBookings(); bookings = b.data || b || []; } catch(e) { bookings = []; }
+            }
+            
+            document.getElementById('totalHosts').textContent = hosts.length;
+            document.getElementById('totalCustomers').textContent = customers.length;
+            document.getElementById('totalProperties').textContent = properties.length;
+            
+            const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+            document.getElementById('totalRevenue').textContent = 'KSh ' + totalRevenue.toLocaleString();
+            
+        } catch (error) {
+            console.log('Loading demo data');
+        }
+    }
+    
+    // Load Page Data
+    async function loadPageData(page) {
+        const tableBodyIds = {
+            'hosts': 'hostsTableBody',
+            'customers': 'customersTableBody',
+            'properties': 'propertiesTableBody',
+            'bookings': 'bookingsTableBody'
+        };
+        
+        const tbodyId = tableBodyIds[page];
+        if (!tbodyId) return;
+        
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        
+        // Show loading state
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-8">
+                    <div class="loading-spinner mx-auto"></div>
+                </td>
+            </tr>
+        `;
+        
+        try {
+            let data = [];
+            
+            switch(page) {
+                case 'hosts':
+                    data = await api.getHosts();
+                    renderHostsTable(tbody, data);
+                    break;
+                case 'customers':
+                    data = await api.getUsers('customer');
+                    renderCustomersTable(tbody, data);
+                    break;
+                case 'properties':
+                    data = await api.getAllProperties();
+                    renderPropertiesTable(tbody, data);
+                    break;
+                case 'bookings':
+                    data = await api.getBookings();
+                    renderBookingsTable(tbody, data);
+                    break;
+            }
+        } catch (error) {
+            console.error('Error loading page data:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-8 text-red-400">
+                        Error loading data: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    // Render Hosts Table
+    function renderHostsTable(tbody, hosts) {
+        if (!hosts || hosts.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-8 text-white/50">
+                        No hosts found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = hosts.map(host => `
+            <tr>
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold">
+                            ${host.name ? host.name.charAt(0).toUpperCase() : 'H'}
+                        </div>
+                        <div>
+                            <p class="font-medium">${host.name || 'Unknown'}</p>
+                            <p class="text-xs text-white/50">${host.id || ''}</p>
+                        </div>
+                    </div>
+                </td>
+                <td>${host.email || 'N/A'}</td>
+                <td>${host.phone || 'N/A'}</td>
+                <td>${host.propertyCount || host.properties?.length || 0}</td>
+                <td>${host.totalRevenue ? 'KSh ' + parseInt(host.totalRevenue).toLocaleString() : 'KSh 0'}</td>
+                <td><span class="status-badge ${host.isApproved ? 'active' : 'pending'}">${host.isApproved ? 'Active' : 'Pending'}</span></td>
+                <td>
+                    <button class="btn-gradient py-2 px-4 text-xs" onclick="viewHost('${host.id}')">View</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // Render Customers Table
+    function renderCustomersTable(tbody, customers) {
+        if (!customers || customers.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-8 text-white/50">
+                        No customers found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = customers.map(customer => `
+            <tr>
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold">
+                            ${customer.name ? customer.name.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div>
+                            <p class="font-medium">${customer.name || 'Unknown'}</p>
+                            <p class="text-xs text-white/50">${customer.id || ''}</p>
+                        </div>
+                    </div>
+                </td>
+                <td>${customer.email || 'N/A'}</td>
+                <td>${customer.phone || 'N/A'}</td>
+                <td>${customer.bookingCount || customer.bookings?.length || 0}</td>
+                <td>${customer.totalSpent ? 'KSh ' + parseInt(customer.totalSpent).toLocaleString() : 'KSh 0'}</td>
+                <td><span class="status-badge active">Active</span></td>
+                <td>
+                    <button class="btn-gradient py-2 px-4 text-xs" onclick="viewCustomer('${customer.id}')">View</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // Render Properties Table
+    function renderPropertiesTable(tbody, properties) {
+        if (!properties || properties.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-8 text-white/50">
+                        No properties found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = properties.map(property => `
+            <tr>
+                <td>
+                    <div class="flex items-center gap-3">
+                        <div class="w-16 h-12 rounded-lg bg-gray-700 overflow-hidden">
+                            ${property.images && property.images.length > 0 
+                                ? `<img src="${property.images[0]}" alt="${property.title}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-gray-500\\'><i class=\\'fas fa-home\\'></i></div>'">`
+                                : '<div class="w-full h-full flex items-center justify-center text-gray-500"><i class="fas fa-home"></i></div>'
+                            }
+                        </div>
+                        <div>
+                            <p class="font-medium">${property.title || 'Untitled'}</p>
+                            <p class="text-xs text-white/50">${property.location || 'No location'}</p>
+                        </div>
+                    </div>
+                </td>
+                <td>${property.hostName || property.host?.name || 'N/A'}</td>
+                <td>${property.city || property.location || 'N/A'}</td>
+                <td>${property.price ? 'KSh ' + parseInt(property.price).toLocaleString() : 'KSh 0'}</td>
+                <td>${property.rating ? '⭐ ' + property.rating : 'No rating'}</td>
+                <td><span class="status-badge ${property.status === 'active' ? 'active' : property.status === 'pending' ? 'pending' : 'inactive'}">${property.status || 'Pending'}</span></td>
+                <td>
+                    <button class="btn-gradient py-2 px-4 text-xs" onclick="viewProperty('${property.id}')">View</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // Render Bookings Table
+    function renderBookingsTable(tbody, bookings) {
+        if (!bookings || bookings.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-8 text-white/50">
+                        No bookings found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = bookings.map(booking => `
+            <tr>
+                <td class="font-mono text-sm">#${booking.id ? booking.id.slice(-6) : 'N/A'}</td>
+                <td>${booking.customerName || booking.user?.name || 'N/A'}</td>
+                <td>${booking.propertyTitle || booking.property?.title || 'N/A'}</td>
+                <td>${booking.checkIn ? new Date(booking.checkIn).toLocaleDateString() : 'N/A'}</td>
+                <td>${booking.checkOut ? new Date(booking.checkOut).toLocaleDateString() : 'N/A'}</td>
+                <td>${booking.totalPrice ? 'KSh ' + parseInt(booking.totalPrice).toLocaleString() : 'KSh 0'}</td>
+                <td><span class="status-badge ${booking.status === 'confirmed' ? 'confirmed' : booking.status === 'pending' ? 'pending' : 'cancelled'}">${booking.status || 'Pending'}</span></td>
+                <td>
+                    <button class="btn-gradient py-2 px-4 text-xs" onclick="viewBooking('${booking.id}')">View</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // View functions
+    function viewHost(hostId) {
+        showToast('Viewing host: ' + hostId, 'info');
+    }
+    
+    function viewCustomer(customerId) {
+        showToast('Viewing customer: ' + customerId, 'info');
+    }
+    
+    function viewProperty(propertyId) {
+        showToast('Viewing property: ' + propertyId, 'info');
+    }
+    
+    function viewBooking(bookingId) {
+        showToast('Viewing booking: ' + bookingId, 'info');
+    }
+    
+    // Show Notifications
+    function showNotifications() {
+        showToast('You have 5 new notifications', 'info');
+    }
+    
+    // Toggle Profile Menu
+    function toggleProfileMenu() {
+        showToast('Profile menu', 'info');
+    }
+    
+    // Toggle AI Chat
+    function toggleAIChat() {
+        const widget = document.getElementById('aiChatWidget');
+        isAIChatOpen = !isAIChatOpen;
+        widget.style.display = isAIChatOpen ? 'flex' : 'none';
+    }
+    
+    // Send AI Message
+    async function sendAIMessage() {
+        const input = document.getElementById('aiChatInput');
+        const message = input.value.trim();
+        if (!message) return;
+        
+        const messagesEl = document.getElementById('aiChatMessages');
+        messagesEl.innerHTML += `<div class="user-message" style="background: #8b5cf6; padding: 12px 16px; border-radius: 16px; max-width: 85%; margin-left: auto; margin-bottom: 12px;">${message}</div>`;
+        input.value = '';
+        
+        // Simulate AI response
+        setTimeout(() => {
+            messagesEl.innerHTML += `<div class="ai-message" style="background: rgba(139,92,246,0.2); padding: 16px; border-radius: 16px; max-width: 85%;"><p class="font-semibold text-purple-400 mb-1">🤖 ViewOnce AI</p><p>Thank you for your message! I'm analyzing the platform data to provide you with insights.</p></div>`;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }, 1000);
+    }
+    
+    // Show Toast
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    }
+    
+    // Approve Item
+    function approveItem(type, id) {
+        showToast(`${type} approved successfully!`, 'success');
+    }
+    
+    // Reject Item
+    function rejectItem(type, id) {
+        if (confirm(`Are you sure you want to reject this ${type}?`)) {
+            showToast(`${type} rejected`, 'error');
+        }
+    }
+    
+    // Handle Logout
+    function handleLogout() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+    
+    // ==================== INVITE HOST MODAL FUNCTIONS ====================
+    
+    // Show invite host modal
+    function showInviteHostModal() {
+        const modal = document.getElementById('inviteHostModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            // Reset form
+            document.getElementById('hostName').value = '';
+            document.getElementById('hostEmail').value = '';
+            document.getElementById('hostPhone').value = '';
+            document.getElementById('inviteMessage').value = '';
+            document.getElementById('generatedLinkContainer').style.display = 'none';
+            document.getElementById('whatsappBtn').disabled = true;
+            document.getElementById('whatsappBtn').style.opacity = '0.5';
+        }
+    }
+    
+    // Close invite host modal
+    function closeInviteHostModal() {
+        const modal = document.getElementById('inviteHostModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    // Generate unique invitation token
+    function generateInviteToken() {
+        return 'invite_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    }
+    
+    // Send host invitation
+    function sendHostInvitation(event) {
+        event.preventDefault();
+        
+        const name = document.getElementById('hostName').value;
+        const email = document.getElementById('hostEmail').value;
+        const phone = document.getElementById('hostPhone').value;
+        const message = document.getElementById('inviteMessage').value;
+        
+        // Generate unique invitation link
+        const token = generateInviteToken();
+        const inviteLink = window.location.origin + window.location.pathname.replace('admin-dashboard.html', '') + 'host-onboarding.html?invite=' + token;
+        
+        // Display the generated link
+        document.getElementById('generatedLink').value = inviteLink;
+        document.getElementById('generatedLinkContainer').style.display = 'block';
+        
+        // Enable WhatsApp button if phone is provided
+        if (phone) {
+            document.getElementById('whatsappBtn').disabled = false;
+            document.getElementById('whatsappBtn').style.opacity = '1';
+        }
+        
+        // Store invitation data in localStorage for demo purposes
+        const invitations = JSON.parse(localStorage.getItem('hostInvitations') || '[]');
+        invitations.push({
+            id: token,
+            name: name,
+            email: email,
+            phone: phone,
+            message: message,
+            link: inviteLink,
+            createdAt: new Date().toISOString(),
+            status: 'pending'
+        });
+        localStorage.setItem('hostInvitations', JSON.stringify(invitations));
+        
+        // Show success message
+        showToast('Invitation link generated! You can now share it via email or WhatsApp.', 'success');
+        
+        // Log for debugging
+        console.log('Host invitation created:', { name, email, phone, link: inviteLink });
+    }
+    
+    // Copy link to clipboard
+    function copyLink() {
+        const linkInput = document.getElementById('generatedLink');
+        if (linkInput) {
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999); // For mobile devices
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                document.execCommand('copy');
+                showToast('Link copied to clipboard!', 'success');
+            });
+        }
+    }
+    
+    // Send via WhatsApp
+    function sendViaWhatsApp(type) {
+        let phone = '';
+        let message = '';
+        let link = '';
+        
+        if (type === 'host') {
+            phone = document.getElementById('hostPhone').value;
+            link = document.getElementById('generatedLink').value;
+            const name = document.getElementById('hostName').value;
+            
+            if (!phone) {
+                showToast('Please enter a phone number first', 'warning');
+                return;
+            }
+            
+            message = `Hello ${name}! You've been invited to join ViewOnce as a host. Use this link to register: ${link}`;
+        }
+        
+        // Format phone number for WhatsApp (remove + and any spaces)
+        const formattedPhone = phone.replace(/\D/g, '');
+        
+        // Open WhatsApp with pre-filled message
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+        
+        showToast('Opening WhatsApp...', 'info');
+    }
+    
+    // ==================== LINK SHARING MODAL FUNCTIONS ====================
+    
+    // Show link sharing modal (can be called from platform master hub)
+    function showLinkSharingModal() {
+        const modal = document.getElementById('linkSharingModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            // Reset all link containers
+            document.getElementById('adminLinkContainer').style.display = 'none';
+            document.getElementById('hostLinkContainer').style.display = 'none';
+            document.getElementById('supportLinkContainer').style.display = 'none';
+            document.getElementById('whatsappAdminBtn').disabled = true;
+            document.getElementById('whatsappAdminBtn').style.opacity = '0.5';
+            document.getElementById('whatsappHostBtn').disabled = true;
+            document.getElementById('whatsappHostBtn').style.opacity = '0.5';
+            document.getElementById('whatsappSupportBtn').disabled = true;
+            document.getElementById('whatsappSupportBtn').style.opacity = '0.5';
+        }
+    }
+    
+    // Close link sharing modal
+    function closeLinkSharingModal() {
+        const modal = document.getElementById('linkSharingModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    // Generate dashboard link
+    function generateLink(type) {
+        const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+        let link = '';
+        let linkContainer = '';
+        let whatsappBtn = '';
+        
+        switch(type) {
+            case 'admin':
+                link = baseUrl + 'admin-dashboard.html';
+                linkContainer = 'adminLinkContainer';
+                whatsappBtn = 'whatsappAdminBtn';
+                break;
+            case 'host':
+                link = baseUrl + 'host-dashboard-upgraded.html';
+                linkContainer = 'hostLinkContainer';
+                whatsappBtn = 'whatsappHostBtn';
+                break;
+            case 'support':
+                link = baseUrl + 'support-dashboard-upgraded.html';
+                linkContainer = 'supportLinkContainer';
+                whatsappBtn = 'whatsappSupportBtn';
+                break;
+        }
+        
+        // Display the generated link
+        document.getElementById(type + 'Link').value = link;
+        document.getElementById(linkContainer).style.display = 'block';
+        
+        // Enable WhatsApp button
+        document.getElementById(whatsappBtn).disabled = false;
+        document.getElementById(whatsappBtn).style.opacity = '1';
+        
+        showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} dashboard link generated!`, 'success');
+        
+        // Log for debugging
+        console.log('Generated link for:', type, link);
+    }
+    
+    // Share link via WhatsApp
+    function shareViaWhatsApp(type) {
+        let link = '';
+        let message = '';
+        
+        switch(type) {
+            case 'admin':
+                link = document.getElementById('adminLink').value;
+                message = `Here is the ViewOnce Admin Dashboard link: ${link}`;
+                break;
+            case 'host':
+                link = document.getElementById('hostLink').value;
+                message = `Here is the ViewOnce Host Dashboard link: ${link}`;
+                break;
+            case 'support':
+                link = document.getElementById('supportLink').value;
+                message = `Here is the ViewOnce Support Dashboard link: ${link}`;
+                break;
+        }
+        
+        if (!link) {
+            showToast('Please generate a link first', 'warning');
+            return;
+        }
+        
+        // For demo, we'll use a prompt to enter phone number
+        const phone = prompt('Enter phone number for WhatsApp (with country code, e.g., +254712345678):');
+        
+        if (!phone) {
+            return;
+        }
+        
+        // Format phone number for WhatsApp
+        const formattedPhone = phone.replace(/\D/g, '');
+        
+        // Open WhatsApp with pre-filled message
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+        
+        showToast('Opening WhatsApp...', 'info');
+    }
+    
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+        const inviteModal = document.getElementById('inviteHostModal');
+        const linkModal = document.getElementById('linkSharingModal');
+        
+        if (event.target === inviteModal) {
+            closeInviteHostModal();
+        }
+        
+        if (event.target === linkModal) {
+            closeLinkSharingModal();
+        }
+    }
+</script>
+</body>
+</html>

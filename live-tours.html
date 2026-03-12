@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tours - Airbnb Customer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #E8F4FD, #D1E7F0);
+            font-family: 'Inter', sans-serif;
+        }
+        .tour-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .tour-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .room-card {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .room-card:hover {
+            transform: scale(1.05);
+        }
+        .room-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .room-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            padding: 40px 15px 15px;
+        }
+        .tour-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .tour-content {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: 90vh;
+        }
+        .tour-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+        }
+        .tour-controls {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .tour-prev {
+            left: 20px;
+        }
+        .tour-next {
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- HEADER -->
+    <header class="w-full flex items-center justify-between px-6 py-4 bg-white shadow-md fixed top-0 z-50">
+        <div class="flex items-center gap-4">
+            <button onclick="window.location.href='customer-dashboard.html'" class="text-gray-600 hover:text-gray-800">← Back to Dashboard</button>
+            <h1 class="font-bold text-xl text-gray-800">🎥 Live Virtual Tours</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="window.location.href='ai-chat.html'" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2">
+                🤖 AI Assistant
+            </button>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto pt-24 px-6">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold mb-4">Experience Properties Virtually</h2>
+            <p class="text-gray-600 text-lg">Take a 360° virtual tour of our featured Airbnb properties. Explore every room before you book!</p>
+        </div>
+
+        <!-- Featured Tours -->
+        <div id="toursGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <!-- Tours will be loaded dynamically -->
+            <div class="col-span-full text-center py-8">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Loading live tours...</p>
+            </div>
+        </div>
+
+        <!-- Tour Modal -->
+        <div class="tour-modal" id="tourModal">
+            <div class="tour-content">
+                <div class="relative">
+                    <img id="tourImage" src="/images/placeholder-property.jpg" alt="Tour" class="tour-image">
+                    <button class="tour-controls tour-prev" onclick="prevRoom()">‹</button>
+                    <button class="tour-controls tour-next" onclick="nextRoom()">›</button>
+                    <button onclick="closeTour()" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-opacity-70">
+                        ✕
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-bold" id="tourTitle">Virtual Tour</h3>
+                        <div class="flex gap-2">
+                            <span id="roomIndicator" class="text-sm text-gray-600">Room 1 of 6</span>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4" id="roomDescription">Explore this beautiful space with 360° views</p>
+                    <div class="flex gap-4">
+                        <button onclick="prevRoom()" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">Previous Room</button>
+                        <button onclick="nextRoom()" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">Next Room</button>
+                        <button onclick="closeTour()" class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600">Close Tour</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!isLoggedIn || user.role !== 'customer') {
+                window.location.href = 'login-signup.html';
+                return;
+            }
+
+            // Load live tours
+            loadLiveTours();
+        });
+
+        let liveTours = [];
+        let currentTour = null;
+        let currentRoomIndex = 0;
+
+        async function loadLiveTours() {
+            try {
+                const response = await api.getLiveTours();
+                liveTours = response.data || response || [];
+
+                const toursGrid = document.getElementById('toursGrid');
+                toursGrid.innerHTML = '';
+
+                if (liveTours.length === 0) {
+                    toursGrid.innerHTML = '<div class="col-span-full text-center py-8"><p class="text-gray-600">No live tours available at the moment.</p></div>';
+                    return;
+                }
+
+                liveTours.forEach(tour => {
+                    // Resolve video URL
+                    let videoUrl = tour.videoUrl;
+                    if (videoUrl && !videoUrl.startsWith('http')) {
+                        const backendUrl = 'http://localhost:3001';
+                        const cleanPath = videoUrl.startsWith('/') ? videoUrl.substring(1) : videoUrl;
+                        if (cleanPath.startsWith('uploads/')) {
+                            videoUrl = `${backendUrl}/${cleanPath}`;
+                        } else {
+                            videoUrl = `${backendUrl}/uploads/${cleanPath}`;
+                        }
+                    }
+                    tour.resolvedVideoUrl = videoUrl; // Store for modal
+
+                    const tourCard = document.createElement('div');
+                    tourCard.className = 'tour-card bg-white rounded-lg shadow-md overflow-hidden';
+                    tourCard.innerHTML = `
+                        <video src="${videoUrl}" class="w-full h-48 object-cover" muted></video>
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold mb-2">${tour.title}</h3>
+                            <p class="text-gray-600 mb-3">${tour.location} • ⭐ ${tour.rating || 'New'}</p>
+                            <p class="text-sm text-gray-500 mb-4">${tour.description || 'Experience this property virtually'}</p>
+                            <button onclick="openTour('${tour.id}')" class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 font-medium">
+                                🎥 Start Virtual Tour
+                            </button>
+                        </div>
+                    `;
+                    toursGrid.appendChild(tourCard);
+                });
+
+            } catch (error) {
+                console.error('Error loading live tours:', error);
+                document.getElementById('toursGrid').innerHTML = '<div class="col-span-full text-center py-8"><p class="text-red-600">Failed to load live tours.</p></div>';
+            }
+        }
+
+        function openTour(tourId) {
+            const tour = liveTours.find(t => t.id === tourId);
+            if (!tour) return;
+
+            currentTour = tour;
+            currentRoomIndex = 0;
+
+            // For now, we'll show the video directly
+            document.getElementById('tourImage').style.display = 'none';
+            const videoElement = document.createElement('video');
+            videoElement.src = tour.resolvedVideoUrl || tour.videoUrl;
+            videoElement.controls = true;
+            videoElement.className = 'tour-image';
+            videoElement.style.display = 'block';
+
+            const modalContent = document.querySelector('.tour-content .relative');
+            modalContent.innerHTML = `
+                ${videoElement.outerHTML}
+                <button onclick="closeTour()" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-opacity-70">
+                    ✕
+                </button>
+            `;
+
+            document.getElementById('tourTitle').textContent = tour.title;
+            document.getElementById('roomDescription').textContent = tour.description || 'Experience this property virtually';
+            document.getElementById('roomIndicator').textContent = '';
+
+            // Hide navigation buttons for video tours
+            document.querySelector('.tour-content .flex.gap-4').style.display = 'none';
+
+            document.getElementById('tourModal').style.display = 'flex';
+        }
+
+        function closeTour() {
+            document.getElementById('tourModal').style.display = 'none';
+            currentTour = null;
+            currentRoomIndex = 0;
+
+            // Reset modal content
+            const modalContent = document.querySelector('.tour-content .relative');
+            modalContent.innerHTML = `
+                <img id="tourImage" src="/images/placeholder-property.jpg" alt="Tour" class="tour-image">
+                <button class="tour-controls tour-prev" onclick="prevRoom()">‹</button>
+                <button class="tour-controls tour-next" onclick="nextRoom()">›</button>
+                <button onclick="closeTour()" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-opacity-70">
+                    ✕
+                </button>
+            `;
+
+            document.querySelector('.tour-content .flex.gap-4').style.display = 'flex';
+        }
+
+        // Legacy functions for backward compatibility
+        function nextRoom() {}
+        function prevRoom() {}
+    </script>
+</body>
+</html>

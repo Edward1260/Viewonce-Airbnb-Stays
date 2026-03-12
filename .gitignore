@@ -1,0 +1,9 @@
+.blackboxcli/
+node_modules/
+dist/
+*.log
+
+# Ignore corrupted directories from AI tools
+backend/src/entities./
+"backend/src to use a tool. Let me add graceful shutdown handling to main.ts./"
+entities./
