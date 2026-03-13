@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property View - ViewOnce Airbnb Stays</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js?v=20241201"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gold-gradient: linear-gradient(135deg, #fbbf24 0%, #16FFBD 50%, #10b981 100%);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .shape {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 20s infinite ease-in-out;
+        }
+        
+        .shape-1 {
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            top: 10%;
+            left: 10%;
+        }
+        
+        .shape-2 {
+            width: 200px;
+            height: 200px;
+            background: var(--secondary);
+            border-radius: 50%;
+            top: 60%;
+            right: 15%;
+        }
+        
+        .shape-3 {
+            width: 150px;
+            height: 150px;
+            background: var(--accent);
+            border-radius: 30% 70% 70% 30% / 70% 30% 70% 30%;
+            bottom: 20%;
+            left: 20%;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -30px) rotate(5deg); }
+            50% { transform: translate(-10px, 20px) rotate(-3deg); }
+            75% { transform: translate(30px, 10px) rotate(7deg); }
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+        }
+        
+        .glass-heavy {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+        }
+        
+        .property-card-3d {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+        
+        .property-card-3d:hover {
+            transform: translateY(-10px);
+        }
+        
+        .gallery-item {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .gallery-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .btn-gradient {
+            background: var(--gradient-2);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 14px 28px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(245, 87, 108, 0.6);
+        }
+        
+        .btn-glass {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .lightbox.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .lightbox img {
+            max-width: 90%;
+            max-height: 85%;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .lightbox.show img {
+            transform: scale(1);
+        }
+        
+        .booking-card {
+            position: sticky;
+            top: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .booking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .amenity-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .amenity-tag:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .review-card {
+            transition: all 0.3s ease;
+        }
+        
+        .review-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .host-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+        
+        .host-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+        
+        .calendar-picker {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .calendar-day {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .calendar-day:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: scale(1.1);
+        }
+        
+        .calendar-day.selected {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .calendar-day.in-range {
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 0;
+        }
+        
+        .calendar-day.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .toast.success { background: #10b981; color: white; }
+        .toast.error { background: #ef4444; color: white; }
+        .toast.warning { background: #f59e0b; color: white; }
+        .toast.info { background: #3b82f6; color: white; }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .image-gallery-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: repeat(2, 180px);
+            gap: 8px;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        
+        .gallery-main {
+            grid-row: 1 / span 2;
+            position: relative;
+        }
+        
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+        
+        .show-all-photos-btn {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+        
+        .show-all-photos-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+        
+        .premium-badge {
+            background: var(--gold-gradient);
+            color: #1a1a1a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .superhost-badge {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .guest-favorite {
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .ai-float {
+            animation: pulseAI 2s infinite;
+            box-shadow: 0 0 20px rgba(109, 200, 57, 0.9);
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            border-radius: 50px;
+            padding: 0.75rem 1rem;
+            font-size: 1.2rem;
+            background: var(--gradient-1);
+            color: white;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        @keyframes pulseAI {
+            0% { transform: scale(1); box-shadow: 0 0 12px rgba(109, 200, 57, 0.5); }
+            50% { transform: scale(1.2); box-shadow: 0 0 26px rgba(109, 200, 57, 0.9); }
+            100% { transform: scale(1); box-shadow: 0 0 12px rgba(109, 200, 57, 0.5); }
+        }
+        
+        .ai-chat-widget {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            box-shadow: inset 0 0 100px rgba(99, 102, 241, 0.1);
+        }
+        
+        .ai-chat-widget.show {
+            display: flex;
+        }
+        
+        .ai-chat-header {
+            background: var(--gradient-1);
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ai-chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .ai-message {
+            background: rgba(99, 102, 241, 0.1);
+            padding: 12px 16px;
+            border-radius: 16px 16px 16px 4px;
+            max-width: 85%;
+            font-size: 14px;
+        }
+        
+        .user-message {
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 16px 16px 4px 16px;
+            max-width: 85%;
+            margin-left: auto;
+            font-size: 14px;
+        }
+        
+        .ai-chat-input {
+            padding: 16px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+        }
+        
+        .ai-chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+        }
+        
+        .ai-chat-input input:focus {
+            border-color: var(--primary);
+        }
+        
+        .ai-chat-input button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 1024px) {
+            .image-gallery-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(3, 200px);
+            }
+            
+            .gallery-main {
+                grid-row: 1 / span 1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .image-gallery-grid {
+                grid-template-rows: repeat(2, 150px);
+            }
+            
+            .booking-card {
+                position: relative;
+                top: 0;
+                margin-top: 20px;
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s forwards;
+        }
+        
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <header class="w-full flex items-center justify-between px-6 py-4 glass fixed top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-4">
+            <a href="index.html" class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-home text-purple-600"></i>
+                ViewOnce
+            </a>
+        </div>
+        
+        <div class="hidden md:flex items-center glass px-4 py-2 rounded-full shadow-lg">
+            <input type="text" id="searchLocation" placeholder="Where to?" class="bg-transparent border-none outline-none px-3 py-1 w-40">
+            <div class="w-px h-6 bg-gray-300 mx-2"></div>
+            <input type="text" id="searchDates" placeholder="Dates" class="bg-transparent border-none outline-none px-3 py-1 w-32">
+            <div class="w-px h-6 bg-gray-300 mx-2"></div>
+            <input type="text" id="searchGuests" placeholder="Guests" class="bg-transparent border-none outline-none px-3 py-1 w-24">
+            <button class="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-full ml-2 hover:shadow-lg transition-all">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <a href="host-dashboard-upgraded.html" class="btn-glass hidden md:block">Become a Host</a>
+            <button class="relative">
+                <i class="fas fa-bell text-xl text-gray-700"></i>
+                <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+            </button>
+            <button onclick="toggleProfileMenu()" class="flex items-center gap-2 glass px-3 py-2 rounded-full">
+                <i class="fas fa-bars text-gray-700"></i>
+                <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                    <i class="fas fa-user"></i>
+                </div>
+            </button>
+        </div>
+    </header>
+    
+    <main class="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto relative z-10">
+        <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+            <div class="loading-spinner mb-4"></div>
+            <p class="text-gray-600">Loading property details...</p>
+        </div>
+        
+        <div id="propertyContent" style="display: none;">
+            <div class="mb-6 animate-fade-in-up">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 id="propertyTitle" class="text-2xl md:text-3xl font-bold text-gray-800 mb-2"></h1>
+                        <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                            <span id="propertyLocation"></span>
+                            <span>•</span>
+                            <span id="propertyType"></span>
+                            <span>•</span>
+                            <span id="propertyGuests"></span>
+                            <span>•</span>
+                            <span id="propertyRooms"></span>
+                            <span>•</span>
+                            <span id="propertyBeds"></span>
+                            <span>•</span>
+                            <span id="propertyBaths"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <button onclick="shareProperty()" class="btn-glass">
+                            <i class="fas fa-share-alt mr-2"></i>Share
+                        </button>
+                        <button onclick="saveProperty()" class="btn-glass">
+                            <i class="fas fa-heart mr-2"></i>Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-8 animate-fade-in-up delay-100">
+                <div class="image-gallery-grid" id="galleryGrid"></div>
+                <button onclick="openGalleryLightbox()" class="show-all-photos-btn">
+                    <i class="fas fa-th-large mr-2"></i>Show all photos
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <div class="glass p-6 mb-6 animate-fade-in-up delay-200">
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+                            <div>
+                                <h2 class="text-xl font-bold">Hosted by <span id="hostName"></span></h2>
+                                <p class="text-gray-500 text-sm"><span class="superhost-badge">Superhost</span> • <span id="hostingYears"></span></p>
+                            </div>
+                            <img id="hostAvatar" src="" alt="Host" class="host-avatar">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6" id="quickFeatures"></div>
+                    </div>
+                    
+                    <div class="glass p-6 mb-6 animate-fade-in-up delay-200">
+                        <h3 class="text-xl font-bold mb-4">About this place</h3>
+                        <p id="propertyDescription" class="text-gray-600 leading-relaxed mb-4"></p>
+                        <button class="text-purple-600 font-semibold mt-4 hover:underline">
+                            Show more <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="glass p-6 mb-6 animate-fade-in-up delay-200">
+                        <h3 class="text-xl font-bold mb-4">Where you'll sleep</h3>
+                        <div class="flex gap-4 overflow-x-auto pb-2" id="sleepingArrangements"></div>
+                    </div>
+                    
+                    <div class="glass p-6 mb-6 animate-fade-in-up delay-300">
+                        <h3 class="text-xl font-bold mb-4">What this place offers</h3>
+                        <div class="grid grid-cols-2 gap-3" id="amenitiesGrid"></div>
+                        <button onclick="showAllAmenities()" class="btn-glass mt-4">
+                            Show all <span id="amenitiesCount">0</span> amenities
+                        </button>
+                    </div>
+                    
+                    <div class="glass p-6 mb-6 animate-fade-in-up delay-300">
+                        <h3 class="text-xl font-bold mb-4">Select check-in date</h3>
+                        <div class="calendar-picker" id="calendarPicker"></div>
+                    </div>
+                    
+                    <div class="glass p-6 animate-fade-in-up delay-300">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold">
+                                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                <span id="reviewScore">0</span> · <span id="reviewCount">0</span> reviews
+                            </h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="reviewsGrid"></div>
+                        <button class="btn-gradient mt-4">
+                            Show all <span id="totalReviews">0</span> reviews
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="lg:col-span-1">
+                    <div class="booking-card glass p-6 animate-fade-in-up delay-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <span id="pricePerNight" class="text-2xl font-bold"></span>
+                                <span class="text-gray-500">/night</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-star text-yellow-500"></i>
+                                <span id="cardRating" class="font-semibold">0</span>
+                                <span class="text-gray-500">(<span id="cardReviewCount">0</span>)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-2 border-purple-500 rounded-xl overflow-hidden mb-4">
+                            <div class="grid grid-cols-2">
+                                <div class="p-3 border-r border-b border-gray-200 cursor-pointer hover:bg-purple-50" onclick="openCalendarModal('checkin')">
+                                    <p class="text-xs font-bold text-gray-500 uppercase">Check-in</p>
+                                    <p id="checkinDate" class="font-medium">Add date</p>
+                                </div>
+                                <div class="p-3 border-b border-gray-200 cursor-pointer hover:bg-purple-50" onclick="openCalendarModal('checkout')">
+                                    <p class="text-xs font-bold text-gray-500 uppercase">Checkout</p>
+                                    <p id="checkoutDate" class="font-medium">Add date</p>
+                                </div>
+                            </div>
+                            <div class="p-3 cursor-pointer hover:bg-purple-50" onclick="openGuestModal()">
+                                <p class="text-xs font-bold text-gray-500 uppercase">Guests</p>
+                                <p id="guestCount" class="font-medium">1 guest</p>
+                            </div>
+                        </div>
+                        
+                        <button onclick="reserveProperty()" class="btn-gradient w-full py-4 text-lg mb-4">
+                            Reserve
+                        </button>
+                        
+                        <p class="text-center text-gray-500 text-sm mb-4">You won't be charged yet</p>
+                        
+                        <div class="space-y-3 text-gray-600" id="priceBreakdown">
+                            <div class="flex justify-between">
+                                <span class="underline"><span id="priceDisplay"></span> x <span id="nightsCount">0</span> nights</span>
+                                <span id="subtotal">KSh 0</span>
+                            </div>
+                            <Sh 0</div class="flex justify-between">
+                                <span class="underline">Cleaning fee</span>
+                                <span>KSh 1,200</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="underline">Service fee</span>
+                                <span>KSh 1,001</span>
+                            </div>
+                            <div class="border-t pt-3 flex justify-between font-bold text-lg">
+                                <span>Total</span>
+                                <span id="totalPrice">KSh 0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-6 pt-4 border-t border-gray-200">
+                            <button onclick="reportProperty()" class="text-gray-500 hover:text-gray-700 text-sm">
+                                <i class="fas fa-flag mr-1"></i> Report this listing
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 mt-6 animate-fade-in-up delay-300">
+                        <h4 class="font-bold mb-4">Meet your host</h4>
+                        <div class="flex items-center gap-4 mb-4">
+                            <img id="hostAvatar2" src="" alt="Host" class="host-avatar">
+                            <div>
+                                <p class="font-bold" id="hostName2"></p>
+                                <p class="text-sm text-gray-500"><span class="superhost-badge">Superhost</span></p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+                            <div><i class="fas fa-calendar-check mr-2"></i><span id="hostingYears2"></span></div>
+                            <div><i class="fas fa-reply mr-2"></i>Response rate: 100%</div>
+                            <div><i class="fas fa-clock mr-2"></i>Response time: 1 hour</div>
+                        </div>
+                        <button class="btn-glass w-full">
+                            <i class="fas fa-envelope mr-2"></i>Contact Host
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass p-6 mt-8 animate-fade-in-up delay-300">
+                <h3 class="text-xl font-bold mb-4">Location</h3>
+                <div class="h-[300px] rounded-xl overflow-hidden" id="propertyMap"></div>
+                <div class="mt-4">
+                    <p id="locationDescription" class="font-medium"></p>
+                    <p class="text-gray-500 text-sm">Great location in the heart of the city</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="glass mt-12 py-8 px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+                <h3 class="font-bold mb-2">Company</h3>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li><a href="#" class="hover:text-purple-600">About Us</a></li>
+                    <li><a href="#" class="hover:text-purple-600">Careers</a></li>
+                    <li><a href="#" class="hover:text-purple-600">Press</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-bold mb-2">Support</h3>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li><a href="#" class="hover:text-purple-600">Help Center</a></li>
+                    <li><a href="#" class="hover:text-purple-600">Safety</a></li>
+                    <li><a href="#" class="hover:text-purple-600">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-bold mb-2">Hosting</h3>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li><a href="#" class="hover:text-purple-600">Host your home</a></li>
+                    <li><a href="#" class="hover:text-purple-600">Host resources</a></li>
+                    <li><a href="#" class="hover:text-purple-600">Community</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-bold mb-2">Follow Us</h3>
+                <div class="flex gap-4">
+                    <a href="#" class="text-2xl hover:text-purple-600"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-2xl hover:text-purple-600"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="text-2xl hover:text-purple-600"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-8 pt-8 border-t border-gray-200 text-gray-500 text-sm">
+            © 2024 ViewOnce Airbnb Stays. All rights reserved.
+        </div>
+    </footer>
+    
+    <button class="ai-float" onclick="toggleAIChat()">
+        <i class="fas fa-robot"></i>
+        <span class="hidden md:inline">AI Assistant</span>
+    </button>
+    
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <button class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300" onclick="closeLightbox()" aria-label="Close lightbox">
+            <i class="fas fa-times"></i>
+        </button>
+        <button class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300" onclick="prevImage()" aria-label="Previous image">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <img id="lightboxImage" src="" alt="Property image">
+        <button class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300" onclick="nextImage()" aria-label="Next image">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+    
+    <div id="calendarModal" class="modal-overlay" onclick="closeCalendarModal(event)">
+        <div class="calendar-picker max-w-md w-full mx-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold" id="calendarModalTitle">Select Dates</h3>
+                <button onclick="closeCalendarModal()" class="text-gray-500 hover:text-gray-700 text-2xl" aria-label="Close calendar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="calendarModalContent"></div>
+        </div>
+    </div>
+    
+    <div id="guestModal" class="modal-overlay" onclick="closeGuestModal(event)">
+        <div class="glass p-6 max-w-sm w-full mx-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Guests</h3>
+                <button onclick="closeGuestModal()" class="text-gray-500 hover:text-gray-700 text-2xl" aria-label="Close guest selector">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-medium">Adults</p>
+                        <p class="text-sm text-gray-500">Ages 13 or above</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="updateGuests('adults', -1)" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-purple-500" aria-label="Decrease adults">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span id="adultsCount" class="font-medium">1</span>
+                        <button onclick="updateGuests('adults', 1)" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-purple-500" aria-label="Increase adults">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-medium">Children</p>
+                        <p class="text-sm text-gray-500">Ages 2–12</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="updateGuests('children', -1)" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-purple-500" aria-label="Decrease children">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span id="childrenCount" class="font-medium">0</span>
+                        <button onclick="updateGuests('children', 1)" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-purple-500" aria-label="Increase children">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-medium">Infants</p>
+                        <p class="text-sm text-gray-500">Under 2</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="updateGuests('infants', -1)" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-purple-500" aria-label="Decrease infants">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span id="infantsCount" class="font-medium">0</span>
+                        <button onclick="updateGuests('infants', 1)" class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-purple-500" aria-label="Increase infants">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeGuestModal()" class="btn-gradient w-full mt-6">Done</button>
+        </div>
+    </div>
+    
+    <div id="aiChatWidget" class="ai-chat-widget">
+        <div class="ai-chat-header">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-robot"></i>
+                <span class="font-semibold">AI Assistant</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleAIChat()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="ai-chat-messages" id="aiChatMessages">
+            <div class="ai-message">
+                <p class="font-semibold text-purple-600 mb-1">🤖 ViewOnce AI</p>
+                <p>Hello! I'm your AI assistant. I can help you with:</p>
+                <ul class="mt-2 ml-4 text-sm">
+                    <li>🏠 Property information</li>
+                    <li>📅 Booking assistance</li>
+                    <li>💰 Pricing questions</li>
+                    <li>📍 Local recommendations</li>
+                </ul>
+            </div>
+        </div>
+        <div class="ai-chat-input">
+            <input type="text" id="aiChatInput" placeholder="Ask me anything..." onkeypress="handleAIEnter(event)">
+            <button onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+<script>
+    // Property Data - Will be loaded from API
+    let propertyData = null;
+    let images = [];
+    let currentImageIndex = 0;
+    let selectedCheckin = null;
+    let selectedCheckout = null;
+    let guests = { adults: 1, children: 0, infants: 0 };
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    
+    // Amenity icons mapping
+    const amenityIcons = {
+        'wifi': 'fa-wifi',
+        'Wifi': 'fa-wifi',
+        'kitchen': 'fa-utensils',
+        'Kitchen': 'fa-utensils',
+        'washer': 'fa-soap',
+        'Washer': 'fa-soap',
+        'dryer': 'fa-dryer',
+        'Dryer': 'fa-dryer',
+        'ac': 'fa-snowflake',
+        'AC': 'fa-snowflake',
+        'heating': 'fa-fire',
+        'Heating': 'fa-fire',
+        'tv': 'fa-tv',
+        'TV': 'fa-tv',
+        'parking': 'fa-parking',
+        'Parking': 'fa-parking',
+        'pool': 'fa-swimming-pool',
+        'Pool': 'fa-swimming-pool',
+        'gym': 'fa-dumbbell',
+        'Gym': 'fa-dumbbell',
+        'security': 'fa-shield-alt',
+        'Security': 'fa-shield-alt',
+        'elevator': 'fa-elevator',
+        'Elevator': 'fa-elevator'
+    };
+    
+    const quickFeatures = [
+        { name: 'Fast WiFi', icon: 'fa-wifi' },
+        { name: 'Free Parking', icon: 'fa-parking' },
+        { name: 'Pool', icon: 'fa-swimming-pool' },
+        { name: 'Secure', icon: 'fa-shield-alt' }
+    ];
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        loadPropertyData();
+        initializeCalendar();
+    });
+    
+    // Load property data from API ONLY - No mock data
+    async function loadPropertyData() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const propertyId = urlParams.get('id');
+            
+            if (!propertyId) {
+                // No property ID - show error message
+                document.getElementById('loadingState').innerHTML = `
+                    <div class="text-center py-20">
+                        <i class="fas fa-exclamation-circle text-4xl text-yellow-500 mb-4"></i>
+                        <p class="text-gray-600 text-lg mb-2">No property specified</p>
+                        <p class="text-gray-500 text-sm mb-4">Please provide a property ID in the URL (e.g., property-view-upgraded.html?id=property-uuid)</p>
+                        <a href="customer-dashboard.html" class="btn-gradient inline-block">Browse Properties</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Fetch from real API ONLY
+            showToast('Loading property details...', 'info');
+            
+            const property = await api.getPropertyById(propertyId);
+            
+            if (!property) {
+                throw new Error('Property not found');
+            }
+            
+            propertyData = transformPropertyData(property);
+            showToast('Property loaded successfully!', 'success');
+            
+            // Hide loading, show content
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('propertyContent').style.display = 'block';
+            
+            images = propertyData.images;
+            populatePropertyData();
+            buildGallery();
+            buildQuickFeatures();
+            buildAmenities();
+            buildReviews();
+            buildSleepingArrangements();
+            updateMapLocation();
+            
+        } catch (error) {
+            console.error('Error loading property:', error);
+            showToast('Error: ' + error.message, 'error');
+            document.getElementById('loadingState').innerHTML = `
+                <div class="text-center py-20">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                    <p class="text-gray-600">Failed to load property.</p>
+                    <p class="text-gray-500 text-sm mb-4">${error.message}</p>
+                    <div class="flex gap-2 justify-center">
+                        <button onclick="loadPropertyData()" class="btn-gradient">Try Again</button>
+                        <a href="customer-dashboard.html" class="btn-glass">Browse Properties</a>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    function transformPropertyData(property) {
+        const city = property.location ? property.location.split(',')[0].trim() : 'Unknown';
+        
+        // Use property images or show placeholder
+        const propertyImages = property.images && property.images.length > 0 ? property.images : ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800'];
+        
+        return {
+            id: property.id,
+            title: property.title || 'Untitled Property',
+            description: property.description || 'No description available.',
+            images: propertyImages,
+            rating: parseFloat(property.rating) || 0,
+            reviewCount: parseInt(property.reviewCount) || 0,
+            price: parseInt(property.price) || 0,
+            location: property.location || 'Unknown location',
+            city: city,
+            bedrooms: parseInt(property.bedrooms) || 1,
+            bathrooms: parseInt(property.bathrooms) || 1,
+            maxGuests: parseInt(property.maxGuests) || 1,
+            amenities: property.amenities || [],
+            host: property.host,
+            hostName: property.host ? (property.host.name || 'Host') : 'Host',
+            hostAvatar: property.host ? property.host.avatar : null,
+            type: property.type || 'Entire place',
+            status: property.status,
+            videos: property.videos || []
+        };
+    }
+    
+    function populatePropertyData() {
+        document.getElementById('propertyTitle').textContent = propertyData.title;
+        document.getElementById('propertyLocation').innerHTML = `<i class="fas fa-map-marker-alt text-pink-500"></i> ${propertyData.location}`;
+        document.getElementById('propertyType').textContent = propertyData.type;
+        document.getElementById('propertyGuests').textContent = `${propertyData.maxGuests} guests`;
+        document.getElementById('propertyRooms').textContent = `${propertyData.bedrooms} bedroom`;
+        document.getElementById('propertyBeds').textContent = `${propertyData.bedrooms} bed`;
+        document.getElementById('propertyBaths').textContent = `${propertyData.bathrooms} bath`;
+        
+        document.getElementById('hostName').textContent = propertyData.hostName;
+        document.getElementById('hostName2').textContent = propertyData.hostName;
+        
+        // Use host avatar from API or default
+        const avatarUrl = propertyData.hostAvatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150';
+        document.getElementById('hostAvatar').src = avatarUrl;
+        document.getElementById('hostAvatar2').src = avatarUrl;
+        
+        document.getElementById('propertyDescription').textContent = propertyData.description;
+        document.getElementById('pricePerNight').textContent = `KSh ${propertyData.price.toLocaleString()}`;
+        document.getElementById('priceDisplay').textContent = `KSh ${propertyData.price.toLocaleString()}`;
+        document.getElementById('cardRating').textContent = propertyData.rating;
+        document.getElementById('cardReviewCount').textContent = propertyData.reviewCount;
+        document.getElementById('reviewScore').textContent = propertyData.rating;
+        document.getElementById('reviewCount').textContent = propertyData.reviewCount;
+        document.getElementById('totalReviews').textContent = propertyData.reviewCount;
+        document.getElementById('amenitiesCount').textContent = propertyData.amenities.length;
+        
+        document.getElementById('hostingYears').textContent = '1+ years hosting';
+        document.getElementById('hostingYears2').textContent = '1+ years hosting';
+    }
+    
+    function buildGallery() {
+        const grid = document.getElementById('galleryGrid');
+        grid.innerHTML = '';
+        
+        images.forEach((img, index) => {
+            const div = document.createElement('div');
+            div.className = `gallery-item ${index === 0 ? 'gallery-main' : ''}`;
+            div.onclick = () => openLightbox(index);
+            div.innerHTML = `<img src="${img}" alt="Property image ${index + 1}" class="w-full h-full object-cover">`;
+            grid.appendChild(div);
+        });
+    }
+    
+    function buildQuickFeatures() {
+        const container = document.getElementById('quickFeatures');
+        container.innerHTML = '';
+        
+        // Dynamically build quick features from amenities
+        quickFeatures.forEach(feature => {
+            const div = document.createElement('div');
+            div.className = 'text-center p-4 bg-white/50 rounded-xl';
+            div.innerHTML = `
+                <i class="fas ${feature.icon} text-2xl text-purple-500 mb-2"></i>
+                <p class="

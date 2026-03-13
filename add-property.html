@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Host Dashboard – Add New Property</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="config.js?v=20241201"></script>
+  <script src="store.js"></script>
+  <script src="api.js"></script>
+  <script src="router.js"></script>
+  <style>
+    :root{
+      --primary:#4F46E5; /* deep violet for buttons */
+      --secondary:#FBBF24; /* amber for highlights */
+      --card-bg:#FFFFFF; /* white card */
+      --tab-active:#4F46E5;
+      --tab-inactive:#9CA3AF;
+      --pill-bg:#E5E7EB;
+      --pill-active:#4F46E5;
+      --pill-text-active:#fff;
+    }
+    body{
+      background:#E4CC8F;
+      font-family:Inter,system-ui,sans-serif;
+    }
+    .card{
+      background:var(--card-bg);
+      border-radius:14px;
+      box-shadow:0 10px 25px rgba(0,0,0,0.1);
+      border:1px solid rgba(0,0,0,0.05);
+    }
+    .tab{
+      cursor:pointer;
+      font-weight:600;
+      padding:10px 15px;
+      border-radius:10px 10px 0 0;
+      transition:all 0.3s;
+    }
+    .tab.active{
+      background:var(--tab-active);
+      color:#fff;
+    }
+    .tab.inactive{
+      background:#E5E7EB;
+      color:var(--tab-inactive);
+    }
+    .pill{
+      border:1px solid #E5E7EB;
+      border-radius:999px;
+      padding:6px 12px;
+      cursor:pointer;
+      font-size:14px;
+      transition:all 0.2s;
+    }
+    .pill.active{
+      background:var(--pill-active);
+      color:var(--pill-text-active);
+      border-color:var(--pill-active);
+    }
+    .upload-holder{
+      border:2px dashed #CBD5E1;
+      padding:15px;
+      border-radius:12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      min-height:80px;
+      background:#F9FAFB;
+    }
+    .upload-holder img, .upload-holder video{
+      width:80px;
+      height:60px;
+      object-fit:cover;
+      border-radius:8px;
+      border:1px solid #D1D5DB;
+    }
+    input[type=file]{
+      display:none;
+    }
+    .upload-btn{
+      background:var(--primary);
+      color:#fff;
+      padding:6px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+      transition:all 0.2s;
+    }
+    .upload-btn:hover{
+      background:var(--secondary);
+    }
+  </style>
+</head>
+<body class="p-4">
+
+<div class="max-w-7xl mx-auto grid lg:grid-cols-[1fr_360px] gap-6">
+
+  <!-- LEFT COLUMN -->
+  <main class="space-y-6">
+
+    <div class="card p-5">
+      <h1 class="text-2xl font-bold mb-1">Add New Property</h1>
+      <p class="text-sm text-gray-500">Create and preview your listing before publishing</p>
+    </div>
+
+    <!-- BASIC INFO -->
+    <div class="card p-5 space-y-4">
+      <input id="title" class="w-full border rounded p-3" placeholder="Property Title" title="Property Title" required>
+      <input id="location" class="w-full border rounded p-3" placeholder="Location" title="Property Location" required>
+      <input id="price" type="number" class="w-full border rounded p-3" placeholder="Price per Night ($)" title="Price per Night" required min="0">
+      <select id="category" class="w-full border rounded p-3" title="Property Category" required>
+        <option value="">Select Category</option>
+        <option value="Apartment">Apartment</option>
+        <option value="Villa">Villa</option>
+        <option value="Studio">Studio</option>
+        <option value="House">House</option>
+        <option value="Cottage">Cottage</option>
+        <option value="Hotel Room">Hotel Room</option>
+        <option value="Lodge">Lodge</option>
+      </select>
+      <div class="grid grid-cols-3 gap-4">
+        <input id="bedrooms" type="number" class="w-full border rounded p-3" placeholder="Bedrooms" title="Number of Bedrooms" required min="1">
+        <input id="bathrooms" type="number" class="w-full border rounded p-3" placeholder="Bathrooms" title="Number of Bathrooms" required min="1">
+        <input id="maxGuests" type="number" class="w-full border rounded p-3" placeholder="Max Guests" title="Maximum Number of Guests" required min="1">
+      </div>
+      <textarea id="description" class="w-full border rounded p-3" rows="4" placeholder="Describe your property" title="Property Description"></textarea>
+    </div>
+
+    <!-- TABS -->
+    <div class="card p-5">
+      <div class="flex gap-2 mb-4">
+        <div class="tab active" data-tab="photosTab">Photos & Video</div>
+        <div class="tab inactive" data-tab="amenitiesTab">Amenities</div>
+        <div class="tab inactive" data-tab="locationTab">Location</div>
+      </div>
+
+      <!-- PHOTOS & VIDEO TAB -->
+      <div id="photosTab" class="tab-panel space-y-4">
+
+        <p class="text-sm text-gray-500">Upload multiple images per area and optionally a property video.</p>
+
+        <div class="space-y-4">
+
+          <!-- Image Upload Categories -->
+          <template id="category-template">
+            <div>
+              <label class="font-semibold category-name"></label>
+              <label class="upload-btn">Choose Images
+                <input type="file" multiple class="category-upload" title="Upload images for this category">
+              </label>
+              <div class="upload-holder"></div>
+            </div>
+          </template>
+
+          <!-- Video Upload -->
+          <div>
+            <label class="font-semibold">Property Video (Optional)</label>
+            <label class="upload-btn">Upload Video
+              <input type="file" id="videoUpload" accept="video/*" title="Upload property video">
+            </label>
+            <div class="upload-holder" id="videoPreview"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AMENITIES -->
+      <div id="amenitiesTab" class="tab-panel hidden space-y-4">
+        <div>
+          <h3 class="font-semibold mb-2">Essentials</h3>
+          <div class="flex flex-wrap gap-2">
+            <div class="pill">WiFi</div>
+            <div class="pill">Kitchen</div>
+            <div class="pill">Washer</div>
+            <div class="pill">Air Conditioning</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold mb-2">Features</h3>
+          <div class="flex flex-wrap gap-2">
+            <div class="pill">Pool</div>
+            <div class="pill">Gym</div>
+            <div class="pill">Free Parking</div>
+            <div class="pill">Balcony</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold mb-2">Safety</h3>
+          <div class="flex flex-wrap gap-2">
+            <div class="pill">Smoke Detector</div>
+            <div class="pill">First Aid Kit</div>
+            <div class="pill">Smart Lock</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOCATION -->
+      <div id="locationTab" class="tab-panel hidden">
+        <input id="mapLink" class="w-full border rounded p-3" placeholder="Paste Google Maps Embed URL" title="Google Maps Embed URL">
+        <div id="mapPreview" class="mt-3 h-40 rounded overflow-hidden"></div>
+      </div>
+    </div>
+
+    <button id="savePropertyBtn" class="w-full py-4 rounded-lg font-bold text-white"
+      style="background:var(--primary)">
+      Save Property
+    </button>
+
+  </main>
+
+  <!-- RIGHT COLUMN: BOOKING PREVIEW -->
+  <aside>
+    <div class="card p-5 sticky top-6">
+      <h3 class="font-bold mb-3">Booking Preview</h3>
+
+      <div class="font-semibold" id="previewTitle">Property Title</div>
+      <div class="text-sm text-gray-500" id="previewLocation">Location</div>
+
+      <div class="mt-3">
+        <div class="text-xs text-gray-500">Price per night</div>
+        <div class="text-xl font-extrabold">$<span id="previewPrice">0</span></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <input type="date" class="border rounded p-2" title="Check-in Date">
+        <input type="date" class="border rounded p-2" title="Check-out Date">
+      </div>
+
+      <select class="w-full border rounded p-2 mt-3" title="Number of Guests">
+        <option>1 Guest</option>
+        <option>2 Guests</option>
+        <option>3 Guests</option>
+      </select>
+
+      <button class="w-full mt-4 py-3 rounded-lg font-bold text-white opacity-70 cursor-not-allowed"
+        style="background:var(--primary)">
+        Reserve (Preview)
+      </button>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+// Check authentication
+document.addEventListener('DOMContentLoaded', function() {
+  const isLoggedIn = localStorage.getItem('isLoggedIn');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!isLoggedIn) {
+    window.location.href = 'login.html';
+    return;
+  }
+  if (user.role !== 'host' && user.role !== 'admin') {
+    window.location.href = 'login.html';
+    return;
+  }
+});
+
+const title = document.getElementById('title');
+const locationInput = document.getElementById('location');
+const price = document.getElementById('price');
+const previewTitle = document.getElementById('previewTitle');
+const previewLocation = document.getElementById('previewLocation');
+const previewPrice = document.getElementById('previewPrice');
+
+/* Tabs */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(t=>{
+      t.classList.remove('active');
+      t.classList.add('inactive');
+    });
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.add('hidden'));
+    tab.classList.add('active');
+    tab.classList.remove('inactive');
+    document.getElementById(tab.dataset.tab).classList.remove('hidden');
+  }
+});
+
+/* Amenities toggle */
+document.querySelectorAll('.pill').forEach(p=>{
+  p.onclick=()=>p.classList.toggle('active');
+});
+
+/* Upload categories setup */
+const categories = ["Bedrooms","Kitchen","Sitting Room","Dining","Washrooms","Balcony","Compound"];
+const template = document.getElementById('category-template');
+
+categories.forEach(cat=>{
+  const clone = template.content.cloneNode(true);
+  clone.querySelector('.category-name').textContent = cat;
+  const input = clone.querySelector('.category-upload');
+  const holder = clone.querySelector('.upload-holder');
+  input.dataset.category = cat;
+
+  input.addEventListener('change', ()=>{
+    holder.innerHTML='';
+    [...input.files].forEach(file=>{
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.className='object-cover rounded';
+      holder.appendChild(img);
+    });
+  });
+
+  template.parentNode.appendChild(clone);
+});
+
+/* Video preview */
+const videoInput = document.getElementById('videoUpload');
+const videoPreview = document.getElementById('videoPreview');
+videoInput.onchange = ()=>{
+  videoPreview.innerHTML='';
+  const file = videoInput.files[0];
+  if(file){
+    const vid = document.createElement('video');
+    vid.src = URL.createObjectURL(file);
+    vid.controls = true;
+    vid.className='object-cover rounded w-32 h-24';
+    videoPreview.appendChild(vid);
+  }
+}
+
+/* Map preview */
+const mapLink = document.getElementById('mapLink');
+const mapPreview = document.getElementById('mapPreview');
+mapLink.oninput=()=>{
+  mapPreview.innerHTML = mapLink.value
+    ? `<iframe src="${mapLink.value}" width="100%" height="100%" style="border:0" loading="lazy"></iframe>`
+    : '';
+};
+
+/* Live preview updates */
+title.oninput = ()=>previewTitle.textContent = title.value || 'Property Title';
+locationInput.oninput = ()=>previewLocation.textContent = locationInput.value || 'Location';
+price.oninput = ()=>previewPrice.textContent = price.value || '0';
+
+/* Save Property functionality */
+document.getElementById('savePropertyBtn').addEventListener('click', async function() {
+  const saveBtn = this;
+  const originalText = saveBtn.textContent;
+
+  // Show loading state
+  saveBtn.textContent = 'Saving...';
+  saveBtn.disabled = true;
+  saveBtn.style.opacity = '0.7';
+
+  try {
+    // Get form field values
+    const titleField = document.getElementById('title');
+    const locationField = document.getElementById('location');
+    const priceField = document.getElementById('price');
+    const categoryField = document.getElementById('category');
+    const bedroomsField = document.getElementById('bedrooms');
+
+    const bathroomsField = document.getElementById('bathrooms');
+    const maxGuestsField = document.getElementById('maxGuests');
+    const descriptionField = document.getElementById('description');
+
+    const titleVal = titleField ? titleField.value.trim() : '';
+    const locationVal = locationField ? locationField.value.trim() : '';
+    const priceVal = priceField ? priceField.value : '';
+    const categoryVal = categoryField ? categoryField.value : '';
+
+    const bedroomsVal = bedroomsField ? bedroomsField.value : '';
+    const bathroomsVal = bathroomsField ? bathroomsField.value : '';
+    const maxGuestsVal = maxGuestsField ? maxGuestsField.value : '';
+    const descriptionVal = descriptionField ? descriptionField.value.trim() : '';
+
+    // Debug logging to help identify issues
+    console.log('Form values:', {
+      titleVal, locationVal, priceVal, categoryVal,
+      bedroomsVal, bathroomsVal, maxGuestsVal, descriptionVal
+    });
+
+    // Validate required fields with better error messages
+    const missingFields = [];
+    if (!titleVal || titleVal.trim() === '') missingFields.push('Title');
+    if (!locationVal || locationVal.trim() === '') missingFields.push('Location');
+    if (priceVal === '' || priceVal === null || priceVal === undefined || isNaN(parseFloat(priceVal)) || parseFloat(priceVal) < 0) missingFields.push('Price (must be a valid number >= 0)');
+    if (!categoryVal || categoryVal === '') missingFields.push('Category');
+    if (bedroomsVal === '' || bedroomsVal === null || bedroomsVal === undefined || isNaN(parseInt(bedroomsVal)) || parseInt(bedroomsVal) < 1) missingFields.push('Bedrooms (must be a valid number >= 1)');
+    if (bathroomsVal === '' || bathroomsVal === null || bathroomsVal === undefined || isNaN(parseInt(bathroomsVal)) || parseInt(bathroomsVal) < 1) missingFields.push('Bathrooms (must be a valid number >= 1)');
+    if (maxGuestsVal === '' || maxGuestsVal === null || maxGuestsVal === undefined || isNaN(parseInt(maxGuestsVal)) || parseInt(maxGuestsVal) < 1) missingFields.push('Max Guests (must be a valid number >= 1)');
+
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields:\n\n${missingFields.join('\n')}\n\nMake sure all numeric fields contain valid numbers.`);
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
+      saveBtn.style.opacity = '1';
+      return;
+    }
+
+    // Collect selected amenities
+    const selectedAmenities = Array.from(document.querySelectorAll('.pill.active')).map(pill => pill.textContent);
+
+    // Collect and upload images
+    const uploadedImages = [];
+    const imageInputs = document.querySelectorAll('.category-upload');
+    for (const input of imageInputs) {
+      if (input.files && input.files.length > 0) {
+        for (const file of input.files) {
+          try {
+            const uploadResult = await api.uploadImage(file);
+            uploadedImages.push(uploadResult.url);
+          } catch (uploadError) {
+            console.error('Failed to upload image:', file.name, uploadError);
+            // Continue with other images
+          }
+        }
+      }
+    }
+
+    // Upload video if present
+    const videoInput = document.getElementById('videoUpload');
+    let videoUrl = null;
+    if (videoInput.files && videoInput.files[0]) {
+      try {
+        const uploadResult = await api.uploadVideo(videoInput.files[0]);
+        videoUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('Failed to upload video:', uploadError);
+      }
+    }
+
+    // Prepare property data
+    const propertyData = {
+      title: titleVal,
+      location: locationVal,
+      price: parseFloat(priceVal),
+      type: categoryVal,
+      bedrooms: parseInt(bedroomsVal),
+      bathrooms: parseInt(bathroomsVal),
+      maxGuests: parseInt(maxGuestsVal),
+      description: descriptionVal,
+      amenities: selectedAmenities,
+      images: uploadedImages,
+      videos: videoUrl ? [videoUrl] : []
+    };
+
+    // Debug: Log the exact data being sent
+    console.log('Sending property data to API:', JSON.stringify(propertyData, null, 2));
+
+    let savedProperty;
+
+    try {
+      // Try to call API to create property
+      savedProperty = await api.createProperty(propertyData);
+
+      // Add to local store
+      store.setState({
+        properties: [...store.state.properties, savedProperty]
+      });
+
+    } catch (apiError) {
+      console.error('API error saving property:', apiError);
+
+      // Check if it's an authentication error
+      if (apiError.message && apiError.message.includes('401')) {
+        alert('Your session has expired. Please log in again.');
+        // Clear local storage and redirect to login
+        localStorage.clear();
+        window.location.href = 'login-signup.html';
+        return;
+      }
+
+      // Show more specific error message
+      let errorMessage = 'Error saving property. ';
+      if (apiError.message) {
+        errorMessage += apiError.message;
+      } else {
+        errorMessage += 'Please check your connection and try again.';
+      }
+
+      alert(errorMessage);
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
+      saveBtn.style.opacity = '1';
+      return;
+    }
+
+    // Show preview modal
+    showPropertyPreview(savedProperty);
+
+    // Reset loading state
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
+    saveBtn.style.opacity = '1';
+
+  } catch (error) {
+    console.error('Error saving property:', error);
+    alert('Error saving property. Please try again.');
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
+    saveBtn.style.opacity = '1';
+  }
+});
+
+/* Property Preview Modal */
+function showPropertyPreview(property) {
+  if (!property || typeof property !== 'object' || Array.isArray(property)) {
+    alert('Error: Invalid property data received. Please try again.');
+    return;
+  }
+  // Create modal HTML
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-bold">Property Preview</h2>
+          <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Images -->
+          <div class="grid grid-cols-2 gap-2">
+            ${property.images && property.images.length > 0
+              ? property.images.slice(0, 4).map(img => `<img src="${img}" class="w-full h-32 object-cover rounded" alt="Property image">`).join('')
+              : '<div class="col-span-2 h-32 bg-gray-200 rounded flex items-center justify-center text-gray-500">No images uploaded</div>'
+            }
+          </div>
+
+          <!-- Basic Info -->
+          <div>
+            <h3 class="text-xl font-semibold">${property.title}</h3>
+            <p class="text-gray-600">${property.location}</p>
+            <p class="text-2xl font-bold text-blue-600">$${property.price} <span class="text-sm font-normal">per night</span></p>
+          </div>
+
+          <!-- Details -->
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div><strong>Type:</strong> ${property.type}</div>
+            <div><strong>Bedrooms:</strong> ${property.bedrooms}</div>
+            <div><strong>Bathrooms:</strong> ${property.bathrooms}</div>
+            <div><strong>Max Guests:</strong> ${property.maxGuests}</div>
+          </div>
+
+          <!-- Amenities -->
+          ${property.amenities && property.amenities.length > 0
+            ? `<div><strong>Amenities:</strong> ${property.amenities.join(', ')}</div>`
+            : ''
+          }
+
+          <!-- Description -->
+          ${property.description
+            ? `<div><strong>Description:</strong><br>${property.description}</div>`
+            : ''
+          }
+        </div>
+
+        <div class="flex gap-4 mt-6">
+          <button onclick="this.closest('.fixed').remove(); window.location.href='host-dashboard.html'"
+                  class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+            Go to Host Dashboard
+          </button>
+          <button onclick="this.closest('.fixed').remove()"
+                  class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300">
+            Continue Editing
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+</script>
+
+</body>
+</html>

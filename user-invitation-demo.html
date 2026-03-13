@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Invitation System - Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="platform-user-invitation.js"></script>
+<style>
+:root{
+  --bg:#0a0a1a;
+  --panel-solid:rgba(20,20,40,0.95);
+  --border:rgba(255,255,255,0.25);
+  --accent:linear-gradient(135deg,#667eea,#764ba2);
+  --gold:#D4AF37;
+  --text:#ffffff;
+}
+* {box-sizing:border-box}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:20px;
+}
+.container {max-width:800px;margin:0 auto}
+h1 {text-align:center;margin-bottom:30px;color:var(--gold)}
+.card{
+  background:var(--panel-solid);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:30px;
+  margin-bottom:20px;
+}
+.btn{
+  padding:14px 28px;
+  border:none;
+  border-radius:12px;
+  background:var(--accent);
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
+  margin:5px;
+  transition:transform 0.2s;
+}
+.btn:hover {transform:translateY(-2px)}
+.btn.gold{background:linear-gradient(135deg,#D4AF37,#F4D03F);color:#000}
+.btn.turquoise{background:linear-gradient(135deg,#40E0D0,#20B2AA)}
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.8);
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+}
+.modal.active {display:flex}
+.modal-content{
+  background:var(--panel-solid);
+  padding:30px;
+  border-radius:16px;
+  width:100%;
+  max-width:500px;
+  border:1px solid var(--border);
+}
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+.modal-header h3 {margin:0}
+.modal-close{
+  background:none;border:none;
+  color:var(--text);
+  font-size:24px;
+  cursor:pointer;
+}
+input,select,textarea{
+  background:rgba(255,255,255,0.1);
+  border:2px solid var(--border);
+  border-radius:8px;
+  padding:12px;
+  color:var(--text);
+  width:100%;
+  margin-bottom:15px;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none;
+  border-color:#667eea;
+}
+label{
+  display:block;
+  margin-bottom:5px;
+  font-weight:500;
+}
+.instructions{
+  background:rgba(255,255,255,0.1);
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:30px;
+}
+.instructions h3 {color:var(--gold);margin-top:0}
+.instructions ol {margin:0;padding-left:20px}
+.instructions li {margin:10px 0}
+code {
+  background:rgba(0,0,0,0.3);
+  padding:2px 6px;
+  border-radius:4px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>👥 User Invitation System Demo</h1>
+
+<div class="instructions">
+<h3>How to Use:</h3>
+<ol>
+<li>Click "Add User" to add a new user to the system</li>
+<li>Click "Send Invitation" to send invitation links via Email, SMS, or WhatsApp</li>
+<li>The invitation link will allow users to access their appropriate dashboard</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Platform Master Hub - Users Section</h3>
+<p>Click the buttons below to test the user invitation functionality:</p>
+<div style="margin-top:20px">
+<button class="btn gold" onclick="openAddUserModal()">➕ Add User</button>
+<button class="btn" onclick="openInviteUserModal()">📧 Send Invitation</button>
+<button class="btn turquoise" onclick="exportUsers()">📤 Export Users</button>
+</div>
+</div>
+
+<div class="card">
+<h3>Quick Links</h3>
+<p>These links would be generated for the invited users:</p>
+<div style="margin-top:15px">
+<a href="admin-dashboard.html" style="color:#667eea;margin-right:15px">Admin Dashboard</a>
+<a href="host-dashboard-upgraded.html" style="color:#40E0D0;margin-right:15px">Host Dashboard</a>
+<a href="support-dashboard-upgraded.html" style="color:#D4AF37">Support Dashboard</a>
+</div>
+</div>
+</div>
+
+<!-- Modal Container -->
+<div id="modal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<h3 id="modalTitle">Modal</h3>
+<button class="modal-close" onclick="closeModal()">×</button>
+</div>
+<p id="modalText">Content goes here</p>
+</div>
+</div>
+
+<script>
+// Initialize the system
+console.log('User Invitation System loaded!');
+</script>
+</body>
+</html>

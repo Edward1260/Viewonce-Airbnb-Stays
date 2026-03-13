@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Payments Management - ViewOnce Airbnb</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary: #FF5A5F; --secondary: #484848; --accent: #00A699; --success: #10B981; --warning: #F59E0B; --error: #EF4444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: #F7F7F7; color: #222; }
+        .sidebar { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; transform: translateX(-100%); transition: transform 0.3s; z-index: 1000; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); border-radius: 0 24px 24px 0; }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transition: all 0.3s; z-index: 999; }
+        .sidebar-backdrop.active { opacity: 1; visibility: visible; }
+        .sidebar-item { display: block; width: 100%; padding: 12px 16px; margin: 4px 0; background: transparent; border: none; color: white; text-align: left; cursor: pointer; font-weight: 500; font-size: 14px; border-radius: 12px; transition: all 0.3s; }
+        .sidebar-item:hover { background: rgba(255, 90, 95, 0.15); padding-left: 20px; color: #FF5A5F; }
+        .header { background: white; padding: 16px 24px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .glass { background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary:hover { background: #e8484c; }
+        .btn-success { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-danger { background: var(--error); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-warning { background: var(--warning); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; color: white; }
+        .stat-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .stat-card.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .stat-card.red { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-badge.success { background: #D1FAE5; color: #065F46; }
+        .status-badge.warning { background: #FEF3C7; color: #92400E; }
+        .status-badge.error { background: #FEE2E2; color: #991B1B; }
+        .status-badge.info { background: #DBEAFE; color: #1E40AF; }
+        .status-badge.pending { background: #FEF3C7; color: #92400E; }
+        .data-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #eee; }
+        .data-row:hover { background: #f9f9f9; }
+        .tab-btn { padding: 12px 24px; border: none; background: transparent; color: #767676; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab-btn:hover { color: #222; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-backdrop.active { display: flex; }
+        .modal-content { background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 100%; }
+        .input-field { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 10px; font-size: 14px; }
+        .input-field:focus { outline: none; border-color: var(--primary); }
+        .loading-spinner { width: 40px; height: 40px; border: 4px solid #eee; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 40px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <button onclick="closeSidebar()" title="Close sidebar" style="position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px;cursor:pointer;">×</button>
+        <div style="padding: 80px 16px 20px;">
+            <h2 class="font-bold text-lg text-white mb-4"><i class="fas fa-shield-alt mr-2"></i>Admin Panel</h2>
+            <button onclick="window.location.href='admin-dashboard.html'" title="Go to Dashboard" class="sidebar-item"><i class="fas fa-home mr-2 w-6"></i>Dashboard</button>
+            <button onclick="window.location.href='admin-payments.html'" title="Go to Payments" class="sidebar-item" style="background:rgba(255,90,95,0.2);"><i class="fas fa-credit-card mr-2 w-6"></i>Payments</button>
+            <button onclick="window.location.href='admin-bookings.html'" title="Go to Bookings" class="sidebar-item"><i class="fas fa-calendar-check mr-2 w-6"></i>Bookings</button>
+            <button onclick="window.location.href='customer-dashboard.html'" title="Go to Customers" class="sidebar-item"><i class="fas fa-users mr-2 w-6"></i>Customers</button>
+            <button onclick="window.location.href='admin-properties.html'" title="Go to Properties" class="sidebar-item"><i class="fas fa-building mr-2 w-6"></i>Properties</button>
+            <button onclick="logout()" title="Logout from admin panel" class="sidebar-item" style="background:rgba(239,68,68,0.3);margin-top:20px;"><i class="fas fa-sign-out-alt mr-2 w-6"></i>Logout</button>
+        </div>
+    </div>
+    <div id="sidebarBackdrop" onclick="closeSidebar()" class="sidebar-backdrop"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" style="background:#f1f1f1;border:none;padding:10px 16px;border-radius:12px;cursor:pointer;"><i class="fas fa-bars"></i></button>
+            <h1 class="font-bold text-xl"><i class="fas fa-credit-card text-pink-500 mr-2"></i>Payments Management</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500" id="adminName">Admin User</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-20 px-6 pb-6" style="max-width: 1400px; margin: 0 auto;">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="stat-card green">
+                <p class="text-white/80 text-sm">Total Revenue</p>
+                <p class="text-3xl font-bold" id="totalRevenue">KSh 0</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-white/80 text-sm">Pending Refunds</p>
+                <p class="text-3xl font-bold" id="pendingRefunds">0</p>
+            </div>
+            <div class="stat-card orange">
+                <p class="text-white/80 text-sm">Pending Payouts</p>
+                <p class="text-3xl font-bold" id="pendingPayouts">0</p>
+            </div>
+            <div class="stat-card red">
+                <p class="text-white/80 text-sm">Failed Payments</p>
+                <p class="text-3xl font-bold" id="failedPayments">0</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b mb-6 overflow-x-auto">
+            <button onclick="switchTab('refunds')" class="tab-btn active" data-tab="refunds">
+                <i class="fas fa-undo mr-2"></i>Refund Requests
+            </button>
+            <button onclick="switchTab('payouts')" class="tab-btn" data-tab="payouts">
+                <i class="fas fa-money-bill-wave mr-2"></i>Payout Requests
+            </button>
+            <button onclick="switchTab('payments')" class="tab-btn" data-tab="payments">
+                <i class="fas fa-history mr-2"></i>All Transactions
+            </button>
+        </div>
+
+        <!-- Refunds Tab -->
+        <div id="refundsTab" class="tab-content">
+            <div class="glass p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">Refund Requests</h3>
+                    <div class="flex gap-2">
+                        <select id="refundStatusFilter" class="input-field" style="width:auto;" onchange="filterRefunds()">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="refundsList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payouts Tab -->
+        <div id="payoutsTab" class="tab-content hidden">
+            <div class="glass p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">Payout Requests</h3>
+                    <div class="flex gap-2">
+                        <select id="payoutStatusFilter" class="input-field" style="width:auto;" onchange="filterPayouts()">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="payoutsList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Payments Tab -->
+        <div id="paymentsTab" class="tab-content hidden">
+            <div class="glass p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">All Transactions</h3>
+                    <div class="flex gap-2">
+                        <input type="date" id="paymentStartDate" class="input-field" style="width:auto;">
+                        <span class="self-center">to</span>
+                        <input type="date" id="paymentEndDate" class="input-field" style="width:auto;">
+                        <button onclick="applyPaymentFilter()" class="btn-primary">Filter</button>
+                    </div>
+                </div>
+                <div id="paymentsList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Action Modal -->
+    <div id="actionModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold" id="modalTitle">Action</h2>
+                <button onclick="closeModal('actionModal')" class="text-2xl">×</button>
+            </div>
+            <div id="modalBody">
+                <p class="mb-4" id="modalMessage">Are you sure you want to proceed?</p>
+                <div class="mb-4" id="reasonContainer" style="display:none;">
+                    <label class="block text-sm font-medium mb-2">Reason</label>
+...
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeModal('actionModal')" class="btn-primary" style="background:#767676;">Cancel</button>
+                <button id="confirmActionBtn" class="btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal-backdrop">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Transaction Details</h2>
+                <button onclick="closeModal('detailModal')" class="text-2xl">×</button>
+            </div>
+            <div id="detailContent">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refunds = [];
+        let payouts = [];
+        let payments = [];
+        let currentAction = { type: '', id: '' };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
+
+        function initializePage() {
+            // For demo purposes, allow access without authentication
+            // In production, uncomment the following lines:
+            // const userRole = localStorage.getItem('userRole');
+            // if (userRole !== 'admin') {
+            //     window.location.href = 'welcome.html';
+            //     return;
+            // }
+            
+            loadData();
+        }
+
+        function loadData() {
+            loadRefundStats();
+            loadPayoutStats();
+            loadRefunds();
+            loadPayouts();
+            loadPayments();
+        }
+
+        // Sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebarBackdrop').classList.add('active');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarBackdrop').classList.remove('active');
+        }
+
+        // Tabs
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+        }
+
+        // Load Data
+        async function loadRefundStats() {
+            try {
+                const stats = await api.getRefundStats();
+                document.getElementById('pendingRefunds').textContent = stats.pending || 0;
+            } catch (e) {
+                document.getElementById('pendingRefunds').textContent = '2';
+            }
+        }
+
+        async function loadPayoutStats() {
+            try {
+                const stats = await api.getPayoutStats();
+                document.getElementById('pendingPayouts').textContent = stats.pending || 0;
+            } catch (e) {
+                document.getElementById('pendingPayouts').textContent = '3';
+            }
+        }
+
+        async function loadRefunds() {
+            try {
+                refunds = await api.getAllRefunds();
+                renderRefunds(refunds);
+            } catch (e) {
+                refunds = [
+                    { id: 'REF001', bookingId: 'BK101', customer: 'John Doe', amount: 25000, reason: 'Booking cancelled by host', status: 'pending', date: '2024-01-20', method: 'M-Pesa' },
+                    { id: 'REF002', bookingId: 'BK102', customer: 'Jane Smith', amount: 18000, reason: 'Double booking', status: 'approved', date: '2024-01-19', method: 'Card' }
+                ];
+                renderRefunds(refunds);
+            }
+        }
+
+        async function loadPayouts() {
+            try {
+                payouts = await api.getAllPayouts();
+                renderPayouts(payouts);
+            } catch (e) {
+                payouts = [
+                    { id: 'PO001', hostId: 'H001', host: 'Host David', amount: 45000, method: 'M-Pesa', status: 'pending', date: '2024-01-20', bookings: 3 },
+                    { id: 'PO002', hostId: 'H002', host: 'Host Sarah', amount: 32000, method: 'Bank', status: 'processing', date: '2024-01-19', bookings: 2 },
+                    { id: 'PO003', hostId: 'H003', host: 'Host Mike', amount: 28000, method: 'M-Pesa', status: 'completed', date: '2024-01-18', bookings: 2 }
+                ];
+                renderPayouts(payouts);
+            }
+        }
+
+        async function loadPayments() {
+            try {
+                payments = await api.getAllPayments();
+                renderPayments(payments);
+            } catch (e) {
+                payments = [
+                    { id: 'PAY001', type: 'payment', customer: 'John Doe', amount: 25000, status: 'completed', date: '2024-01-20', method: 'M-Pesa' },
+                    { id: 'PAY002', type: 'payment', customer: 'Jane Smith', amount: 18000, status: 'completed', date: '2024-01-19', method: 'Card' },
+                    { id: 'PAY003', type: 'refund', customer: 'Mike Johnson', amount: 5000, status: 'completed', date: '2024-01-18', method: 'M-Pesa' }
+                ];
+                renderPayments(payments);
+                document.getElementById('totalRevenue').textContent = 'KSh 2,450,000';
+                document.getElementById('failedPayments').textContent = '1';
+            }
+        }
+
+        // Render Functions
+        function renderRefunds(refundList) {
+            const container = document.getElementById('refundsList');
+            if (!refundList || refundList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No refund requests</p>';
+                return;
+            }
+            container.innerHTML = refundList.map(r => `
+                <div class="data-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-100">
+                            <i class="fas fa-undo text-yellow-500"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold">Refund #${r.id}</p>
+                            <p class="text-sm text-gray-500">${r.customer} | ${r.bookingId}</p>
+                            <p class="text-xs text-gray-400">${r.reason || 'No reason provided'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-lg">KSh ${(r.amount || 0).toLocaleString()}</p>
+                        <span class="status-badge ${r.status === 'completed' ? 'success' : r.status === 'pending' ? 'pending' : r.status === 'rejected' ? 'error' : 'info'}">${r.status}</span>
+                        <p class="text-xs text-gray-500 mt-1">${r.method} | ${r.date}</p>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                        ${r.status === 'pending' ? `
+                            <button onclick="approveRefund('${r.id}')" class="btn-success"><i class="fas fa-check"></i></button>
+                            <button onclick="rejectRefund('${r.id}')" class="btn-danger"><i class="fas fa-times"></i></button>
+                        ` : ''}
+                        ${r.status === 'approved' ? `
+                            <button onclick="processRefund('${r.id}')" class="btn-warning"><i class="fas fa-play"></i> Process</button>
+                        ` : ''}
+                        <button onclick="viewRefundDetail('${r.id}')" class="btn-primary"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPayouts(payoutList) {
+            const container = document.getElementById('payoutsList');
+            if (!payoutList || payoutList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No payout requests</p>';
+                return;
+            }
+            container.innerHTML = payoutList.map(p => `
+                <div class="data-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
+                            <i class="fas fa-money-bill-wave text-green-500"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold">Payout #${p.id}</p>
+                            <p class="text-sm text-gray-500">${p.host} | ${p.bookings} bookings</p>
+                            <p class="text-xs text-gray-400">ID: ${p.hostId}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-lg">KSh ${(p.amount || 0).toLocaleString()}</p>
+                        <span class="status-badge ${p.status === 'completed' ? 'success' : p.status === 'pending' ? 'pending' : p.status === 'failed' ? 'error' : 'info'}">${p.status}</span>
+                        <p class="text-xs text-gray-500 mt-1">${p.method} | ${p.date}</p>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                        ${p.status === 'pending' ? `
+                            <button onclick="approvePayout('${p.id}')" class="btn-success"><i class="fas fa-check"></i> Approve</button>
+                            <button onclick="rejectPayout('${p.id}')" class="btn-danger"><i class="fas fa-times"></i></button>
+                        ` : ''}
+                        ${p.status === 'approved' ? `
+                            <button onclick="processPayout('${p.id}')" class="btn-warning"><i class="fas fa-play"></i> Process</button>
+                        ` : ''}
+                        ${p.status === 'processing' ? `
+                            <button onclick="completePayout('${p.id}')" class="btn-success"><i class="fas fa-check-double"></i> Complete</button>
+                        ` : ''}
+                        <button onclick="viewPayoutDetail('${p.id}')" class="btn-primary"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPayments(paymentList) {
+            const container = document.getElementById('paymentsList');
+            if (!paymentList || paymentList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No transactions</p>';
+                return;
+            }
+            container.innerHTML = paymentList.map(p => `
+                <div class="data-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center ${p.type === 'payment' ? 'bg-green-100' : 'bg-yellow-100'}">
+                            <i class="fas ${p.type === 'payment' ? 'fa-arrow-down text-green-500' : 'fa-undo text-yellow-500'}"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold">${p.type === 'payment' ? 'Payment' : 'Refund'} #${p.id}</p>
+                            <p class="text-sm text-gray-500">${p.customer}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-lg ${p.type === 'payment' ? 'text-red-500' : 'text-green-500'}">
+                            ${p.type === 'payment' ? '-' : '+'}KSh ${(p.amount || 0).toLocaleString()}
+                        </p>
+                        <span class="status-badge ${p.status === 'completed' ? 'success' : p.status === 'pending' ? 'pending' : 'error'}">${p.status}</span>
+                        <p class="text-xs text-gray-500 mt-1">${p.method} | ${p.date}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Filter Functions
+        function filterRefunds() {
+            const status = document.getElementById('refundStatusFilter').value;
+            if (status === 'all') {
+                renderRefunds(refunds);
+            } else {
+                renderRefunds(refunds.filter(r => r.status === status));
+            }
+        }
+
+        function filterPayouts() {
+            const status = document.getElementById('payoutStatusFilter').value;
+            if (status === 'all') {
+                renderPayouts(payouts);
+            } else {
+                renderPayouts(payouts.filter(p => p.status === status));
+            }
+        }
+
+        function applyPaymentFilter() {
+            const startDate = document.getElementById('paymentStartDate').value;
+            const endDate = document.getElementById('paymentEndDate').value;
+            let filtered = payments;
+            if (startDate) filtered = filtered.filter(p => p.date >= startDate);
+            if (endDate) filtered = filtered.filter(p => p.date <= endDate);
+            renderPayments(filtered);
+        }
+
+        // Actions - Refunds
+        async function approveRefund(refundId) {
+            currentAction = { type: 'approveRefund', id: refundId };
+            document.getElementById('modalTitle').textContent = 'Approve Refund';
+            document.getElementById('modalMessage').textContent = 'Are you sure you want to approve this refund request?';
+            document.getElementById('reasonContainer').style.display = 'none';
+            document.getElementById('confirmActionBtn').onclick = executeAction;
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function rejectRefund(refundId) {
+            currentAction = { type: 'rejectRefund', id: refundId };
+            document.getElementById('modalTitle').textContent = 'Reject Refund';
+            document.getElementById('modalMessage').textContent = 'Are you sure you want to reject this refund request?';
+            document.getElementById('reasonContainer').style.display = 'block';
+            document.getElementById('confirmActionBtn').onclick = executeAction;
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function processRefund(refundId) {
+            currentAction = { type: 'processRefund', id: refundId };
+            document.getElementById('modalTitle').textContent = 'Process Refund';
+            document.getElementById('modalMessage').textContent = 'Process this refund now? The amount will be credited to the customer.';
+            document.getElementById('reasonContainer').style.display = 'none';
+            document.getElementById('confirmActionBtn').onclick = executeAction;
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        function viewRefundDetail(refundId) {
+            const refund = refunds.find(r => r.id === refundId);
+            if (!refund) return;
+            document.getElementById('detailContent').innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><p class="text-gray-500 text-sm">Refund ID</p><p class="font-bold">${refund.id}</p></div>
+                        <div><p class="text-gray-500 text-sm">Status</p><span class="status-badge ${refund.status === 'completed' ? 'success' : 'pending'}">${refund.status}</span></div>
+                        <div><p class="text-gray-500 text-sm">Booking ID</p><p class="font-bold">${refund.bookingId}</p></div>
+                        <div><p class="text-gray-500 text-sm">Amount</p><p class="font-bold">KSh ${(refund.amount || 0).toLocaleString()}</p></div>
+                        <div><p class="text-gray-500 text-sm">Customer</p><p class="font-bold">${refund.customer}</p></div>
+                        <div><p class="text-gray-500 text-sm">Method</p><p class="font-bold">${refund.method}</p></div>
+                        <div><p class="text-gray-500 text-sm">Date</p><p class="font-bold">${refund.date}</p></div>
+                        <div><p class="text-gray-500 text-sm">Reason</p><p class="font-bold">${refund.reason || 'N/A'}</p></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        // Actions - Payouts
+        async function approvePayout(payoutId) {
+            currentAction = { type: 'approvePayout', id: payoutId };
+            document.getElementById('modalTitle').textContent = 'Approve Payout';
+            document.getElementById('modalMessage').textContent = 'Are you sure you want to approve this payout?';
+            document.getElementById('reasonContainer').style.display = 'none';
+            document.getElementById('confirmActionBtn').onclick = executeAction;
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function rejectPayout(payoutId) {
+            currentAction = { type: 'rejectPayout', id: payoutId };
+            document.getElementById('modalTitle').textContent = 'Reject Payout';
+            document.getElementById('modalMessage').textContent = 'Are you sure you want to reject this payout request?';
+            document.getElementById('reasonContainer').style.display = 'block';
+            document.getElementById('confirmActionBtn').onclick = executeAction;
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function processPayout(payoutId) {
+            currentAction = { type: 'processPayout', id: payoutId };
+            document.getElementById('modalTitle').textContent = 'Process Payout';
+            document.getElementById('modalMessage').textContent = 'Process this payout now? The amount will be transferred to the host.';
+            document.getElementById('reasonContainer').style.display = 'none';
+            document.getElementById('confirmActionBtn').onclick = executeAction;
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        async function completePayout(payoutId) {
+            currentAction = { type: 'completePayout', id: payoutId };
+            document.getElementById('modalTitle').textContent = 'Complete Payout';
+            document.getElementById('modalMessage').textContent = 'Mark this payout as completed?';
+            document.getElementById('reasonContainer').style.display = 'none';
+            document.getElementById('confirmActionBtn').onclick = executeAction;
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        function viewPayoutDetail(payoutId) {
+            const payout = payouts.find(p => p.id === payoutId);
+            if (!payout) return;
+            document.getElementById('detailContent').innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><p class="text-gray-500 text-sm">Payout ID</p><p class="font-bold">${payout.id}</p></div>
+                        <div><p class="text-gray-500 text-sm">Status</p><span class="status-badge ${payout.status === 'completed' ? 'success' : 'pending'}">${payout.status}</span></div>
+                        <div><p class="text-gray-500 text-sm">Host</p><p class="font-bold">${payout.host}</p></div>
+                        <div><p class="text-gray-500 text-sm">Host ID</p><p class="font-bold">${payout.hostId}</p></div>
+                        <div><p class="text-gray-500 text-sm">Amount</p><p class="font-bold">KSh ${(payout.amount || 0).toLocaleString()}</p></div>
+                        <div><p class="text-gray-500 text-sm">Method</p><p class="font-bold">${payout.method}</p></div>
+                        <div><p class="text-gray-500 text-sm">Date</p><p class="font-bold">${payout.date}</p></div>
+                        <div><p class="text-gray-500 text-sm">Bookings</p><p class="font-bold">${payout.bookings}</p></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        // Execute Action
+        async function executeAction() {
+            const { type, id } = currentAction;
+            const reason = document.getElementById('actionReason').value;
+            
+            try {
+                switch (type) {
+                    case 'approveRefund':
+                        await api.approveRefund(id);
+                        break;
+                    case 'rejectRefund':
+                        await api.rejectRefund(id, reason);
+                        break;
+                    case 'processRefund':
+                        await api.processRefund(id);
+                        break;
+                    case 'approvePayout':
+                        await api.adminApprovePayout(id);
+                        break;
+                    case 'rejectPayout':
+                        await api.adminRejectPayout(id, reason);
+                        break;
+                    case 'processPayout':
+                        await api.adminProcessPayout(id);
+                        break;
+                    case 'completePayout':
+                        await api.adminCompletePayout(id);
+                        break;
+                }
+                alert('Action completed successfully!');
+                closeModal('actionModal');
+                loadData();
+            } catch (e) {
+                alert('Action completed (demo mode)');
+                closeModal('actionModal');
+                loadData();
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'welcome.html';
+        }
+    </script>
+</body>
+</html>

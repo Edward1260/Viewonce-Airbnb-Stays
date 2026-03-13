@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reviews - Airbnb Customer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #E8F4FD, #D1E7F0);
+            font-family: 'Inter', sans-serif;
+        }
+        .star-rating {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- HEADER -->
+    <header class="w-full flex items-center justify-between px-6 py-4 bg-white shadow-md fixed top-0 z-50">
+        <div class="flex items-center gap-4">
+            <button onclick="window.location.href='customer-dashboard.html'" class="text-gray-600 hover:text-gray-800">← Back to Dashboard</button>
+            <h1 class="font-bold text-xl text-gray-800">My Reviews</h1>
+        </div>
+    </header>
+
+    <div class="max-w-4xl mx-auto pt-24 px-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-6">Your Reviews</h2>
+            
+            <div class="space-y-6" id="reviewsContainer">
+                <div class="border rounded-lg p-4">
+                    <div class="flex items-start gap-4">
+                        <img src="/images/placeholder-property.jpg" alt="Property" class="w-16 h-16 rounded-lg object-cover">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800">Luxury Beach Villa</h3>
+                            <p class="text-sm text-gray-600 mb-2">Mombasa, Kenya</p>
+                            <div class="star-rating mb-2">★★★★★</div>
+                            <p class="text-gray-700">"Amazing property with stunning ocean views. The host was very accommodating and the amenities were top-notch. Highly recommend!"</p>
+                            <p class="text-xs text-gray-400 mt-2">Reviewed on Dec 26, 2024</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border rounded-lg p-4">
+                    <div class="flex items-start gap-4">
+                        <img src="/images/placeholder-property.jpg" alt="Property" class="w-16 h-16 rounded-lg object-cover">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800">Modern City Apartment</h3>
+                            <p class="text-sm text-gray-600 mb-2">Nairobi, Kenya</p>
+                            <div class="star-rating mb-2">★★★★☆</div>
+                            <p class="text-gray-700">"Great location and modern amenities. The apartment was clean and well-maintained. Only minor issue with parking but overall excellent stay."</p>
+                            <p class="text-xs text-gray-400 mt-2">Reviewed on Jan 12, 2025</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <p class="text-gray-500">No more reviews</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!isLoggedIn || user.role !== 'customer') {
+                window.location.href = 'login-signup.html';
+                return;
+            }
+        });
+    </script>
+</body>
+</html>

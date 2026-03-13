@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to ViewOnce | Luxury Stays</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="images/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            display: block;
+            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Color Palette */
+        :root {
+            --gold: #d4af37;
+            --gold-light: #f4e4bc;
+            --gold-dark: #b8962e;
+            --navy-deep: #0f172a;
+            --navy-light: #1e293b;
+            --burgundy: #722f37;
+            --emerald: #064e3b;
+            --cream: #fdf8f3;
+            --ivory: #fafaf9;
+            --blended: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%);
+            --neon-blue: #00d4ff;
+            --neon-purple: #b000ff;
+            --neon-pink: #ff0080;
+        }
+
+        .font-playfair { font-family: 'Playfair Display', serif; }
+
+        /* Blended Background for sections */
+        .bg-blended {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        .bg-blended-light {
+            background: linear-gradient(135deg, #2d1b69 0%, #1e3a5f 50%, #1a1a2e 100%);
+        }
+
+        /* Floating Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes float-reverse {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-25px); }
+        }
+
+        .float { animation: float 4s ease-in-out infinite; }
+        .float-reverse { animation: float-reverse 5s ease-in-out infinite; }
+        .float-slow { animation: float-slow 6s ease-in-out infinite; }
+
+        /* Scrolling Text Animation - Moving Upwards */
+        @keyframes scrollUp {
+            0% {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            15% {
+                opacity: 1;
+            }
+            85% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+
+        .scrolling-text-container {
+            height: 80px;
+            overflow: hidden;
+            position: relative;
+            display: inline-block;
+        }
+
+        .scrolling-text {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            animation: scrollUp 8s ease-in-out infinite;
+        }
+
+        .scrolling-text span {
+            display: block;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: inherit;
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border-radius: 1.5rem;
+            transition: all 0.4s ease;
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 212, 255, 0.2), inset 0 0 0 1px rgba(0, 212, 255, 0.3);
+            transform: translateY(-10px);
+        }
+
+        /* Neon Glow Effects */
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 40px rgba(0, 212, 255, 0.1);
+        }
+
+        .neon-glow-purple {
+            box-shadow: 0 0 20px rgba(176, 0, 255, 0.3), 0 0 40px rgba(176, 0, 255, 0.1);
+        }
+
+        .neon-glow-pink {
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.3), 0 0 40px rgba(255, 0, 128, 0.1);
+        }
+
+        .neon-glow-gold {
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3), 0 0 40px rgba(212, 175, 55, 0.1);
+        }
+
+        /* Pulse Effect */
+        @keyframes pulse-in-out {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+        }
+
+        .pulse-effect {
+            animation: pulse-in-out 2s ease-in-out infinite;
+        }
+
+        /* Ripple Effect */
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7);
+            }
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 20px rgba(0, 212, 255, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+            }
+        }
+
+        .ripple-effect {
+            animation: ripple 2s infinite;
+        }
+
+        /* Image Shape - No Rotation, Fade + Pulse */
+        @keyframes image-pulse {
+            0%, 100% { 
+                transform: scale(1);
+                filter: brightness(1) saturate(1);
+            }
+            50% { 
+                transform: scale(1.03);
+                filter: brightness(1.1) saturate(1.1);
+            }
+        }
+
+        .shape-image {
+            animation: image-pulse 4s ease-in-out infinite;
+        }
+
+        .shape-container-new {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 25px;
+        }
+
+        .shape-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .shape-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Navigation */
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after { width: 100%; }
+
+        /* Glass Nav */
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        /* Hero Gradient */
+        .hero-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 30%, #0f3460 50%, #16213e 70%, #0f172a 100%);
+            position: relative;
+        }
+
+        /* Particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: particle-float 12s infinite linear;
+        }
+
+        @keyframes particle-float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.4; }
+            90% { opacity: 0.4; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Gold Text */
+        .text-gold { color: var(--gold); }
+        .text-neon-blue { color: var(--neon-blue); }
+        .text-neon-purple { color: var(--neon-purple); }
+
+        /* Buttons */
+        .btn-neon {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            color: white;
+            font-weight: 600;
+            padding: 1rem 2.5rem;
+            border-radius: 3rem;
+            transition: all 0.4s ease;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-neon:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4), 0 0 20px rgba(176, 0, 255, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            font-weight: 600;
+            padding: 1rem 2.5rem;
+            border-radius: 3rem;
+            transition: all 0.4s ease;
+        }
+
+        .btn-outline:hover {
+            background: var(--neon-blue);
+            color: #0f172a;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple));
+            border-radius: 4px;
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideLeft {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideRight {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .animate-slide-up { animation: slideUp 0.8s ease forwards; }
+        .animate-slide-left { animation: slideLeft 0.8s ease forwards; }
+        .animate-slide-right { animation: slideRight 0.8s ease forwards; }
+        .animate-fade { animation: fadeIn 1s ease forwards; }
+
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-400 { animation-delay: 0.4s; }
+
+        /* Stats */
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stat-number { animation: countUp 1s ease forwards; }
+
+        /* Icon Boxes */
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(176, 0, 255, 0.1));
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            transition: all 0.4s ease;
+        }
+
+        .glass-card:hover .icon-box {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+
+        /* Footer */
+        .footer-dark {
+            background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+            border-top: 1px solid rgba(0, 212, 255, 0.15);
+        }
+
+        /* Shape Back */
+        .shape-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            padding: 2rem 1rem 1rem;
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: white;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        /* Image Slideshow Container */
+        .slideshow-new {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide-new {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .slide-new.active {
+            opacity: 1;
+        }
+
+        .slide-new.active img {
+            animation: image-pulse 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-navy-deep">
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 glass-nav">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center">
+                    <a href="#home" class="font-playfair text-3xl font-bold text-gold nav-link">ViewOnce</a>
+                </div>
+                <div class="hidden md:flex space-x-10">
+                    <a href="#home" class="text-white/80 nav-link font-medium">Home</a>
+                    <a href="#about" onclick="navigateTo('/about')" class="text-white/80 nav-link font-medium">About</a>
+                    <a href="#features" class="text-white/80 nav-link font-medium">Experiences</a>
+                    <a href="#dashboard" class="text-white/80 nav-link font-medium">Dashboard</a>
+                    <a href="#gallery" class="text-white/80 nav-link font-medium">Gallery</a>
+                    <a href="#contact" class="text-white/80 nav-link font-medium">Concierge</a>
+                </div>
+                <div class="flex space-x-4 items-center">
+                    <button onclick="navigateTo('/login')" class="px-5 py-2.5 text-white/80 font-medium hover:text-neon-blue transition nav-link">Sign In</button>
+                    <button onclick="navigateTo('/signup')" class="btn-neon px-6 py-2.5 rounded-full font-semibold text-sm">
+                        Join Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center justify-center hero-bg relative overflow-hidden">
+        <!-- Particles -->
+        <div class="absolute inset-0">
+            <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+            <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+            <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+            <div class="particle" style="left: 40%; animation-delay: 1s;"></div>
+            <div class="particle" style="left: 50%; animation-delay: 3s;"></div>
+            <div class="particle" style="left: 60%; animation-delay: 5s;"></div>
+            <div class="particle" style="left: 70%; animation-delay: 2.5s;"></div>
+            <div class="particle" style="left: 80%; animation-delay: 1.5s;"></div>
+            <div class="particle" style="left: 90%; animation-delay: 4.5s;"></div>
+        </div>
+
+        <!-- Floating Decorative -->
+        <div class="absolute top-20 left-10 w-72 h-72 border border-neon-blue/10 rounded-full float"></div>
+        <div class="absolute top-40 right-20 w-48 h-48 border border-neon-purple/10 rounded-full float-reverse"></div>
+        <div class="absolute bottom-20 left-1/4 w-32 h-32 border border-neon-pink/10 rounded-full float-slow"></div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <!-- Left Content -->
+                <div class="text-center lg:text-left animate-slide-up">
+                    <div class="inline-block px-4 py-1.5 bg-neon-blue/10 border border-neon-blue/20 rounded-full mb-6">
+                        <span class="text-neon-blue text-sm font-medium tracking-wider uppercase">Premium Collection</span>
+                    </div>
+                    
+                    <!-- Scrolling Text Animation -->
+                    <div class="scrolling-text-container mb-4">
+                        <div class="scrolling-text">
+                            <span class="text-4xl lg:text-5xl" style="font-size: 2.5rem;">Luxury Stays</span>
+                            <span class="text-4xl lg:text-5xl" style="font-size: 2.5rem;"> Extraordinary</span>
+                            <span class="text-4xl lg:text-5xl" style="font-size: 2.5rem;"> Elegance</span>
+                            <span class="text-4xl lg:text-5xl" style="font-size: 2.5rem;"> Premium</span>
+                            <span class="text-4xl lg:text-5xl" style="font-size: 2.5rem;"> Exclusive</span>
+                            <span class="text-4xl lg:text-5xl" style="font-size: 2.5rem;"> Unique</span>
+                            <span class="text-4xl lg:text-5xl" style="font-size: 2.5rem;"> Memories</span>
+                        </div>
+                    </div>
+                    
+                    <h1 class="font-playfair text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+                        Extraordinary<br>
+                        <span class="text-gold">Experiences</span> Await
+                    </h1>
+                    <p class="text-xl text-white/70 mb-10 max-w-xl leading-relaxed">
+                        Discover handpicked luxury properties that redefine elegance. Your journey to exceptional stays begins here.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+                        <button onclick="navigateTo('/property-listing')" class="btn-neon text-lg ripple-effect">
+                            Explore Collection
+                        </button>
+                        <button onclick="navigateTo('/live-tours')" class="btn-outline text-lg">
+                            Virtual Tours
+                        </button>
+                    </div>
+                    
+                    <!-- Trust -->
+                    <div class="flex items-center justify-center lg:justify-start gap-8 mt-12">
+                        <div class="text-center">
+                            <p class="text-3xl font-bold text-gold">15K+</p>
+                            <p class="text-white/50 text-sm">Properties</p>
+                        </div>
+                        <div class="w-px h-12 bg-white/10"></div>
+                        <div class="text-center">
+                            <p class="text-3xl font-bold text-neon-blue">50K+</p>
+                            <p class="text-white/50 text-sm">Guests</p>
+                        </div>
+                        <div class="w-px h-12 bg-white/10"></div>
+                        <div class="text-center">
+                            <p class="text-3xl font-bold text-neon-purple">4.9</p>
+                            <p class="text-white/50 text-sm">Rating</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Content - Floating Glass Cards -->
+                <div class="animate-slide-right">
+                    <div class="relative">
+                        <!-- Main Floating Card -->
+                        <div class="glass-card float neon-glow p-4" style="transform: rotate(-5deg);">
+                            <img src="welcome page images/image 1.jpg" alt="Luxury" class="w-full h-72 object-cover rounded-xl pulse-effect">
+                            <div class="p-5">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-playfair text-xl font-bold text-white">Oceanfront Villa</h3>
+                                    <span class="text-gold">★ 4.9</span>
+                                </div>
+                                <p class="text-white/50 text-sm">Maldives • 6 Bedrooms</p>
+                                <p class="text-gold font-semibold mt-2">From $2,500/night</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Floating Card 1 -->
+                        <div class="absolute -top-10 -right-10 glass-card float-reverse neon-glow-purple p-2">
+                            <img src="welcome page images/image 2.jpg" alt="View" class="w-36 h-36 object-cover rounded-xl pulse-effect">
+                        </div>
+                        
+                        <!-- Floating Card 2 -->
+                        <div class="absolute -bottom-8 -left-8 glass-card float-slow neon-glow-pink p-5">
+                            <div class="flex items-center gap-3">
+                                <span class="text-3xl">✓</span>
+                                <div>
+                                    <p class="text-white font-bold text-lg">Verified</p>
+                                    <p class="text-white/60 text-sm">Properties</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+            <a href="#features" class="text-neon-blue/50 hover:text-neon-blue transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-28 bg-blended relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-20 animate-slide-up">
+                <div class="inline-block px-4 py-1.5 bg-neon-blue/10 border border-neon-blue/20 rounded-full mb-6">
+                    <span class="text-neon-blue text-sm font-medium tracking-wider uppercase">Why Choose Us</span>
+                </div>
+                <h2 class="font-playfair text-4xl lg:text-5xl font-bold text-white mb-4">
+                    Curated <span class="text-gold">Excellence</span>
+                </h2>
+                <p class="text-xl text-white/60 max-w-2xl mx-auto">
+                    Every property in our collection is personally vetted to ensure the finest standards
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass-card p-8 float delay-100">
+                    <div class="icon-box mb-6">
+                        <span>🏰</span>
+                    </div>
+                    <h3 class="font-playfair text-xl font-bold text-white mb-3">Unique Stays</h3>
+                    <p class="text-white/60">From castles to treehouses, find accommodations that tell their own story</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card p-8 float-reverse delay-200">
+                    <div class="icon-box mb-6">
+                        <span>🎥</span>
+                    </div>
+                    <h3 class="font-playfair text-xl font-bold text-white mb-3">Live Tours</h3>
+                    <p class="text-white/60">Experience properties virtually with our immersive live tour technology</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card p-8 float-slow delay-300">
+                    <div class="icon-box mb-6">
+                        <span>🛡️</span>
+                    </div>
+                    <h3 class="font-playfair text-xl font-bold text-white mb-3">Secure Booking</h3>
+                    <p class="text-white/60">Bank-level security protects every transaction with full peace of mind</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="glass-card p-8 float delay-400">
+                    <div class="icon-box mb-6">
+                        <span>💎</span>
+                    </div>
+                    <h3 class="font-playfair text-xl font-bold text-white mb-3">Best Value</h3>
+                    <p class="text-white/60">Exclusive deals and price matching ensure you receive the finest value</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="py-28 bg-blended-light relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20 animate-slide-up">
+                <div class="inline-block px-4 py-1.5 bg-neon-purple/10 border border-neon-purple/20 rounded-full mb-6">
+                    <span class="text-neon-purple text-sm font-medium tracking-wider uppercase">Your World</span>
+                </div>
+                <h2 class="font-playfair text-4xl lg:text-5xl font-bold text-white mb-4">
+                    Personalized <span class="text-neon-blue">Dashboard</span>
+                </h2>
+                <p class="text-xl text-white/60 max-w-2xl mx-auto">
+                    All your bookings, favorites, and experiences in one elegant interface
+                </p>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                <div class="glass-card p-6 float neon-glow">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-14 h-14 bg-neon-blue/20 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl">🏠</span>
+                        </div>
+                        <span class="text-4xl font-bold text-white stat-number" data-target="1250">0</span>
+                    </div>
+                    <p class="text-white/60 font-medium">Properties</p>
+                </div>
+
+                <div class="glass-card p-6 float-reverse neon-glow-purple">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-14 h-14 bg-neon-purple/20 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl">📅</span>
+                        </div>
+                        <span class="text-4xl font-bold text-white stat-number" data-target="8500">0</span>
+                    </div>
+                    <p class="text-white/60 font-medium">Bookings</p>
+                </div>
+
+                <div class="glass-card p-6 float-slow neon-glow-pink">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-14 h-14 bg-pink-500/20 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl">👥</span>
+                        </div>
+                        <span class="text-4xl font-bold text-white stat-number" data-target="15000">0</span>
+                    </div>
+                    <p class="text-white/60 font-medium">Guests</p>
+                </div>
+
+                <div class="glass-card p-6 float neon-glow-gold">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-14 h-14 bg-gold/20 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl">⭐</span>
+                        </div>
+                        <div class="flex items-baseline">
+                            <span class="text-4xl font-bold text-white stat-number" data-target="98">0</span>
+                            <span class="text-2xl text-gold">%</span>
+                        </div>
+                    </div>
+                    <p class="text-white/60 font-medium">Satisfaction</p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="grid md:grid-cols-3 gap-8">
+                <button onclick="navigateTo('/property-listing')" class="glass-card p-10 text-center group">
+                    <div class="w-24 h-24 bg-neon-blue/10 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-neon-blue transition-all duration-500">
+                        <span class="text-5xl">🔍</span>
+                    </div>
+                    <h3 class="font-playfair text-2xl font-bold text-white mb-3">Discover</h3>
+                    <p class="text-white/60">Explore our curated collection</p>
+                </button>
+
+                <button onclick="navigateTo('/host-onboarding')" class="glass-card p-10 text-center group">
+                    <div class="w-24 h-24 bg-neon-purple/10 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-neon-purple transition-all duration-500">
+                        <span class="text-5xl">🏡</span>
+                    </div>
+                    <h3 class="font-playfair text-2xl font-bold text-white mb-3">Host With Us</h3>
+                    <p class="text-white/60">Share your property</p>
+                </button>
+
+                <button onclick="navigateTo('/help')" class="glass-card p-10 text-center group">
+                    <div class="w-24 h-24 bg-pink-500/10 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-pink-500 transition-all duration-500">
+                        <span class="text-5xl">❓</span>
+                    </div>
+                    <h3 class="font-playfair text-2xl font-bold text-white mb-3">Concierge</h3>
+                    <p class="text-white/60">24/7 Support</p>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section - 4 Shapes No Rotation -->
+    <section id="gallery" class="py-28 bg-navy-deep relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-20 animate-slide-up">
+                <div class="inline-block px-4 py-1.5 bg-neon-pink/10 border border-neon-pink/20 rounded-full mb-6">
+                    <span class="text-neon-pink text-sm font-medium tracking-wider uppercase">Portfolio</span>
+                </div>
+                <h2 class="font-playfair text-4xl lg:text-5xl font-bold text-white mb-4">
+                    Exceptional <span class="text-neon-blue">Gallery</span>
+                </h2>
+                <p class="text-xl text-white/60 max-w-2xl mx-auto">
+                    A glimpse into the extraordinary properties
+                </p>
+            </div>
+
+            <!-- 4 Shapes with Fade + Pulse -->
+            <div class="flex flex-wrap justify-center items-center gap-12">
+                <!-- Shape 1 - Circle -->
+                <div class="shape-container-new animate-slide-up delay-100">
+                    <div class="shape-wrapper circle-shape">
+                        <div class="slideshow-new" id="slideshow1">
+                            <img src="welcome page images/image 1.jpg" alt="1" class="slide-new active shape-image">
+                            <img src="welcome page images/image 2.jpg" alt="2" class="slide-new shape-image">
+                            <img src="welcome page images/images 3.jpg" alt="3" class="slide-new shape-image">
+                            <img src="welcome page images/image 4.jpg" alt="4" class="slide-new shape-image">
+                        </div>
+                        <div class="shape-label">Residences</div>
+                    </div>
+                </div>
+
+                <!-- Shape 2 - Rounded Square -->
+                <div class="shape-container-new animate-slide-up delay-200">
+                    <div class="shape-wrapper rounded-2xl">
+                        <div class="slideshow-new" id="slideshow2">
+                            <img src="welcome page images/image 2.jpg" alt="2" class="slide-new active shape-image">
+                            <img src="welcome page images/image 4.jpg" alt="4" class="slide-new shape-image">
+                            <img src="welcome page images/image 5.jpg" alt="5" class="slide-new shape-image">
+                            <img src="welcome page images/image 6.jpg" alt="6" class="slide-new shape-image">
+                        </div>
+                        <div class="shape-label">Estates</div>
+                    </div>
+                </div>
+
+                <!-- Shape 3 - Hexagon -->
+                <div class="shape-container-new animate-slide-up delay-300">
+                    <div class="shape-wrapper hexagon">
+                        <div class="slideshow-new" id="slideshow3">
+                            <img src="welcome page images/images 3.jpg" alt="3" class="slide-new active shape-image">
+                            <img src="welcome page images/image 5.jpg" alt="5" class="slide-new shape-image">
+                            <img src="welcome page images/image 1.jpg" alt="1" class="slide-new shape-image">
+                            <img src="welcome page images/image 2.jpg" alt="2" class="slide-new shape-image">
+                        </div>
+                        <div class="shape-label">Villas</div>
+                    </div>
+                </div>
+
+                <!-- Shape 4 - Rounded -->
+                <div class="shape-container-new animate-slide-up delay-400">
+                    <div class="shape-wrapper rounded-3xl">
+                        <div class="slideshow-new" id="slideshow4">
+                            <img src="welcome page images/image 4.jpg" alt="4" class="slide-new active shape-image">
+                            <img src="welcome page images/image 6.jpg" alt="6" class="slide-new shape-image">
+                            <img src="welcome page images/image 1.jpg" alt="1" class="slide-new shape-image">
+                            <img src="welcome page images/images 3.jpg" alt="3" class="slide-new shape-image">
+                        </div>
+                        <div class="shape-label">Penthouses</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-28 bg-blended">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20 animate-slide-up">
+                <div class="inline-block px-4 py-1.5 bg-gold/10 border border-gold/20 rounded-full mb-6">
+                    <span class="text-gold text-sm font-medium tracking-wider uppercase">Get In Touch</span>
+                </div>
+                <h2 class="font-playfair text-4xl lg:text-5xl font-bold text-white mb-4">
+                    Our <span class="text-neon-blue">Concierge</span>
+                </h2>
+                <p class="text-xl text-white/60 max-w-2xl mx-auto">
+                    We're here to craft your perfect experience
+                </p>
+            </div>
+
+            <div class="max-w-3xl mx-auto">
+                <div class="glass-card p-12 animate-slide-up">
+                    <div class="grid md:grid-cols-3 gap-10 text-center">
+                        <div>
+                            <div class="w-16 h-16 bg-neon-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">✉️</span>
+                            </div>
+                            <h3 class="font-playfair font-bold text-white mb-2">Email</h3>
+                            <p class="text-white/60">concierge@viewonce.com</p>
+                        </div>
+                        <div>
+                            <div class="w-16 h-16 bg-neon-purple/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">📞</span>
+                            </div>
+                            <h3 class="font-playfair font-bold text-white mb-2">Phone</h3>
+                            <p class="text-white/60">+1 (888) 555-LUXURY</p>
+                        </div>
+                        <div>
+                            <div class="w-16 h-16 bg-pink-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🌟</span>
+                            </div>
+                            <h3 class="font-playfair font-bold text-white mb-2">Available</h3>
+                            <p class="text-white/60">24/7 Priority</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer-dark text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-12">
+                <div>
+                    <h3 class="font-playfair text-3xl font-bold text-gold mb-4">ViewOnce</h3>
+                    <p class="text-white/50 leading-relaxed">Curating extraordinary experiences since 2020.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-6 text-neon-blue">Discover</h4>
+                    <ul class="space-y-3 text-white/50">
+                        <li><a href="#home" class="hover:text-neon-blue transition">Home</a></li>
+                        <li><a href="#features" class="hover:text-neon-blue transition">Experiences</a></li>
+                        <li><a href="#dashboard" class="hover:text-neon-blue transition">Dashboard</a></li>
+                        <li><a href="#gallery" class="hover:text-neon-blue transition">Gallery</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-6 text-neon-purple">Assistance</h4>
+                    <ul class="space-y-3 text-white/50">
+                        <li><a href="#" class="hover:text-neon-purple transition">Help Center</a></li>
+                        <li><a href="#" class="hover:text-neon-purple transition">Terms</a></li>
+                        <li><a href="#" class="hover:text-neon-purple transition">Privacy</a></li>
+                        <li><a href="#" class="hover:text-neon-purple transition">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-6 text-gold">Follow Us</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-12 h-12 bg-white/5 hover:bg-neon-blue rounded-full flex items-center justify-center transition-all duration-300">FB</a>
+                        <a href="#" class="w-12 h-12 bg-white/5 hover:bg-neon-purple rounded-full flex items-center justify-center transition-all duration-300">TW</a>
+                        <a href="#" class="w-12 h-12 bg-white/5 hover:bg-pink-500 rounded-full flex items-center justify-center transition-all duration-300">IG</a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-white/10 mt-12 pt-8 text-center text-white/40">
+                <p>© 2024 ViewOnce Luxury Stays. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="config.js?v=20241201"></script>
+    <script src="store.js"></script>
+    <script src="router.js"></script>
+    <script src="script.js"></script>
+
+    <script>
+        // Navbar
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('glass-nav');
+            }
+        });
+
+        // Image Slideshows for shapes (fade + pulse)
+        function startSlideshow(slideshowId, interval = 4000) {
+            const slideshow = document.getElementById(slideshowId);
+            const slides = slideshow.querySelectorAll('.slide-new');
+            let currentSlide = 0;
+
+            setInterval(() => {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = (currentSlide + 1) % slides.length;
+                slides[currentSlide].classList.add('active');
+            }, interval);
+        }
+
+        startSlideshow('slideshow1', 4000);
+        startSlideshow('slideshow2', 4500);
+        startSlideshow('slideshow3', 5000);
+        startSlideshow('slideshow4', 3500);
+
+        // Animated counters
+        function animateCounters() {
+            const counters = document.querySelectorAll('.stat-number');
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const duration = 2500;
+                const increment = target / (duration / 16);
+                let current = 0;
+
+                const updateCounter = () => {
+                    current += increment;
+                    if (current < target) {
+                        counter.textContent = Math.floor(current).toLocaleString();
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        counter.textContent = target.toLocaleString();
+                    }
+                };
+                updateCounter();
+            });
+        }
+
+        // Intersection Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    if (entry.target.classList.contains('stat-number')) {
+                        animateCounters();
+                    }
+                    entry.target.style.opacity = '1';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.animate-slide-up, .animate-slide-left, .animate-slide-right, .stat-number').forEach(el => {
+            el.style.opacity = '0';
+            observer.observe(el);
+        });
+
+        // Check auth
+        (function() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (token && user && isLoggedIn) {
+                try {
+                    const userData = JSON.parse(user);
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

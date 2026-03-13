@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airbnb - Welcome</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="shortcut icon" href="images/icon-192.png" type="image/png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/icon-192.png">
+    <meta name="theme-color" content="#2f3e46">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ViewOnce">
+    <link rel="apple-touch-icon" href="images/icon-192.png">
+    <style>
+        body { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="container mx-auto px-4 py-16">
+        <div class="flex flex-col lg:flex-row items-center justify-between max-w-6xl mx-auto">
+            <!-- Left Section - Visual Elements -->
+            <div class="lg:w-1/2 mb-12 lg:mb-0 relative">
+                <div class="text-center lg:text-left">
+                    <h2 class="text-4xl lg:text-6xl font-bold text-gray-800 mb-6">
+                        Find Your<br>
+                        <span class="text-blue-600">Perfect Stay</span>
+                    </h2>
+                    <p class="text-xl text-gray-600 mb-8">
+                        Discover unique accommodations and experiences around the world
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Section - Content -->
+            <div class="lg:w-1/2 bg-white rounded-3xl p-8 lg:p-12 shadow-2xl">
+                <div class="text-center">
+                    <div class="mb-8">
+                        <h1 class="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
+                            Welcome to Airbnb
+                        </h1>
+                        <p class="text-gray-600 text-lg">
+                            Your next adventure awaits
+                        </p>
+                    </div>
+
+                    <div class="quote-card bg-gray-50 rounded-xl p-6 mb-8">
+                        <p class="text-gray-700 italic text-lg mb-2">
+                            "Every journey opens a new door—find the space that inspires your next story."
+                        </p>
+                        <p class="text-gray-500 text-sm">
+                            Where comfort meets culture.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <button onclick="navigateTo('/property-listing')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl">
+                            🏠 Explore Stays
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="navigateTo('/live-tours')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-xl">
+                                📹 Live Tour
+                            </button>
+                            <button onclick="navigateTo('/help')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-xl">
+                                ❓ About Us
+                            </button>
+                        </div>
+
+                        <div class="flex space-x-4 pt-4">
+                            <button onclick="navigateTo('/login')" class="flex-1 bg-transparent border-2 border-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl hover:bg-gray-100">
+                                Login
+                            </button>
+                            <button onclick="navigateTo('/signup')" class="flex-1 bg-gray-800 text-white font-semibold py-3 px-6 rounded-xl hover:bg-gray-900">
+                                Sign Up
+                            </button>
+                        </div>
+                        
+                        <!-- Clear Session Button -->
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <button onclick="clearSession()" class="text-sm text-red-500 hover:text-red-700 font-medium">
+                                Clear Session / Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js?v=20241201"></script>
+    <script src="store.js"></script>
+    <script src="router.js"></script>
+    <script src="script.js"></script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // PWA install prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallButton();
+        });
+
+        function showInstallButton() {
+            const installBtn = document.createElement('button');
+            installBtn.innerHTML = '📱 Install App';
+            installBtn.className = 'fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            installBtn.onclick = installPWA;
+            document.body.appendChild(installBtn);
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                deferredPrompt = null;
+            }
+        }
+
+        // Check if user is logged in and redirect to appropriate dashboard
+        (function() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+            if (token && user && isLoggedIn) {
+                try {
+                    const userData = JSON.parse(user);
+                    if (userData.role) {
+                        // Redirect to dashboard based on role
+                        if (userData.role === 'customer') {
+                            window.location.href = 'customer-dashboard.html';
+                            return;
+                        } else if (userData.role === 'host') {
+                            window.location.href = 'host-dashboard.html';
+                            return;
+                        } else if (userData.role === 'admin') {
+                            window.location.href = 'admin-dashboard.html';
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error parsing user data:', error);
+                }
+            }
+
+            // If not redirecting, show the body
+            document.body.style.display = 'block';
+        })();
+    </script>
+</body>
+</html>

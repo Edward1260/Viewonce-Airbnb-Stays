@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViewOnce Stays - Login</title>
+    <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #e6e7ee;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Main Container */
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 1400px;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* Left Side - Auth Image */
+        .left-section {
+            flex: 1;
+            position: relative;
+            height: 100vh;
+            overflow: hidden;
+            animation: fadeInLeft 1s ease-out;
+        }
+        
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .auth-image-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(2px);
+            transform: scale(1.05);
+        }
+        
+        .auth-image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(108, 92, 231, 0.4) 0%, 
+                rgba(162, 155, 254, 0.2) 50%,
+                rgba(255, 255, 255, 0.1) 100%);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+        }
+        
+        /* Welcoming Messages Container */
+        .welcome-messages {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            text-align: center;
+            z-index: 5;
+        }
+        
+        .welcome-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+        
+        .welcome-message.active {
+            animation: fadeMoveUp 4s ease-in-out infinite;
+        }
+        
+        @keyframes fadeMoveUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            80% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+        
+        /* Center - Main Card */
+        .center-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            animation: fadeInScale 1s ease-out 0.3s both;
+            z-index: 10;
+            margin-left: 60px;
+            margin-right: 60px;
+        }
+        
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .liquid-card {
+            width: 420px;
+            min-height: 500px;
+            border-radius: 50%;
+            background: #e6e7ee;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 
+                20px 20px 60px #c5c6cf,
+                -20px -20px 60px #ffffff;
+            overflow: hidden;
+            padding: 30px 0;
+        }
+        
+        /* Decorative Bubbles inside card */
+        .card-bubble {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.3;
+            filter: blur(2px);
+        }
+        
+        .card-bubble-1 {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #74B9FF, #0984E3);
+            top: 30px;
+            right: 50px;
+            animation: floatBubble 4s ease-in-out infinite;
+        }
+        
+        .card-bubble-2 {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #A29BFE, #6C5CE7);
+            bottom: 60px;
+            left: 40px;
+            animation: floatBubble 4s ease-in-out infinite 1s;
+        }
+        
+        @keyframes floatBubble {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                transform: translateY(-15px) scale(1.1);
+            }
+        }
+        
+        /* Card Content */
+        .card-content {
+            width: 85%;
+            text-align: center;
+            z-index: 5;
+            position: relative;
+        }
+        
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2D3436;
+            margin-bottom: 25px;
+            transition: all 0.5s ease;
+        }
+        
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 25px;
+            background: #e6e7ee;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            color: #2D3436;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 5px 5px 10px #c5c6cf, inset -5px -5px 10px #ffffff;
+        }
+        
+        .form-input:focus {
+            box-shadow: inset 3px 3px 6px #c5c6cf, inset -3px -3px 6px #ffffff, 0 0 0 3px rgba(108, 92, 231, 0.2);
+        }
+        
+        .form-input::placeholder {
+            color: #a0a0a0;
+        }
+
+        /* Role Select */
+        .form-select {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 25px;
+            background: #e6e7ee;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            color: #2D3436;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 5px 5px 10px #c5c6cf, inset -5px -5px 10px #ffffff;
+            cursor: pointer;
+        }
+        
+        .form-select:focus {
+            box-shadow: inset 3px 3px 6px #c5c6cf, inset -3px -3px 6px #ffffff, 0 0 0 3px rgba(108, 92, 231, 0.2);
+        }
+
+        /* Social Login Buttons */
+        .social-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .social-divider::before,
+        .social-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #c5c6cf, transparent);
+        }
+
+        .social-divider span {
+            padding: 0 15px;
+            font-size: 0.85rem;
+            color: #636E72;
+        }
+
+        .social-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .social-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .social-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: all 0.5s ease;
+        }
+
+        .social-btn:hover::before {
+            left: 100%;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-8px);
+        }
+
+        .social-btn:active {
+            transform: translateY(-2px);
+        }
+
+        /* Google Button - Blended Colors */
+        .social-btn.google {
+            background: linear-gradient(135deg, #4285F4 0%, #34A853 50%, #FBBC05 100%);
+            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+        }
+
+        .social-btn.google:hover {
+            box-shadow: 0 0 25px rgba(66, 133, 244, 1), 0 0 50px rgba(52, 168, 83, 0.8), 0 0 75px rgba(251, 188, 5, 0.5);
+        }
+
+        /* Apple Button - Blended Colors */
+        .social-btn.apple {
+            background: linear-gradient(135deg, #1a1a1a 0%, #333333 50%, #555555 100%);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .social-btn.apple:hover {
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8), 0 0 50px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Facebook Button - Blended Colors */
+        .social-btn.facebook {
+            background: linear-gradient(135deg, #1877F2 0%, #0d65d9 50%, #0866e0 100%);
+            box-shadow: 0 4px 15px rgba(24, 119, 242, 0.4);
+        }
+
+        .social-btn.facebook:hover {
+            box-shadow: 0 0 25px rgba(24, 119, 242, 1), 0 0 50px rgba(24, 119, 242, 0.8);
+        }
+
+        .social-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            z-index: 2;
+            position: relative;
+        }
+
+        /* Floating animation for social buttons */
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .social-btn.float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .social-btn.float:hover {
+            animation: none;
+            transform: translateY(-12px);
+        }
+
+        .social-btn.google.float {
+            animation-delay: 0s;
+        }
+
+        .social-btn.apple.float {
+            animation-delay: 0.5s;
+        }
+
+        .social-btn.facebook.float {
+            animation-delay: 1s;
+        }
+        
+        /* Gradient Red Login Button */
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #FF6B6B 0%, #EE5A5A 50%, #D63031 100%);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 5px 20px rgba(214, 48, 49, 0.3);
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(214, 48, 49, 0.4);
+        }
+        
+        .login-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Action buttons below card */
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+            animation: fadeInRight 1s ease-out 0.5s both;
+            justify-content: center;
+        }
+        
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .side-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .side-btn::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 12px;
+            width: 20px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+        }
+        
+        .side-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .side-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .signup-btn {
+            background: linear-gradient(135deg, #74B9FF 0%, #0984E3 50%, #0652DD 100%);
+            box-shadow: 0 8px 25px rgba(9, 132, 227, 0.4);
+        }
+        
+        .forgot-btn {
+            background: linear-gradient(135deg, #A29BFE 0%, #6C5CE7 50%, #5B4CBE 100%);
+            box-shadow: 0 8px 25px rgba(108, 92, 231, 0.4);
+        }
+        
+        .side-btn-icon {
+            font-size: 1.3rem;
+            color: white;
+            z-index: 2;
+        }
+        
+        .side-btn-tooltip {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #636E72;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .side-btn:hover .side-btn-tooltip {
+            opacity: 1;
+            bottom: -20px;
+        }
+        
+        /* Liquid Wave Animation */
+        .liquid-wave {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 300%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(108, 92, 231, 0.1) 25%,
+                rgba(108, 92, 231, 0.2) 50%,
+                rgba(108, 92, 231, 0.1) 75%,
+                transparent 100%
+            );
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+        }
+        
+        .liquid-wave.active {
+            animation: waveFlow 1.5s ease-in-out;
+        }
+        
+        @keyframes waveFlow {
+            0% {
+                left: -100%;
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                opacity: 0;
+            }
+        }
+        
+        /* Form Transition - FADE EFFECT INSTEAD OF SLIDE */
+        .form-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* Custom scrollbar for form container */
+        .form-container::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .form-container::-webkit-scrollbar-track {
+            background: #e6e7ee;
+            border-radius: 10px;
+        }
+
+        .form-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #A29BFE, #6C5CE7);
+            border-radius: 10px;
+        }
+
+        .form-container::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #6C5CE7, #5B4CBE);
+        }
+        
+        /* FADE TRANSITION - Login and Signup forms */
+        .login-form, .signup-form {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        
+        .login-form.hidden, .signup-form.hidden {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .login-form.active, .signup-form.active {
+            position: relative;
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+            z-index: 2;
+        }
+        
+        /* Floating Bubbles - Background */
+        .floating-bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: rise 8s infinite ease-in;
+        }
+        
+        .bubble:nth-child(1) {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #74B9FF, #0984E3);
+            left: 10%;
+            animation-duration: 8s;
+            animation-delay: 0s;
+        }
+        
+        .bubble:nth-child(2) {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #A29BFE, #6C5CE7);
+            left: 20%;
+            animation-duration: 10s;
+            animation-delay: 1s;
+        }
+        
+        .bubble:nth-child(3) {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #FF6B6B, #EE5A5A);
+            left: 30%;
+            animation-duration: 12s;
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(4) {
+            width: 25px;
+            height: 25px;
+            background: linear-gradient(135deg, #74B9FF, #0984E3);
+            left: 50%;
+            animation-duration: 9s;
+            animation-delay: 3s;
+        }
+        
+        .bubble:nth-child(5) {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #A29BFE, #6C5CE7);
+            left: 70%;
+            animation-duration: 11s;
+            animation-delay: 4s;
+        }
+        
+        .bubble:nth-child(6) {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #FF6B6B, #EE5A5A);
+            left: 85%;
+            animation-duration: 8s;
+            animation-delay: 5s;
+        }
+        
+        .bubble:nth-child(7) {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #74B9FF, #0984E3);
+            left: 45%;
+            animation-duration: 10s;
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(8) {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #A29BFE, #6C5CE7);
+            left: 60%;
+            animation-duration: 9s;
+            animation-delay: 1s;
+        }
+        
+        @keyframes rise {
+            0% {
+                bottom: -50px;
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(20px);
+            }
+            50% {
+                transform: translateX(-20px);
+            }
+            75% {
+                transform: translateX(10px);
+            }
+            100% {
+                bottom: 110%;
+                transform: translateX(-10px);
+            }
+        }
+        
+        /* Morph Animation for Inputs and Buttons */
+        .morphing {
+            animation: morph 0.5s ease-in-out;
+        }
+        
+        @keyframes morph {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(0.98);
+            }
+        }
+        
+        /* Switch Form Text */
+        .switch-text {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #636E72;
+        }
+        
+        .switch-text a {
+            color: #6C5CE7;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .switch-text a:hover {
+            color: #5B4CBE;
+            text-decoration: underline;
+        }
+        
+        /* Error/Success Messages */
+        .message {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .message.error {
+            background: rgba(214, 48, 49, 0.1);
+            color: #D63031;
+            border: 1px solid rgba(214, 48, 49, 0.3);
+            display: block;
+        }
+        
+        .message.success {
+            background: rgba(52, 168, 83, 0.1);
+            color: #00B894;
+            border: 1px solid rgba(52, 168, 83, 0.3);
+            display: block;
+        }
+        
+        /* Responsive - Tablet */
+        @media (max-width: 1200px) {
+            .liquid-card {
+                width: 380px;
+                height: 380px;
+            }
+            
+            .welcome-message {
+                font-size: 1.5rem;
+            }
+            
+            .center-section {
+                margin-left: 40px;
+                margin-right: 40px;
+            }
+        }
+        
+        /* Responsive - Mobile (LEFT SECTION NOW VISIBLE) */
+        @media (max-width: 900px) {
+            body {
+                overflow-y: auto;
+                min-height: auto;
+                padding: 10px;
+            }
+            
+            .auth-container {
+                flex-direction: column;
+                gap: 15px;
+                padding: 10px;
+                min-height: auto;
+            }
+            
+            /* LEFT SECTION NOW VISIBLE ON MOBILE */
+            .left-section {
+                display: block;
+                width: 100%;
+                height: 220px;
+                flex: none;
+                border-radius: 15px;
+                overflow: hidden;
+                position: relative;
+            }
+            
+            .auth-image-bg {
+                object-fit: cover;
+                object-position: center;
+            }
+            
+            .welcome-message {
+                font-size: 1.2rem;
+            }
+            
+            .center-section {
+                margin-left: 0;
+                margin-right: 0;
+                width: 100%;
+            }
+            
+            .liquid-card {
+                width: 100%;
+                max-width: 360px;
+                min-height: 420px;
+                border-radius: 25px;
+                padding: 20px 0;
+            }
+            
+            .card-content {
+                width: 90%;
+            }
+            
+            .card-title {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 14px;
+            }
+            
+            .form-input {
+                padding: 12px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .social-buttons {
+                gap: 10px;
+            }
+            
+            .social-btn {
+                width: 48px;
+                height: 48px;
+            }
+            
+            .social-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+            
+            .login-btn {
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+            
+            .switch-text {
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* Very Small Screens */
+        @media (max-width: 400px) {
+            .left-section {
+                height: 180px;
+            }
+            
+            .welcome-message {
+                font-size: 1rem;
+            }
+            
+            .liquid-card {
+                max-width: 300px;
+                min-height: 380px;
+            }
+            
+            .card-title {
+                font-size: 1.3rem;
+            }
+            
+            .form-input {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Bubbles Background -->
+    <div class="floating-bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+    
+    <div class="auth-container">
+        <!-- Left Section - Auth Image with Welcoming Messages -->
+        <div class="left-section">
+            <img src="authentication image/auth image.png" alt="Welcome" class="auth-image-bg">
+            <div class="auth-image-overlay"></div>
+            <div class="welcome-messages">
+                <div class="welcome-message" id="msg1">Welcome Back!</div>
+                <div class="welcome-message" id="msg2">Your Adventure Awaits</div>
+                <div class="welcome-message" id="msg3">Discover Unique Stays</div>
+                <div class="welcome-message" id="msg4">Create Memories</div>
+                <div class="welcome-message" id="msg5">Join Our Community</div>
+            </div>
+        </div>
+        
+        <!-- Center Section - Card -->
+        <div class="center-section">
+            <div class="liquid-card">
+                <!-- Decorative Bubbles -->
+                <div class="card-bubble card-bubble-1"></div>
+                <div class="card-bubble card-bubble-2"></div>
+                
+                <!-- Liquid Wave Overlay -->
+                <div class="liquid-wave" id="liquidWave"></div>
+                
+                <!-- Card Content -->
+                <div class="card-content">
+                    <h2 class="card-title" id="formTitle">Sign in</h2>
+                    
+                    <div class="form-container">
+                        <!-- Login Form -->
+                        <div class="login-form active" id="loginForm">
+                            <div id="loginMessage" class="message"></div>
+                            <form onsubmit="handleLogin(event)">
+                                <div class="form-group">
+                                    <input type="email" id="loginEmail" class="form-input" placeholder="Email address" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="password" id="loginPassword" class="form-input" placeholder="Password" required>
+                                </div>
+                                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+                            </form>
+                            
+                            <!-- Social Login Buttons -->
+                            <div class="social-divider">
+                                <span>or continue with</span>
+                            </div>
+                            <div class="social-buttons">
+                                <button class="social-btn google float" onclick="handleSocialLogin('google')" title="Continue with Google">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                    </svg>
+                                </button>
+                                <button class="social-btn apple float" onclick="handleSocialLogin('apple')" title="Continue with Apple">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="white"/>
+                                    </svg>
+                                </button>
+                                <button class="social-btn facebook float" onclick="handleSocialLogin('facebook')" title="Continue with Facebook">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="white"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <p class="switch-text">
+                                Don't have an account? <a onclick="switchToSignup()">Sign Up</a>
+                            </p>
+                        </div>
+                        
+                        <!-- Signup Form -->
+                        <div class="signup-form hidden" id="signupForm">
+                            <div id="signupMessage" class="message"></div>
+                            <form onsubmit="handleSignup(event)">
+                                <div class="form-group">
+                                    <input type="text" id="signupName" class="form-input" placeholder="Full Name" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="email" id="signupEmail" class="form-input" placeholder="Email address" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="tel" id="signupPhone" class="form-input" placeholder="Phone Number" pattern="[0-9+\-\s]*">
+                                </div>
+                                <div class="form-group">
+                                    <select id="signupRole" class="form-select" required>
+                                        <option value="">Select Account Type</option>
+                                        <option value="customer">Customer</option>
+                                        <option value="host">Host</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <input type="password" id="signupPassword" class="form-input" placeholder="Password" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="password" id="signupConfirmPassword" class="form-input" placeholder="Confirm Password" required>
+                                </div>
+                                <button type="submit" class="login-btn" id="signupBtn">Create Account</button>
+                            </form>
+                            
+                            <!-- Social Login Buttons -->
+                            <div class="social-divider">
+                                <span>or continue with</span>
+                            </div>
+                            <div class="social-buttons">
+                                <button class="social-btn google float" onclick="handleSocialLogin('google')" title="Continue with Google">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                    </svg>
+                                </button>
+                                <button class="social-btn apple float" onclick="handleSocialLogin('apple')" title="Continue with Apple">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="white"/>
+                                    </svg>
+                                </button>
+                                <button class="social-btn facebook float" onclick="handleSocialLogin('facebook')" title="Continue with Facebook">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="white"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <p class="switch-text">
+                                Already have an account? <a onclick="switchToLogin()">Sign In</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:3001/api/v1';
+        
+        // Welcoming Messages Animation
+        const messages = document.querySelectorAll('.welcome-message');
+        let currentMessage = 0;
+        
+        function showNextMessage() {
+            messages.forEach(msg => msg.classList.remove('active'));
+            messages[currentMessage].classList.add('active');
+            currentMessage = (currentMessage + 1) % messages.length;
+        }
+        
+        showNextMessage();
+        setInterval(showNextMessage, 4000);
+        
+        // Liquid Wave Animation
+        function triggerLiquidWave() {
+            const wave = document.getElementById('liquidWave');
+            wave.classList.remove('active');
+            void wave.offsetWidth;
+            wave.classList.add('active');
+        }
+        
+        // Switch to Signup with FADE effect
+        function switchToSignup() {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const formTitle = document.getElementById('formTitle');
+            
+            triggerLiquidWave();
+            
+            // Clear messages
+            document.getElementById('loginMessage').className = 'message';
+            document.getElementById('loginMessage').textContent = '';
+            
+            // Fade out login form
+            loginForm.classList.remove('active');
+            loginForm.classList.add('hidden');
+            
+            // Wait for fade out, then fade in signup form
+            setTimeout(() => {
+                signupForm.classList.remove('hidden');
+                signupForm.classList.add('active');
+                formTitle.textContent = 'Sign up';
+                
+                // Add morphing effect to form elements
+                document.querySelectorAll('.form-input, .login-btn, .form-select').forEach(el => {
+                    el.classList.add('morphing');
+                    setTimeout(() => el.classList.remove('morphing'), 500);
+                });
+            }, 400);
+        }
+        
+        // Switch to Login with FADE effect
+        function switchToLogin() {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const formTitle = document.getElementById('formTitle');
+            
+            triggerLiquidWave();
+            
+            // Clear messages
+            document.getElementById('signupMessage').className = 'message';
+            document.getElementById('signupMessage').textContent = '';
+            
+            // Fade out signup form
+            signupForm.classList.remove('active');
+            signupForm.classList.add('hidden');
+            
+            // Wait for fade out, then fade in login form
+            setTimeout(() => {
+                loginForm.classList.remove('hidden');
+                loginForm.classList.add('active');
+                formTitle.textContent = 'Sign in';
+                
+                // Add morphing effect to form elements
+                document.querySelectorAll('.form-input, .login-btn').forEach(el => {
+                    el.classList.add('morphing');
+                    setTimeout(() => el.classList.remove('morphing'), 500);
+                });
+            }, 400);
+        }
+        
+        // Show error message
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.className = 'message error';
+            element.textContent = message;
+        }
+        
+        // Show success message
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.className = 'message success';
+            element.textContent = message;
+        }
+        
+        // Clear message
+        function clearMessage(elementId) {
+            const element = document.getElementById(elementId);
+            element.className = 'message';
+            element.textContent = '';
+        }
+        
+        // Redirect based on user role
+        function redirectBasedOnRole(role) {
+            switch(role) {
+                case 'admin':
+                    window.location.href = 'admin-dashboard.html';
+                    break;
+                case 'host':
+                    window.location.href = 'host-dashboard.html';
+                    break;
+                case 'customer':
+                default:
+                    window.location.href = 'customer-dashboard.html';
+                    break;
+            }
+        }
+        
+        // Handle Login
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            // Clear previous messages
+            clearMessage('loginMessage');
+            
+            // Disable button during request
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed. Please check your credentials.');
+                }
+                
+                // Show success
+                showSuccess('loginMessage', 'Login successful! Redirecting...');
+                
+                // Store token and user data
+                localStorage.setItem('token', data.accessToken || data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('isLoggedIn', 'true');
+                
+                triggerLiquidWave();
+                
+                // Wait for animation, then redirect
+                setTimeout(() => {
+                    redirectBasedOnRole(data.user.role);
+                }, 800);
+                
+            } catch (error) {
+                showError('loginMessage', error.message);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            }
+        }
+        
+        // Handle Signup
+        async function handleSignup(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const phone = document.getElementById('signupPhone').value;
+            const role = document.getElementById('signupRole').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+            const signupBtn = document.getElementById('signupBtn');
+            
+            // Clear previous messages
+            clearMessage('signupMessage');
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                showError('signupMessage', 'Passwords do not match.');
+                return;
+            }
+            
+            // Validate role is selected
+            if (!role) {
+                showError('signupMessage', 'Please select an account type.');
+                return;
+            }
+            
+            // Validate password length
+            if (password.length < 6) {
+                showError('signupMessage', 'Password must be at least 6 characters.');
+                return;
+            }
+            
+            // Disable button during request
+            signupBtn.disabled = true;
+            signupBtn.textContent = 'Creating account...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        name, 
+                        email, 
+                        phone, 
+                        role,
+                        password 
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Signup failed. Please try again.');
+                }
+                
+                // Show success
+                showSuccess('signupMessage', 'Account created successfully! Redirecting...');
+                
+                // Store token and user data
+                localStorage.setItem('token', data.accessToken || data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('isLoggedIn', 'true');
+                
+                triggerLiquidWave();
+                
+                // Wait for animation, then redirect
+                setTimeout(() => {
+                    redirectBasedOnRole(data.user.role);
+                }, 800);
+                
+            } catch (error) {
+                showError('signupMessage', error.message);
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+            }
+        }
+        
+        // Handle Social Login
+        function handleSocialLogin(provider) {
+            console.log('Social login with:', provider);
+            
+            // For social login, we'll show a message that it's not yet implemented
+            // In a real app, you would use OAuth flow
+            alert('Social login with ' + provider + ' is not yet implemented. Please use email signup/login.');
+            
+            triggerLiquidWave();
+        }
+        
+        // Check if already logged in
+        (function() {
+            const token = localStorage.getItem('token');
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            
+            if (token && isLoggedIn) {
+                try {
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    if (user.role) {
+                        redirectBasedOnRole(user.role);
+                    }
+                } catch (e) {
+                    // If parsing fails, clear storage and stay on login page
+                    localStorage.clear();
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

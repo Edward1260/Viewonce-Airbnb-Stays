@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Airbnb Customer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #667eea, #764ba2);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--glass-shadow);
+        }
+        .glass-hover { transition: all 0.3s ease; }
+        .glass-hover:hover { background: rgba(255, 255, 255, 0.25); transform: translateY(-2px); }
+        .btn-neon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 28px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-neon:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6); }
+        .btn-call {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 24px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-call:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6); }
+        .filter-input {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .filter-input:focus { background: rgba(255, 255, 255, 0.5); box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+        .filter-input::placeholder { color: rgba(255, 255, 255, 0.7); }
+        header {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .conversation-item {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .conversation-item:hover { background: rgba(255, 255, 255, 0.7); transform: translateX(5px); }
+        .conversation-item.active { background: rgba(99, 102, 241, 0.2); border: 2px solid var(--primary); }
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin-bottom: 8px;
+        }
+        .message-sent {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .message-received {
+            background: rgba(255, 255, 255, 0.7);
+            color: #1e293b;
+            border-bottom-left-radius: 4px;
+        }
+        /* Glassmorphism Call UI */
+        .call-interface {
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        }
+        .call-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .call-btn:hover { transform: scale(1.1); }
+        .call-btn-end { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5); }
+        .call-btn-end:hover { box-shadow: 0 8px 25px rgba(239, 68, 68, 0.7); }
+        .call-btn-mute { background: rgba(255, 255, 255, 0.3); }
+        .call-btn-mute.active { background: rgba(239, 68, 68, 0.3); }
+        .call-btn-video { background: rgba(255, 255, 255, 0.3); }
+        .call-btn-video.active { background: rgba(16, 185, 129, 0.3); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+    <!-- HEADER -->
+    <header class="w-full flex items-center justify-between px-6 py-4 glass fixed top-0 z-50">
+        <div class="flex items-center gap-4">
+            <button onclick="window.location.href='customer-dashboard.html'" class="text-white hover:text-gray-200 font-medium transition">← Back to Dashboard</button>
+            <h1 class="font-bold text-xl text-white drop-shadow-lg">Messages</h1>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto pt-24 px-6 pb-12 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Panel - Conversations List with Filters -->
+            <div class="lg:col-span-1">
+                <div class="glass p-4">
+                    <h3 class="text-lg font-bold text-white mb-4">💬 Conversations</h3>
+                    
+                    <!-- Filter Section -->
+                    <div class="mb-4">
+                        <p class="text-white/80 text-sm mb-2">Filter Hosts</p>
+                        <input type="text" id="hostFilter" placeholder="🔍 Search by name..." class="filter-input w-full mb-2" onkeyup="filterConversations()">
+                        <input type="text" id="propertyFilter" placeholder="🏠 Search by property..." class="filter-input w-full mb-2" onkeyup="filterConversations()">
+                        <input type="text" id="locationFilter" placeholder="📍 Search by location..." class="filter-input w-full" onkeyup="filterConversations()">
+                    </div>
+                    
+                    <div id="conversationsList" class="max-h-[500px] overflow-y-auto pr-2">
+                        <!-- Conversations will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Chat/Call Area -->
+            <div class="lg:col-span-3">
+                <div class="glass p-6 min-h-[600px]">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-white" id="chatTitle">Select a conversation</h2>
+                        <div class="flex gap-3">
+                            <button onclick="startCall()" id="callBtn" class="btn-call hidden">📞 Voice Call</button>
+                            <button onclick="startVideoCall()" id="videoCallBtn" class="btn-call hidden">📹 Video Call</button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Interface -->
+                    <div id="chatInterface">
+                        <div id="chatMessages" class="h-[400px] overflow-y-auto mb-4 p-4 glass rounded-xl">
+                            <p class="text-white/60 text-center">Select a conversation to start chatting</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <input type="text" id="messageInput" placeholder="Type your message..." class="flex-1 filter-input" onkeypress="handleEnter(event)">
+                            <button onclick="sendMessage()" class="btn-neon">Send</button>
+                        </div>
+                    </div>
+
+                    <!-- Call Interface (Glassmorphism) -->
+                    <div id="callInterface" class="hidden text-center py-12">
+                        <div class="call-interface p-8 max-w-md mx-auto">
+                            <div class="mb-8">
+                                <div class="w-32 h-32 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-5xl shadow-lg">
+                                    <span id="callHostAvatar">👤</span>
+                                </div>
+                                <h3 class="text-2xl font-bold text-white mb-2" id="callHostName">Host Name</h3>
+                                <p class="text-white/70" id="callStatus">Connecting...</p>
+                                <p class="text-white/50 text-lg mt-2" id="callTimer">00:00</p>
+                            </div>
+
+                            <div class="flex justify-center gap-6 mb-8">
+                                <button onclick="toggleMute()" id="muteBtn" class="call-btn call-btn-mute" title="Mute">🔇</button>
+                                <button onclick="toggleVideo()" id="videoBtn" class="call-btn call-btn-video" title="Video">📹</button>
+                                <button onclick="toggleSpeaker()" id="speakerBtn" class="call-btn call-btn-mute" title="Speaker">🔊</button>
+                            </div>
+
+                            <div class="flex justify-center gap-4">
+                                <button onclick="addCallNote()" class="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition">📝 Add Note</button>
+                                <button onclick="endCall()" class="call-btn call-btn-end text-white">📞</button>
+                                <button onclick="switchToChat()" class="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition">💬 Chat</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversations = [];
+        let currentConversation = null;
+        let callTimer = null;
+        let callSeconds = 0;
+        let isMuted = false;
+        let isVideoOn = false;
+        let isSpeakerOn = false;
+
+        // Check authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!isLoggedIn || user.role !== 'customer') {
+                window.location.href = 'login-signup.html';
+                return;
+            }
+            loadConversations();
+            
+            // Check for URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('action') === 'new') {
+                // Show new chat interface
+            }
+        });
+
+        function loadConversations() {
+            // Mock conversations data
+            conversations = [
+                { id: '1', hostName: 'Sarah Johnson', propertyName: 'Luxury Beach Villa', location: 'Mombasa', lastMessage: 'Welcome to Nairobi!', time: '2 hours ago', avatar: '👩' },
+                { id: '2', hostName: 'Michael Chen', propertyName: 'Modern City Apartment', location: 'Nairobi', lastMessage: 'Check-in instructions ready', time: '1 day ago', avatar: '👨' },
+                { id: '3', hostName: 'Emma Wilson', propertyName: 'Cozy Mountain Cabin', location: 'Nanyuki', lastMessage: 'Thank you for booking!', time: '3 days ago', avatar: '👩‍🦰' },
+                { id: '4', hostName: 'David Kim', propertyName: 'Lakeside Retreat', location: 'Kisumu', lastMessage: 'Any questions?', time: '1 week ago', avatar: '👨‍🦱' }
+            ];
+            renderConversations(conversations);
+        }
+
+        function renderConversations(convs) {
+            const container = document.getElementById('conversationsList');
+            if (!convs || convs.length === 0) {
+                container.innerHTML = '<p class="text-white/60 text-center py-4">No conversations found</p>';
+                return;
+            }
+            container.innerHTML = convs.map(conv => `
+                <div class="conversation-item" onclick="selectChat('${conv.id}', '${conv.hostName}', '${conv.propertyName}', '${conv.avatar}')">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xl">${conv.avatar}</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-gray-800">${conv.hostName}</p>
+                            <p class="text-sm text-gray-600 truncate">${conv.propertyName}</p>
+                            <p class="text-xs text-gray-500">${conv.location}</p>
+                            <p class="text-xs text-gray-400 mt-1">${conv.lastMessage} • ${conv.time}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterConversations() {
+            const hostFilter = document.getElementById('hostFilter').value.toLowerCase();
+            const propertyFilter = document.getElementById('propertyFilter').value.toLowerCase();
+            const locationFilter = document.getElementById('locationFilter').value.toLowerCase();
+
+            const filtered = conversations.filter(conv => {
+                return (conv.hostName.toLowerCase().includes(hostFilter) || hostFilter === '') &&
+                       (conv.propertyName.toLowerCase().includes(propertyFilter) || propertyFilter === '') &&
+                       (conv.location.toLowerCase().includes(locationFilter) || locationFilter === '');
+            });
+            renderConversations(filtered);
+        }
+
+        function selectChat(id, hostName, propertyName, avatar) {
+            currentConversation = { id, hostName, propertyName, avatar };
+            
+            // Update UI
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            document.getElementById('chatTitle').textContent = `Chat with ${hostName}`;
+            document.getElementById('callBtn').classList.remove('hidden');
+            document.getElementById('videoCallBtn').classList.remove('hidden');
+
+            // Show chat messages
+            document.getElementById('chatInterface').classList.remove('hidden');
+            document.getElementById('callInterface').classList.add('hidden');
+            
+            // Mock messages
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="message-bubble message-received">
+                    <p>Hello! Welcome to ${propertyName}. I'm here to help with your booking.</p>
+                    <p class="text-xs opacity-70 mt-1">${hostName} • Just now</p>
+                </div>
+            `;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message || !currentConversation) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `
+                <div class="message-bubble message-sent">
+                    <p>${message}</p>
+                    <p class="text-xs opacity-70 mt-1">You • Just now</p>
+                </div>
+            `;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            input.value = '';
+
+            // Simulate response
+            setTimeout(() => {
+                chatMessages.innerHTML += `
+                    <div class="message-bubble message-received">
+                        <p>Thanks for your message! I'll get back to you soon.</p>
+                        <p class="text-xs opacity-70 mt-1">${currentConversation.hostName} • Just now</p>
+                    </div>
+                `;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 2000);
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        // Call Functions
+        function startCall() {
+            if (!currentConversation) return;
+            
+            document.getElementById('chatInterface').classList.add('hidden');
+            document.getElementById('callInterface').classList.remove('hidden');
+            document.getElementById('callHostName').textContent = currentConversation.hostName;
+            document.getElementById('callHostAvatar').textContent = currentConversation.avatar;
+            document.getElementById('callStatus').textContent = 'Connecting...';
+            document.getElementById('callStatus').classList.remove('text-green-400');
+            
+            setTimeout(() => {
+                document.getElementById('callStatus').textContent = 'Connected';
+                document.getElementById('callStatus').classList.add('text-green-400');
+                startCallTimer();
+            }, 2000);
+        }
+
+        function startVideoCall() {
+            startCall();
+            toggleVideo();
+        }
+
+        function startCallTimer() {
+            callSeconds = 0;
+            callTimer = setInterval(() => {
+                callSeconds++;
+                const mins = Math.floor(callSeconds / 60).toString().padStart(2, '0');
+                const secs = (callSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('callTimer').textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('muteBtn');
+            btn.classList.toggle('active', isMuted);
+            btn.textContent = isMuted ? '🎤' : '🔇';
+        }
+
+        function toggleVideo() {
+            isVideoOn = !isVideoOn;
+            const btn = document.getElementById('videoBtn');
+            btn.classList.toggle('active', isVideoOn);
+            btn.textContent = isVideoOn ? '📷' : '📹';
+        }
+
+        function toggleSpeaker() {
+            isSpeakerOn = !isSpeakerOn;
+            const btn = document.getElementById('speakerBtn');
+            btn.classList.toggle('active', isSpeakerOn);
+        }
+
+        function addCallNote() {
+            const note = prompt('Add a note about this call:');
+            if (note) alert('Note saved: ' + note);
+        }
+
+        function endCall() {
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+            callSeconds = 0;
+            document.getElementById('callTimer').textContent = '00:00';
+            switchToChat();
+        }
+
+        function switchToChat() {
+            document.getElementById('chatInterface').classList.remove('hidden');
+            document.getElementById('callInterface').classList.add('hidden');
+            document.getElementById('callStatus').textContent = 'Call ended';
+        }
+    </script>
+</body>
+</html>
