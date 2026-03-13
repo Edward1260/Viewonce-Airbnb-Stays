@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.fixed';
-import { AuthService } from './auth/auth.service.fixed';
+import { AppModule } from './app.module';
+import { AuthService } from './auth/auth.service';
 import { UserRole } from './entities/user.entity';
 import { PropertiesService } from './properties/properties.service';
-import { UsersService } from './users/users.service.fixed';
+import { UsersService } from './users/users.service';
 
 async function seed() {
   const app = await NestFactory.createApplicationContext(AppModule);

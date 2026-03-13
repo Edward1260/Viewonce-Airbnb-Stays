@@ -579,24 +579,25 @@
         <!-- Analytics -->
         <section class="glass rounded-3xl p-6 mb-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-chart-line mr-2"></i>Your Analytics</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="analyticsContainer">
                 <div class="analytics-card">
                     <p class="text-white/80 text-sm">Total Bookings</p>
-                    <p class="stat-value" id="totalBookings">12</p>
+                    <p class="stat-value" id="totalBookings">0</p>
                 </div>
                 <div class="analytics-card green">
                     <p class="text-white/80 text-sm">Total Spent</p>
-                    <p class="stat-value">KSh 245K</p>
+                    <p class="stat-value" id="totalSpent">KSh 0</p>
                 </div>
                 <div class="analytics-card orange">
                     <p class="text-white/80 text-sm">Avg Rating</p>
-                    <p class="stat-value">4.8</p>
+                    <p class="stat-value" id="avgRating">0</p>
                 </div>
                 <div class="analytics-card red">
                     <p class="text-white/80 text-sm">Nights Stayed</p>
-                    <p class="stat-value">28</p>
+                    <p class="stat-value" id="nightsStayed">0</p>
                 </div>
             </div>
+            <div id="analyticsError" class="text-red-500 text-center py-4 hidden">Failed to load analytics data</div>
         </section>
 
         <!-- Reviews Section -->
@@ -605,9 +606,12 @@
                 <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-star mr-2"></i>Your Reviews</h2>
                 <button onclick="openReviewModal()" class="btn-custom"><i class="fas fa-pen mr-2"></i>Write Review</button>
             </div>
-            <div id="reviewsContainer">
-                <div class="text-center py-8 text-gray-500">No reviews yet. Share your experience!</div>
+            <div id="reviewsLoading" class="text-center py-8 text-gray-500">
+                <div class="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent mx-auto mb-2"></div>
+                Loading reviews...
             </div>
+            <div id="reviewsContainer" class="hidden"></div>
+            <div id="reviewsError" class="text-red-500 text-center py-4 hidden">Failed to load reviews</div>
         </section>
 
         <!-- AI Section -->

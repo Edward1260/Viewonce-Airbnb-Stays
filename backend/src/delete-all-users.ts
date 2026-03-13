@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.fixed';
-import { UsersService } from './users/users.service.fixed';
+import { AppModule } from './app.module';
+import { UsersService } from './users/users.service';
 
 async function deleteAllUsers() {
   const app = await NestFactory.createApplicationContext(AppModule);

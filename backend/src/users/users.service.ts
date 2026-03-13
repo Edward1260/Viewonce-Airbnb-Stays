@@ -80,7 +80,15 @@ export class UsersService {
   async findByRole(role: UserRole): Promise<User[]> {
     return this.userRepository.find({
       where: { role },
-      select: ['id', 'email', 'firstName', 'lastName', 'phone', 'role', 'status', 'createdAt', 'lastLoginAt'],
+      relations: ['properties', 'bookings', 'reviews', 'wishlist'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findAllForAdmin(): Promise<User[]> {
+    return this.userRepository.find({
+      relations: ['properties', 'bookings', 'reviews', 'wishlist'],
+      order: { createdAt: 'DESC' },
     });
   }
 }

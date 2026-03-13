@@ -129,4 +129,41 @@ export class AuthService {
     // For now, just return success
     return;
   }
+
+  // ========== STUB METHODS for advanced features (TODO: implement) ==========
+  async isSetupRequired(): Promise<boolean> {
+    return false; // TODO: implement
+  }
+
+  async createSuperAdmin(body: any): Promise<any> {
+    throw new Error('Super admin setup not implemented');
+  }
+
+  async sendVerificationEmail(userId: string): Promise<any> {
+    throw new Error('Email verification not implemented');
+  }
+
+  async verifyEmail(token: string): Promise<any> {
+    throw new Error('Email verification not implemented');
+  }
+
+  async enable2FA(userId: string): Promise<any> {
+    throw new Error('2FA enable not implemented');
+  }
+
+  async verifyAndActivate2FA(userId: string, code: string): Promise<any> {
+    throw new Error('2FA verify not implemented');
+  }
+
+  async disable2FA(userId: string, code: string): Promise<any> {
+    throw new Error('2FA disable not implemented');
+  }
+
+  async loginWith2FA(email: string, password: string, code: string): Promise<any> {
+    throw new Error('2FA login not implemented');
+  }
+
+  async get2FAStatus(userId: string): Promise<any> {
+    return { enabled: false }; // TODO: implement
+  }
 }
