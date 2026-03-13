@@ -3,7 +3,7 @@ import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
 import { Property } from '../entities/property.entity';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { NotificationType } from '../entities/notification.entity';
 import { PayoutsService } from '../payouts/payouts.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -32,7 +32,7 @@ export class BookingsService {
       .leftJoinAndSelect('property.host', 'host');
 
     if (userId) {
-      query.andWhere('(booking.userId = :userId OR property.hostId = :userId)', { userId });
+      query.andWhere('(booking.userId = :userId OR host.id = :userId)', { userId });
     }
 
     if (filters?.status) {
@@ -60,7 +60,8 @@ export class BookingsService {
   async create(bookingData: Partial<Booking>, customerId: string): Promise<Booking> {
     // Validate property exists and is available
     const property = await this.propertyRepository.findOne({
-      where: { id: bookingData.propertyId }
+      where: { id: bookingData.propertyId },
+      relations: ['host']
     });
     if (!property) {
       throw new NotFoundException('Property not found');
@@ -109,14 +110,17 @@ export class BookingsService {
       const user = await queryRunner.manager.findOne(User, { where: { id: customerId } });
 
       // Create notification within transaction
-      await this.notificationsService.create(property.hostId, 'New Booking', `You have a new booking for ${property.title} from ${user.firstName} ${user.lastName}`, NotificationType.BOOKING_REQUEST);
+      await this.notificationsService.create(property.host.id, 'New Booking', `You have a new booking for ${property.title} from ${user.firstName} ${user.lastName}`, NotificationType.BOOKING_REQUEST);
 
       await queryRunner.commitTransaction();
 
       // Emit real-time event after transaction commit
-      this.realtimeGateway.sendBookingUpdateToUser(property.hostId, { type: 'new', booking: savedBooking });
+      // Fetch full booking details to return
+      const fullBooking = await this.findOne(savedBooking.id);
+      
+      this.realtimeGateway.sendBookingUpdateToUser(property.host.id, { type: 'new', booking: fullBooking });
 
-      return savedBooking;
+      return fullBooking;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -144,16 +148,20 @@ export class BookingsService {
     }
 
     // Notify host about cancellation
-    await this.notificationsService.create(booking.property.hostId, 'Booking Cancelled', `Guest cancelled booking for ${booking.property.title}.`, NotificationType.BOOKING_CANCELLED);
+    await this.notificationsService.create(booking.property.host.id, 'Booking Cancelled', `Guest cancelled booking for ${booking.property.title}.`, NotificationType.BOOKING_CANCELLED);
 
     // Emit real-time event to host
-    this.realtimeGateway.sendBookingUpdateToUser(booking.property.hostId, { type: 'cancelled', booking: booking });
+    this.realtimeGateway.sendBookingUpdateToUser(booking.property.host.id, { type: 'cancelled', booking: booking });
 
     // If confirmed and paid, hold funds for admin refund
     if (booking.status === 'confirmed' && booking.paymentStatus === 'paid') {
       await this.update(id, { status: 'cancelled', paymentStatus: 'escrow_held' });
       // Notify admin about refund needed
-      await this.notificationsService.create('admin-user-id', 'Refund Required', `Guest cancelled booking ${id}, funds held for refund.`, NotificationType.SYSTEM_MESSAGE);
+      // Find an admin to notify
+      const admin = await this.userRepository.findOne({ where: { role: UserRole.ADMIN } });
+      if (admin) {
+        await this.notificationsService.create(admin.id, 'Refund Required', `Guest cancelled booking ${id}, funds held for refund.`, NotificationType.SYSTEM_MESSAGE);
+      }
     } else {
       await this.update(id, { status: 'cancelled' });
     }
@@ -192,5 +200,3 @@ export class BookingsService {
     }
   }
 }
-
-

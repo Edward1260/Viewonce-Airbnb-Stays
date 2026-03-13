@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
@@ -29,13 +29,37 @@ import { UiSettingsModule } from './ui-settings/ui-settings.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: () => ({
-        type: 'sqlite',  // sqlite3 package (in deps)
-        database: 'db.sqlite',
-        entities: [__dirname + '/entities/*.entity{.ts,.js}'],
-        synchronize: true,  // dev only - disable in prod!
-        logging: ['error', 'warn'],
-      }),
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const isProduction = configService.get('NODE_ENV') === 'production';
+        const dbUrl = configService.get<string>('DATABASE_URL');
+        
+        // Use PostgreSQL if DATABASE_URL is provided (e.g. Render) or DB_TYPE is postgres
+        if (dbUrl || configService.get('DB_TYPE') === 'postgres') {
+          return {
+            type: 'postgres',
+            url: dbUrl,
+            host: configService.get<string>('DB_HOST'),
+            port: configService.get<number>('DB_PORT'),
+            username: configService.get<string>('DB_USERNAME'),
+            password: configService.get<string>('DB_PASSWORD'),
+            database: configService.get<string>('DB_DATABASE'),
+            entities: [__dirname + '/entities/*.entity{.ts,.js}'],
+            synchronize: configService.get<string>('DB_SYNC') === 'true', // Default false in prod
+            ssl: isProduction ? { rejectUnauthorized: false } : false,
+            autoLoadEntities: true,
+          };
+        }
+
+        // Default to SQLite for development
+        return {
+          type: 'sqlite',
+          database: 'db.sqlite',
+          entities: [__dirname + '/entities/*.entity{.ts,.js}'],
+          synchronize: true,
+          logging: ['error', 'warn'],
+        };
+      },
     }),
     // Core
     AuthModule,

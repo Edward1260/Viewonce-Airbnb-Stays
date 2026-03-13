@@ -235,12 +235,19 @@ export class PropertiesService {
 
   // =========================
   async create(propertyData: Partial<Property>): Promise<Property> {
+    // Handle host relation mapping if hostId is provided in the data
+    const { hostId, ...rest } = propertyData as any;
+    
     const property = this.propertyRepository.create({
-      ...propertyData,
+      ...rest,
+      host: hostId ? { id: hostId } : propertyData.host,
       status: propertyData.status || PropertyStatus.PENDING, // ✅ Default to pending for admin approval
     });
     try {
       const savedProperty = await this.propertyRepository.save(property);
+
+      // Fetch full property to ensure host relation is loaded for notification
+      const fullProperty = await this.findOne(savedProperty.id);
 
       // Clear all property caches when a new property is created
       await this.clearPropertyCaches();
@@ -248,16 +255,16 @@ export class PropertiesService {
       // Send notification to admins about new property creation
       try {
         await this.notificationsService.sendPropertyCreatedNotification(
-          savedProperty.id,
-          `${savedProperty.host.firstName} ${savedProperty.host.lastName}`,
-          savedProperty.title
+          fullProperty.id,
+          `${fullProperty.host.firstName} ${fullProperty.host.lastName}`,
+          fullProperty.title
         );
       } catch (error) {
         // Log error but don't fail property creation
         console.error('Failed to send property creation notification:', error);
       }
 
-      return savedProperty;
+      return fullProperty;
     } catch (error) {
       throw error;
     }
@@ -290,25 +297,12 @@ export class PropertiesService {
   // =========================
   private async clearPropertyCaches(): Promise<void> {
     try {
-      // Clear all cache keys that start with 'properties:'
-      // Note: In a production environment, you might want to use Redis SCAN or KEYS
-      // For now, we'll clear specific known patterns
-      const cacheKeys = [
-        'properties:public:', // This will be a prefix for all public property queries
-      ];
-
-      // Since cache-manager doesn't have a wildcard delete, we'll need to track keys
-      // For simplicity, we'll clear a broader pattern or implement a cache versioning strategy
-      // Clear specific property caches - more granular approach
-      const keysToDelete = [
-        'properties:public:', // Clear all public property cache keys
-      ];
-
-      // Since cache-manager doesn't support wildcards, we'll clear known patterns
-      // In production, consider using Redis SCAN or implementing cache versioning
+      // Note: In a production environment with Redis, use SCAN or KEYS.
+      // Since cache-manager doesn't support wildcards easily, we clear specific keys.
+      // Ideally, implement a cache tag or versioning strategy.
       try {
-        // For now, we'll just clear a few known cache keys
-        await this.cacheManager.del('properties:public:{}'); // Default empty filter cache
+        // Clear default public search cache
+        await this.cacheManager.del('properties:public:{}');
       } catch (error) {
         // Ignore errors for non-existent keys
       }

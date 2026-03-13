@@ -9,13 +9,17 @@ async function bootstrap() {
 
   // Global pipes & middleware
   app.use(helmet());
-  app.enableCors({ origin: '*', credentials: true });
+  app.enableCors({
+    origin: true, // Reflects the request origin (fixes '*' + credentials issue)
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   // Swagger if needed
   // setupSwagger(app);
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001;
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}`);
