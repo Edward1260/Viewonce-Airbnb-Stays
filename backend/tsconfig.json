@@ -13,8 +13,9 @@
     "strictNullChecks": false,
     "noImplicitAny": false,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*"],
-  "exclude": ["src/search-disabled/**", "src/app.module.search*.ts", "src/app.module.final.ts"]
+  "exclude": ["**/*.spec.ts", "src/search-disabled/**", "src/app.module.search*.ts", "src/app.module.final.ts"]
 }
