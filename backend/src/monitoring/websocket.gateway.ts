@@ -7,7 +7,7 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import { Injectable, Logger, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MonitoringService } from './monitoring.service';
@@ -15,10 +15,10 @@ import { MetricsService } from './metrics.service';
 import { AuditLogService } from './audit-log.service';
 import { AuditAction, AuditSeverity } from '../entities/audit-log.entity';
 
-interface AuthenticatedSocket extends Socket {
+type AuthenticatedSocket = Socket & {
   userId?: number;
   userRole?: string;
-}
+};
 
 @WebSocketGateway({
   cors: {
