@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.final';
+import { AppModule } from './app.module';
 import { PropertiesService } from './properties/properties.service';
 
 async function deleteAllProperties() {

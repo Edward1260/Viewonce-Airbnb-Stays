@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.fixed';
-import { AuthService } from './auth/auth.service.fixed';
+import { AppModule } from './app.module';
+import { AuthService } from './auth/auth.service';
 import { PropertiesService } from './properties/properties.service';
 import { UserRole } from './entities/user.entity';
 import { PropertyStatus, PropertyType } from './entities/property.entity';

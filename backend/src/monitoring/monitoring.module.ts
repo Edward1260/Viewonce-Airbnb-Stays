@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MonitoringController } from './monitoring.controller';
 import { MonitoringService } from './monitoring.service';
 import { MetricsService } from './metrics.service';
@@ -14,7 +15,14 @@ import { Booking } from '../entities/booking.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([AuditLog, User, Property, Booking]),
-    JwtModule.register({}),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'default-jwt-secret-for-development',
+        signOptions: { expiresIn: '24h' },
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [MonitoringController],
   providers: [MonitoringService, MetricsService, AuditLogService, MonitoringGateway],

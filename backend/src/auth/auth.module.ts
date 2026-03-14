@@ -3,13 +3,14 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service.fixed';
+import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { MfaGuard } from './mfa.guard';
 import { User } from '../entities/user.entity';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -27,6 +28,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
     }),
     UsersModule,
     NotificationsModule,
+    // Import CacheModule for use in AuthService
+    // This is needed because the global CacheModule from app.module.fixed.ts
+    // may not be properly accessible in this context
+    CacheModule.register(),
   ],
   providers: [AuthService, JwtStrategy, MfaGuard],
   controllers: [AuthController],

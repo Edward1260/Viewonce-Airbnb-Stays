@@ -15,14 +15,43 @@ import { MetricsService } from './metrics.service';
 import { AuditLogService } from './audit-log.service';
 import { AuditAction, AuditSeverity } from '../entities/audit-log.entity';
 
+interface AuthHandshake {
+  auth: { token?: string };
+  query: { token?: string };
+}
+
+interface DashboardSubscribeData {
+  dashboard: string;
+}
+
+interface UpdateRequestData {
+  type: 'health' | 'metrics' | 'alerts' | 'logs';
+}
+
+interface SystemAlert {
+  type: 'info' | 'warning' | 'error' | 'critical';
+  title: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface DashboardMetricsData {
+  metrics?: Record<string, unknown>;
+  performance?: Record<string, unknown>;
+  health?: { status: string; message: string };
+  alerts?: Record<string, any>;
+  logs?: Record<string, any>;
+  auditStats?: Record<string, unknown>;
+}
+
 interface AuthenticatedSocket extends Socket {
-  userId?: number;
+  userId?: string;
   userRole?: string;
 }
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -45,7 +74,11 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
 
   async handleConnection(client: AuthenticatedSocket, ...args: any[]) {
     try {
-      const token = client.handshake.auth.token || client.handshake.query.token as string;
+      let token = client.handshake.auth?.token;
+      if (!token) {
+        const queryToken = client.handshake.query?.token;
+        token = Array.isArray(queryToken) ? queryToken[0] : queryToken || '';
+      }
 
       if (!token) {
         this.logger.warn(`WebSocket connection rejected: No token provided`);
@@ -75,7 +108,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  handleDisconnect(client: AuthenticatedSocket) {
+  handleDisconnect(client: AuthenticatedSocket): void {
     this.connectedClients.delete(client.id);
     this.logger.log(`WebSocket client disconnected: ${client.id}`);
   }
@@ -83,7 +116,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
   @SubscribeMessage('subscribe-dashboard')
   async handleSubscribeDashboard(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { dashboard: string },
+    @MessageBody() data: DashboardSubscribeData,
   ) {
     this.logger.log(`Client ${client.id} subscribed to dashboard: ${data.dashboard}`);
 
@@ -97,8 +130,8 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
   @SubscribeMessage('unsubscribe-dashboard')
   handleUnsubscribeDashboard(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { dashboard: string },
-  ) {
+    @MessageBody() data: DashboardSubscribeData,
+  ): void {
     this.logger.log(`Client ${client.id} unsubscribed from dashboard: ${data.dashboard}`);
     client.leave(`dashboard-${data.dashboard}`);
   }
@@ -106,7 +139,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
   @SubscribeMessage('request-update')
   async handleRequestUpdate(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { type: string },
+    @MessageBody() data: UpdateRequestData,
   ) {
     this.logger.log(`Client ${client.id} requested update: ${data.type}`);
 
@@ -128,7 +161,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  private async sendInitialData(client: AuthenticatedSocket) {
+  private async sendInitialData(client: AuthenticatedSocket): Promise<void> {
     try {
       const [metrics, alerts] = await Promise.all([
         this.metricsService.getSystemMetrics(),
@@ -145,9 +178,9 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  private async sendDashboardData(client: AuthenticatedSocket, dashboard: string) {
+  private async sendDashboardData(client: AuthenticatedSocket, dashboard: string): Promise<void> {
     try {
-      let data: any = {};
+      let data: Partial<DashboardMetricsData> = {};
 
       switch (dashboard) {
         case 'health':
@@ -180,7 +213,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  private async getAllDashboardData() {
+  private async getAllDashboardData(): Promise<DashboardMetricsData> {
     const [metrics, performance, alerts, logs, auditStats] = await Promise.all([
       this.metricsService.getSystemMetrics(),
       this.metricsService.getPerformanceMetrics(),
@@ -200,7 +233,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   // Broadcast methods for real-time updates
-  async broadcastHealthUpdate() {
+  async broadcastHealthUpdate(): Promise<void> {
     try {
       const health = { status: 'ok', message: 'Health check not available' };
       this.server.to('dashboard-health').emit('health-update', {
@@ -212,7 +245,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  async broadcastMetricsUpdate() {
+  async broadcastMetricsUpdate(): Promise<void> {
     try {
       const metrics = await this.metricsService.getSystemMetrics();
       const performance = await this.metricsService.getPerformanceMetrics();
@@ -227,7 +260,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  async broadcastAlertsUpdate() {
+  async broadcastAlertsUpdate(): Promise<void> {
     try {
       const alerts = await this.monitoringService.getActiveAlerts();
       this.server.emit('alerts-update', {
@@ -239,7 +272,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     }
   }
 
-  async broadcastLogsUpdate() {
+  async broadcastLogsUpdate(): Promise<void> {
     try {
       const logs = await this.monitoringService.getLogs();
       const auditStats = await this.auditLogService.getAuditStats();
@@ -255,7 +288,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   // Method to trigger updates from other services
-  async notifyClients(event: string, data: any) {
+  async notifyClients(event: string, data: Record<string, unknown>): Promise<void> {
     this.server.emit(event, {
       ...data,
       timestamp: new Date().toISOString(),
@@ -268,7 +301,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   // Send notification to specific user
-  async sendNotificationToUser(userId: number, notification: any) {
+  async sendNotificationToUser(userId: string, notification: Record<string, unknown>): Promise<void> {
     for (const [clientId, client] of this.connectedClients) {
       if (client.userId === userId) {
         client.emit('notification', notification);
@@ -281,7 +314,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     type: 'info' | 'warning' | 'error' | 'critical';
     title: string;
     message: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   }) {
     this.server.emit('system-alert', {
       ...alert,
