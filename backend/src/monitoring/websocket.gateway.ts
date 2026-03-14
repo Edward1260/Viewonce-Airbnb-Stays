@@ -39,15 +39,14 @@ interface DashboardMetricsData {
   metrics?: Record<string, unknown>;
   performance?: Record<string, unknown>;
   health?: { status: string; message: string };
-  alerts?: unknown[];
-  logs?: unknown[];
+  alerts?: Record<string, any>;
+  logs?: Record<string, any>;
   auditStats?: Record<string, unknown>;
 }
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
   userRole?: string;
-  handshake: AuthHandshake;
 }
 
 @WebSocketGateway({

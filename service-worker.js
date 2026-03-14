@@ -3,13 +3,14 @@ const CACHE_NAME = 'viewonce-airbnb-v1';
 const STATIC_CACHE = 'viewonce-static-v1';
 const DYNAMIC_CACHE = 'viewonce-dynamic-v1';
 
-// Files to cache immediately
+// Files to cache immediately  
 const STATIC_FILES = [
   '/',
-  '/index.html',
+  '/welcome.html',
+  '/index.html',  // Keep for compatibility
   '/styles.css',
   '/script.js',
-  '/router.js',
+  '/router.js', 
   '/store.js',
   '/api.js',
   '/manifest.json',

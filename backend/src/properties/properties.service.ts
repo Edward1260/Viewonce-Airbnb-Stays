@@ -244,7 +244,7 @@ export class PropertiesService {
       status: propertyData.status || PropertyStatus.PENDING, // ✅ Default to pending for admin approval
     });
     try {
-      const savedProperty = await this.propertyRepository.save(property);
+      const [savedProperty] = await this.propertyRepository.save(property);
 
       // Fetch full property to ensure host relation is loaded for notification
       const fullProperty = await this.findOne(savedProperty.id);
