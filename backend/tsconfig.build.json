@@ -1,8 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "exclude": [
-    "src/search/elasticsearch.module.ts",
-    "src/search/search.service.fixed.ts",
-    "src/search/search.module.ts"
+    "node_modules",
+    "dist", 
+    "test",
+    "**/*.spec.ts"
   ]
 }

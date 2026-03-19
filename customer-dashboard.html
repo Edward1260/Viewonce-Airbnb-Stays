@@ -370,6 +370,48 @@
             transition: all 0.2s;
             font-size: 14px;
         }
+        /* Filter Slide Animations */
+        .filter-group {
+            margin-bottom: 1.5rem;
+        }
+        .filter-main-btn {
+            width: 100%;
+            background: rgba(255,255,255,0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 16px;
+            padding: 16px 20px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .filter-main-btn:hover {
+            background: rgba(255,255,255,0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .filter-main-btn.active {
+            background: var(--button-bg);
+            color: #1a1a1a;
+            box-shadow: 0 0 20px rgba(22,255,189,0.4);
+        }
+        .filter-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            background: rgba(255,255,255,0.2);
+            border-radius: 0 0 16px 16px;
+            backdrop-filter: blur(10px);
+        }
+        .filter-content.show {
+            max-height: 500px; /* Adjust based on content */
+            padding: 16px;
+        }
         .filter-tag:hover, .filter-tag.active {
             background: #e0f2fe;
             border-color: #0ea5e9;
@@ -465,73 +507,96 @@
         <!-- FILTERS SECTION - Glassmorphism Card Overlay -->
                 <div class="filter-section glass-filter-card">
                     <!-- Property Type -->
-                    <div class="mb-4">
-                        <p class="font-semibold mb-2"><i class="fas fa-home mr-2"></i>Property Type</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="filter-chip active" onclick="setPropertyType('all', this)"><i class="fas fa-th-large"></i> All</span>
-                            <span class="filter-chip" onclick="setPropertyType('apartment', this)"><i class="fas fa-building"></i> Apartment</span>
-                            <span class="filter-chip" onclick="setPropertyType('villa', this)"><i class="fas fa-villa"></i> Villa</span>
-                            <span class="filter-chip" onclick="setPropertyType('house', this)"><i class="fas fa-house-user"></i> House</span>
-                            <span class="filter-chip" onclick="setPropertyType('studio', this)"><i class="fas fa-bed"></i> Studio</span>
+                    <div class="filter-group">
+                        <button class="filter-main-btn" onclick="toggleFilter('property-type')">
+                            <i class="fas fa-home mr-2"></i>Choose Property Type
+                            <i class="fas fa-chevron-down ml-auto transition-transform duration-300" id="property-type-icon"></i>
+                        </button>
+                        <div class="filter-content" id="property-type-content">
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <span class="filter-chip active" onclick="setPropertyType('all', this)"><i class="fas fa-th-large"></i> All</span>
+                                <span class="filter-chip" onclick="setPropertyType('apartment', this)"><i class="fas fa-building"></i> Apartment</span>
+                                <span class="filter-chip" onclick="setPropertyType('villa', this)"><i class="fas fa-villa"></i> Villa</span>
+                                <span class="filter-chip" onclick="setPropertyType('house', this)"><i class="fas fa-house-user"></i> House</span>
+                                <span class="filter-chip" onclick="setPropertyType('studio', this)"><i class="fas fa-bed"></i> Studio</span>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Price Range -->
-                    <div class="mb-4">
-                        <p class="font-semibold mb-2"><i class="fas fa-tag mr-2"></i>Price Range: KSh <span id="priceValue">50,000</span></p>
-                        <input type="range" min="1000" max="50000" value="50000" class="price-slider" id="priceRange" oninput="updatePrice(this.value)">
-                    </div>
-                    
-                    <!-- Amenities -->
-                    <div class="mb-4">
-                        <p class="font-semibold mb-2"><i class="fas fa-concierge-bell mr-2"></i>Amenities</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="filter-chip" onclick="toggleAmenity('wifi', this)"><i class="fas fa-wifi"></i> WiFi</span>
-                            <span class="filter-chip" onclick="toggleAmenity('pool', this)"><i class="fas fa-swimming-pool"></i> Pool</span>
-                            <span class="filter-chip" onclick="toggleAmenity('parking', this)"><i class="fas fa-parking"></i> Parking</span>
-                            <span class="filter-chip" onclick="toggleAmenity('kitchen', this)"><i class="fas fa-utensils"></i> Kitchen</span>
-                            <span class="filter-chip" onclick="toggleAmenity('ac', this)"><i class="fas fa-snowflake"></i> AC</span>
-                            <span class="filter-chip" onclick="toggleAmenity('washer', this)"><i class="fas fa-soap"></i> Washer</span>
+                    <div class="filter-group">
+                        <button class="filter-main-btn" onclick="toggleFilter('price-range')">
+                            <i class="fas fa-tag mr-2"></i>Set Price Range
+                            <i class="fas fa-chevron-down ml-auto transition-transform duration-300" id="price-range-icon"></i>
+                        </button>
+                        <div class="filter-content" id="price-range-content">
+                            <div class="pt-2">
+                                <p class="font-semibold mb-2"><i class="fas fa-tag mr-2"></i>Price Range: KSh <span id="priceValue">50,000</span></p>
+                                <input type="range" min="1000" max="50000" value="50000" class="price-slider" id="priceRange" oninput="updatePrice(this.value)">
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Additional Filters -->
-                    <div class="mb-4">
-                        <p class="font-semibold mb-2"><i class="fas fa-users mr-2"></i>Guests & Rooms</p>
-                        <div class="flex flex-wrap gap-2">
-                            <div class="filter-dropdown">
-                                <span class="filter-chip" id="bedroomsFilter"><i class="fas fa-bed mr-1"></i> Bedrooms: <span id="bedroomsValue">Any</span></span>
-                                <div class="filter-dropdown-content">
-                                    <div class="filter-option" onclick="setBedrooms(0, this)">Any</div>
-                                    <div class="filter-option" onclick="setBedrooms(1, this)">1 Bedroom</div>
-                                    <div class="filter-option" onclick="setBedrooms(2, this)">2 Bedrooms</div>
-                                    <div class="filter-option" onclick="setBedrooms(3, this)">3 Bedrooms</div>
-                                    <div class="filter-option" onclick="setBedrooms(4, this)">4 Bedrooms</div>
-                                    <div class="filter-option" onclick="setBedrooms(5, this)">5+ Bedrooms</div>
-                                </div>
+                    <!-- Amenities -->
+                    <div class="filter-group">
+                        <button class="filter-main-btn" onclick="toggleFilter('amenities')">
+                            <i class="fas fa-concierge-bell mr-2"></i>Select Amenities
+                            <i class="fas fa-chevron-down ml-auto transition-transform duration-300" id="amenities-icon"></i>
+                        </button>
+                        <div class="filter-content" id="amenities-content">
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <span class="filter-chip" onclick="toggleAmenity('wifi', this)"><i class="fas fa-wifi"></i> WiFi</span>
+                                <span class="filter-chip" onclick="toggleAmenity('pool', this)"><i class="fas fa-swimming-pool"></i> Pool</span>
+                                <span class="filter-chip" onclick="toggleAmenity('parking', this)"><i class="fas fa-parking"></i> Parking</span>
+                                <span class="filter-chip" onclick="toggleAmenity('kitchen', this)"><i class="fas fa-utensils"></i> Kitchen</span>
+                                <span class="filter-chip" onclick="toggleAmenity('ac', this)"><i class="fas fa-snowflake"></i> AC</span>
+                                <span class="filter-chip" onclick="toggleAmenity('washer', this)"><i class="fas fa-soap"></i> Washer</span>
                             </div>
-                            <div class="filter-dropdown">
-                                <span class="filter-chip" id="bathroomsFilter"><i class="fas fa-bath mr-1"></i> Bathrooms: <span id="bathroomsValue">Any</span></span>
-                                <div class="filter-dropdown-content">
-                                    <div class="filter-option" onclick="setBathrooms(0, this)">Any</div>
-                                    <div class="filter-option" onclick="setBathrooms(1, this)">1 Bathroom</div>
-                                    <div class="filter-option" onclick="setBathrooms(2, this)">2 Bathrooms</div>
-                                    <div class="filter-option" onclick="setBathrooms(3, this)">3 Bathrooms</div>
-                                    <div class="filter-option" onclick="setBathrooms(4, this)">4+ Bathrooms</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Guests & Rooms -->
+                    <div class="filter-group">
+                        <button class="filter-main-btn" onclick="toggleFilter('guests-rooms')">
+                            <i class="fas fa-users mr-2"></i>Guests & Rooms
+                            <i class="fas fa-chevron-down ml-auto transition-transform duration-300" id="guests-rooms-icon"></i>
+                        </button>
+                        <div class="filter-content" id="guests-rooms-content">
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                <div class="filter-dropdown">
+                                    <span class="filter-chip" id="bedroomsFilter"><i class="fas fa-bed mr-1"></i> Bedrooms: <span id="bedroomsValue">Any</span></span>
+                                    <div class="filter-dropdown-content">
+                                        <div class="filter-option" onclick="setBedrooms(0, this)">Any</div>
+                                        <div class="filter-option" onclick="setBedrooms(1, this)">1 Bedroom</div>
+                                        <div class="filter-option" onclick="setBedrooms(2, this)">2 Bedrooms</div>
+                                        <div class="filter-option" onclick="setBedrooms(3, this)">3 Bedrooms</div>
+                                        <div class="filter-option" onclick="setBedrooms(4, this)">4 Bedrooms</div>
+                                        <div class="filter-option" onclick="setBedrooms(5, this)">5+ Bedrooms</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="filter-dropdown">
-                                <span class="filter-chip" id="guestsFilter"><i class="fas fa-user-friends mr-1"></i> Guests: <span id="guestsValue">Any</span></span>
-                                <div class="filter-dropdown-content">
-                                    <div class="filter-option" onclick="setGuests(0, this)">Any</div>
-                                    <div class="filter-option" onclick="setGuests(1, this)">1 Guest</div>
-                                    <div class="filter-option" onclick="setGuests(2, this)">2 Guests</div>
-                                    <div class="filter-option" onclick="setGuests(3, this)">3 Guests</div>
-                                    <div class="filter-option" onclick="setGuests(4, this)">4 Guests</div>
-                                    <div class="filter-option" onclick="setGuests(5, this)">5+ Guests</div>
+                                <div class="filter-dropdown">
+                                    <span class="filter-chip" id="bathroomsFilter"><i class="fas fa-bath mr-1"></i> Bathrooms: <span id="bathroomsValue">Any</span></span>
+                                    <div class="filter-dropdown-content">
+                                        <div class="filter-option" onclick="setBathrooms(0, this)">Any</div>
+                                        <div class="filter-option" onclick="setBathrooms(1, this)">1 Bathroom</div>
+                                        <div class="filter-option" onclick="setBathrooms(2, this)">2 Bathrooms</div>
+                                        <div class="filter-option" onclick="setBathrooms(3, this)">3 Bathrooms</div>
+                                        <div class="filter-option" onclick="setBathrooms(4, this)">4+ Bathrooms</div>
+                                    </div>
                                 </div>
+                                <div class="filter-dropdown">
+                                    <span class="filter-chip" id="guestsFilter"><i class="fas fa-user-friends mr-1"></i> Guests: <span id="guestsValue">Any</span></span>
+                                    <div class="filter-dropdown-content">
+                                        <div class="filter-option" onclick="setGuests(0, this)">Any</div>
+                                        <div class="filter-option" onclick="setGuests(1, this)">1 Guest</div>
+                                        <div class="filter-option" onclick="setGuests(2, this)">2 Guests</div>
+                                        <div class="filter-option" onclick="setGuests(3, this)">3 Guests</div>
+                                        <div class="filter-option" onclick="setGuests(4, this)">4 Guests</div>
+                                        <div class="filter-option" onclick="setGuests(5, this)">5+ Guests</div>
+                                    </div>
+                                </div>
+                                <button onclick="toggleMapView()" id="mapToggleBtn" class="filter-chip"><i class="fas fa-map mr-1"></i> Map View</button>
                             </div>
-                            <button onclick="toggleMapView()" id="mapToggleBtn" class="filter-chip"><i class="fas fa-map mr-1"></i> Map View</button>
                         </div>
                     </div>
                     
