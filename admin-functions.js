@@ -7,9 +7,9 @@ function setupSidebarToggle() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     const sidebarTexts = document.querySelectorAll('.sidebar-text');
-    const toggleBtn = document.getElementById('sidebarToggle');
-    const closeBtn = document.getElementById('sidebarClose');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const toggleBtn = document.getElementById('sidebarToggle') || document.querySelector('.menu-toggle');
+    const closeBtn = document.getElementById('sidebarClose') || document.getElementById('sidebarCloseBtn');
+    const sidebarOverlay = document.getElementById('sidebarOverlay') || document.getElementById('sidebarBackdrop');
 
     // Ensure button is properly set up
     if (!toggleBtn) {
@@ -124,7 +124,7 @@ function closeSidebar() {
 
 // Navigation functionality - Enhanced for better button responsiveness
 function setupNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
+    const navItems = document.querySelectorAll('.nav-item, .sidebar-item');
 
     navItems.forEach(item => {
         // Remove existing event listeners to prevent duplicates
@@ -157,12 +157,12 @@ function setupNavigation() {
     });
 }
 
-// Navigate to page function - Enhanced with better state management
-function navigateToPage(element, pageId) {
-    // Validate element and pageId
-    if (!element || !pageId) {
-        return;
-    }
+    // Navigate to page function - Enhanced with better state management (compatible with both navigateToPage and navigateTo)
+    window.navigateToPage = window.navigateTo = function(element, pageId) {
+        // Validate element and pageId
+        if (!element || !pageId) {
+            return;
+        }
 
     // Remove active class from all nav items
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -531,10 +531,10 @@ function sortHostsBy(key) {
 }
 
 function displayHosts(hosts) {
-    const hostTable = document.getElementById('hostTable');
+    const hostTable = document.getElementById('hostTable') || document.getElementById('hostsTable');
     if (!hostTable) return;
 
-    const tableBody = hostTable.querySelector('.table-body') || hostTable;
+    const tableBody = hostTable.querySelector('.table-body') || hostTable.querySelector('tbody') || hostTable;
     let html = '';
 
     hosts.forEach(host => {
@@ -570,10 +570,10 @@ function displayHosts(hosts) {
 }
 
 function displayCustomers(customers) {
-    const customerTable = document.getElementById('customerTable');
+    const customerTable = document.getElementById('customerTable') || document.getElementById('customersTable');
     if (!customerTable) return;
 
-    const tableBody = customerTable.querySelector('.table-body') || customerTable;
+    const tableBody = customerTable.querySelector('.table-body') || customerTable.querySelector('tbody') || customerTable;
     let html = '';
 
     customers.forEach(customer => {
@@ -732,54 +732,104 @@ function displayProperties(properties) {
     tableBody.insertAdjacentHTML('beforeend', html);
 }
 
-// Error message display function
 function showErrorMessage(message) {
-    // Create a temporary error message element
-    const errorDiv = document.createElement('div');
-    errorDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #ef4444;
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        z-index: 10000;
-        font-weight: 500;
-        max-width: 400px;
-        animation: slideIn 0.3s ease;
-    `;
-    errorDiv.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-            </svg>
-            <span>${message}</span>
-        </div>
-    `;
+    showToast(message, 'error');
+}
 
-    // Add slideIn animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(errorDiv);
-
-    // Auto remove after 5 seconds
+// Toast notification system (unified)
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer') || createToastContainer();
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${message}</span>`;
+    container.appendChild(toast);
+    
     setTimeout(() => {
-        errorDiv.style.animation = 'slideIn 0.3s ease reverse';
-        setTimeout(() => {
-            if (errorDiv.parentNode) {
-                errorDiv.parentNode.removeChild(errorDiv);
-            }
-        }, 300);
-    }, 5000);
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    container.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    `;
+    document.body.appendChild(container);
+    return container;
+}
+
+// Missing functions from HTML inline scripts
+window.toggleSidebar = function() {
+    if (typeof setupSidebarToggle === 'function') {
+        setupSidebarToggle();
+    }
+    const sidebarCollapsed = window.sidebarCollapsed || false;
+    window.sidebarCollapsed = !sidebarCollapsed;
+    
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const header = document.getElementById('header');
+    
+    if (window.innerWidth <= 1024) {
+        if (sidebarCollapsed) {
+            sidebar?.classList.remove('active');
+            document.getElementById('sidebarBackdrop')?.classList.remove('active');
+        } else {
+            sidebar?.classList.add('active');
+            document.getElementById('sidebarBackdrop')?.classList.add('active');
+        }
+    } else {
+        if (sidebarCollapsed) {
+            sidebar.style.width = '80px';
+            sidebar.classList.add('collapsed');
+            header?.classList.add('sidebar-collapsed');
+            mainContent?.classList.add('sidebar-collapsed');
+        } else {
+            sidebar.style.width = '280px';
+            sidebar.classList.remove('collapsed');
+            header?.classList.remove('sidebar-collapsed');
+            mainContent?.classList.remove('sidebar-collapsed');
+        }
+    }
+};
+
+window.closeSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop') || document.getElementById('sidebarOverlay');
+    sidebar?.classList.remove('active');
+    backdrop?.classList.remove('active');
+};
+
+window.navigateTo = function(page, element) {
+    if (typeof navigateToPage === 'function') {
+        navigateToPage(element, page + 'Page');
+    }
+};
+
+window.showNotifications = function() {
+    showToast('You have 5 new notifications', 'info');
+};
+
+window.handleLogout = function() {
+    localStorage.clear();
+    window.location.href = 'index.html';
+};
+
+// Auto-initialize when DOM loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAdminDashboard);
+} else {
+    initializeAdminDashboard();
 }
 
 // Export functions for global access

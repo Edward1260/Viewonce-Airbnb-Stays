@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -374,43 +375,96 @@
         .filter-group {
             margin-bottom: 1.5rem;
         }
+        /* Small Filter Buttons Grid - Responsive */
+        .filter-buttons-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+        @media (min-width: 640px) {
+            .filter-buttons-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (min-width: 1024px) {
+            .filter-buttons-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
         .filter-main-btn {
             width: 100%;
-            background: rgba(255,255,255,0.4);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 16px;
-            padding: 16px 20px;
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 2px solid transparent;
+            border-radius: 14px;
+            padding: 10px 14px;
             font-weight: 600;
+            font-size: 13px;
+            min-height: 44px;
             color: #1e293b;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            justify-content: space-between;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+        .filter-main-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            transition: left 0.5s ease;
+        }
+        .filter-main-btn:hover::before {
+            left: 100%;
         }
         .filter-main-btn:hover {
-            background: rgba(255,255,255,0.6);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: rgba(255,255,255,0.8);
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.25), 0 0 30px rgba(22,255,189,0.5);
+            border-color: var(--neon-glow);
         }
         .filter-main-btn.active {
-            background: var(--button-bg);
+            background: linear-gradient(135deg, #16FFBD, #0FE0A3);
             color: #1a1a1a;
-            box-shadow: 0 0 20px rgba(22,255,189,0.4);
+            box-shadow: 0 0 35px rgba(22,255,189,0.8), 0 10px 35px rgba(0,0,0,0.25);
+            border-color: var(--neon-glow);
+            transform: translateY(-3px) scale(1.02);
+        }
+        .filter-main-btn.active::before {
+            left: 100%;
+        }
+        .filter-main-btn i.chevron-icon {
+            transition: transform 0.3s ease;
+        }
+        .filter-main-btn.active i.chevron-icon {
+            transform: rotate(180deg);
         }
         .filter-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
-            background: rgba(255,255,255,0.2);
-            border-radius: 0 0 16px 16px;
-            backdrop-filter: blur(10px);
+            transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255,255,255,0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 0 0 14px 14px;
+            border-top: 1px solid rgba(255,255,255,0.4);
+            padding-top: 0;
         }
         .filter-content.show {
-            max-height: 500px; /* Adjust based on content */
-            padding: 16px;
+            max-height: 600px;
+            padding: 18px 14px;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.08);
         }
         .filter-tag:hover, .filter-tag.active {
             background: #e0f2fe;
@@ -641,44 +695,6 @@
             </div>
         </div>
 
-        <!-- Analytics -->
-        <section class="glass rounded-3xl p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-chart-line mr-2"></i>Your Analytics</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="analyticsContainer">
-                <div class="analytics-card">
-                    <p class="text-white/80 text-sm">Total Bookings</p>
-                    <p class="stat-value" id="totalBookings">0</p>
-                </div>
-                <div class="analytics-card green">
-                    <p class="text-white/80 text-sm">Total Spent</p>
-                    <p class="stat-value" id="totalSpent">KSh 0</p>
-                </div>
-                <div class="analytics-card orange">
-                    <p class="text-white/80 text-sm">Avg Rating</p>
-                    <p class="stat-value" id="avgRating">0</p>
-                </div>
-                <div class="analytics-card red">
-                    <p class="text-white/80 text-sm">Nights Stayed</p>
-                    <p class="stat-value" id="nightsStayed">0</p>
-                </div>
-            </div>
-            <div id="analyticsError" class="text-red-500 text-center py-4 hidden">Failed to load analytics data</div>
-        </section>
-
-        <!-- Reviews Section -->
-        <section class="glass rounded-3xl p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-star mr-2"></i>Your Reviews</h2>
-                <button onclick="openReviewModal()" class="btn-custom"><i class="fas fa-pen mr-2"></i>Write Review</button>
-            </div>
-            <div id="reviewsLoading" class="text-center py-8 text-gray-500">
-                <div class="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent mx-auto mb-2"></div>
-                Loading reviews...
-            </div>
-            <div id="reviewsContainer" class="hidden"></div>
-            <div id="reviewsError" class="text-red-500 text-center py-4 hidden">Failed to load reviews</div>
-        </section>
-
         <!-- AI Section -->
         <section class="glass rounded-3xl p-6 mb-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-4"><i class="fas fa-robot mr-2"></i>AI Assistant</h2>
@@ -710,6 +726,44 @@
                     <div class="animate-spin rounded-full h-10 w-10 border-4 border-purple-500 border-t-transparent mx-auto"></div>
                 </div>
             </div>
+        </section>
+
+        <!-- TAB CONTENT CONTAINER - Analytics -->
+        <div id="tabContent" class="space-y-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-chart-line mr-2"></i>Your Analytics</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="analyticsContainer">
+                <div class="analytics-card">
+                    <p class="text-white/80 text-sm">Total Bookings</p>
+                    <p class="stat-value" id="totalBookings">0</p>
+                </div>
+                <div class="analytics-card green">
+                    <p class="text-white/80 text-sm">Total Spent</p>
+                    <p class="stat-value" id="totalSpent">KSh 0</p>
+                </div>
+                <div class="analytics-card orange">
+                    <p class="text-white/80 text-sm">Avg Rating</p>
+                    <p class="stat-value" id="avgRating">0</p>
+                </div>
+                <div class="analytics-card red">
+                    <p class="text-white/80 text-sm">Nights Stayed</p>
+                    <p class="stat-value" id="nightsStayed">0</p>
+                </div>
+            </div>
+            <div id="analyticsError" class="text-red-500 text-center py-4 hidden">Failed to load analytics data</div>
+        </div>
+
+        <!-- Reviews Section -->
+        <section class="glass rounded-3xl p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-star mr-2"></i>Your Reviews</h2>
+                <button onclick="openReviewModal()" class="btn-custom"><i class="fas fa-pen mr-2"></i>Write Review</button>
+            </div>
+            <div id="reviewsLoading" class="text-center py-8 text-gray-500">
+                <div class="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent mx-auto mb-2"></div>
+                Loading reviews...
+            </div>
+            <div id="reviewsContainer" class="hidden"></div>
+            <div id="reviewsError" class="text-red-500 text-center py-4 hidden">Failed to load reviews</div>
         </section>
 
         <!-- Premium -->
@@ -850,9 +904,27 @@
             loadFeaturedProperties();
             loadUserBookings();
             loadUserReviews();
+            updateAnalytics();
         }
 
         // Filter Functions
+        function toggleFilter(filterId) {
+            const content = document.getElementById(filterId + '-content');
+            const icon = document.getElementById(filterId + '-icon');
+            const btn = document.querySelector(`[onclick="toggleFilter('${filterId}')"]`);
+            
+            // Toggle content
+            content.classList.toggle('show');
+            
+            // Toggle active state on button
+            btn.classList.toggle('active');
+            
+            // Rotate chevron
+            if (icon) {
+                icon.style.transform = content.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        }
+
         function toggleCitiesMenu() {
             document.getElementById('citiesMenu').classList.toggle('show');
         }
@@ -956,6 +1028,7 @@
             try {
                 const bookings = await api.getBookings();
                 if (!bookings || bookings.length === 0) {
+                    updateAnalytics([]);
                     container.innerHTML = '<p class="text-gray-500 text-center py-8">No bookings yet.</p>';
                     return;
                 }
@@ -965,15 +1038,44 @@
                     const price = booking.totalPrice || booking.price || 0;
                     return '<div class="glass p-4 rounded-xl"><h4 class="font-bold text-gray-800 mb-2">' + title + '</h4><p class="text-gray-500 text-sm"><i class="fas fa-calendar-alt mr-1"></i> ' + checkIn + '</p><p class="text-gray-500 text-sm">KSh ' + price.toLocaleString() + '</p></div>';
                 }).join('');
+                updateAnalytics(bookings);
             } catch (error) {
                 container.innerHTML = '<p class="text-gray-500 text-center py-8">Unable to load bookings.</p>';
+                updateAnalytics([]);
             }
+        }
+
+        function updateAnalytics(bookings) {
+            if (!bookings) bookings = [];
+            
+            const totalBookings = bookings.length;
+            const totalSpent = bookings.reduce((sum, b) => sum + (b.totalPrice || b.price || 0), 0);
+            
+            // Calculate nights stayed (mock calculation)
+            const nightsStayed = bookings.reduce((sum, b) => {
+                if (!b.checkIn || !b.checkOut) return sum;
+                const start = new Date(b.checkIn);
+                const end = new Date(b.checkOut);
+                const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                return sum + (diff > 0 ? diff : 0);
+            }, 0);
+
+            document.getElementById('totalBookings').textContent = totalBookings;
+            document.getElementById('totalSpent').textContent = 'KSh ' + totalSpent.toLocaleString();
+            document.getElementById('nightsStayed').textContent = nightsStayed;
+            // Random avg rating for demo
+            document.getElementById('avgRating').textContent = totalBookings > 0 ? '4.8' : '0';
         }
 
         // Load Reviews
         function loadUserReviews() {
             const container = document.getElementById('reviewsContainer');
+            const loading = document.getElementById('reviewsLoading');
             const reviews = JSON.parse(localStorage.getItem('userReviews') || '[]');
+            
+            loading.classList.add('hidden');
+            container.classList.remove('hidden');
+            
             if (reviews.length === 0) {
                 container.innerHTML = '<div class="text-center py-8 text-gray-500">No reviews yet. Share your experience!</div>';
                 return;

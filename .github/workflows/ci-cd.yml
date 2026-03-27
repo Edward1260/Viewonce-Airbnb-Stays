@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: ViewOnce Airbnb CI/CD
 
 on:
   push:
@@ -6,20 +6,15 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-env:
-  NODE_VERSION: '18.x'
-  DB_TYPE: sqlite
-
 jobs:
   test:
     runs-on: ubuntu-latest
-    
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: postgres_password
           POSTGRES_DB: airbnb_test
         ports:
           - 5432:5432
@@ -28,132 +23,59 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v3
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-      
+          cache-dependency-path: backend/package.json
+
       - name: Install dependencies
-        working-directory: ./backend
-        run: npm ci
-      
-      - name: Lint
-        working-directory: ./backend
-        run: npm run lint
-      
+        run: |
+          cd backend
+          npm install
+
+      - name: Run linting
+        run: |
+          cd backend
+          npm run lint
+
       - name: Run tests
-        working-directory: ./backend
-        run: npm test
         env:
           DB_TYPE: postgres
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USERNAME: postgres
-          DB_PASSWORD: postgres
+          DB_PASSWORD: postgres_password
           DB_DATABASE: airbnb_test
-          JWT_SECRET: test-secret-key
-          NODE_ENV: test
-  
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          cd backend
+          npm run test
+
   build:
-    runs-on: ubuntu-latest
     needs: test
-    
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v3
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-      
-      - name: Install dependencies
-        working-directory: ./backend
-        run: npm ci
-      
-      - name: Build
-        working-directory: ./backend
-        run: npm run build
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: backend/dist
+          node-version: '20'
 
-  deploy-staging:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/develop'
-    environment: staging
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: backend/dist
-      
-      - name: Deploy to staging
+      - name: Install dependencies and build
         run: |
-          echo "Deploying to staging..."
-          # Add your staging deployment commands here
-          # e.g., rsync, scp, docker push, etc.
-      
-      - name: Run database migrations
-        run: |
-          echo "Running migrations..."
-          # npm run migration:run
-        env:
-          DB_TYPE: postgres
-          DB_HOST: ${{ secrets.STAGING_DB_HOST }}
-          DB_PORT: 5432
-          DB_USERNAME: ${{ secrets.STAGING_DB_USER }}
-          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
-          DB_DATABASE: airbnb_staging
+          cd backend
+          npm install
+          npm run build
 
-  deploy-production:
-    runs-on: ubuntu-latest
+  deploy:
     needs: build
     if: github.ref == 'refs/heads/main'
-    environment: production
-    
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: backend/dist
-      
-      - name: Deploy to production
-        run: |
-          echo "Deploying to production..."
-          # Add your production deployment commands here
-          # e.g., rsync, scp, docker push, etc.
-      
-      - name: Run database migrations
-        run: |
-          echo "Running migrations..."
-          # npm run migration:run
-        env:
-          DB_TYPE: postgres
-          DB_HOST: ${{ secrets.PROD_DB_HOST }}
-          DB_PORT: 5432
-          DB_USERNAME: ${{ secrets.PROD_DB_USER }}
-          DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
-          DB_DATABASE: airbnb_production
+      - name: Production Deployment
+        run: echo "Triggering production deployment flow..."

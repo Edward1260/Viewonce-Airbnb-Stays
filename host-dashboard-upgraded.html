@@ -10,6 +10,7 @@
     <script src="api.js"></script>
     <script src="router.js"></script>
     <script src="ai-luxury-dashboard.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -293,136 +294,6 @@
         .auto-detect-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); color: #059669; border-radius: 20px; font-size: 12px; font-weight: 600; margin-left: 12px; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         
-        /* Property Builder Styles */
-        .property-builder { max-width: 1200px; margin: 0 auto; }
-        .builder-section { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 20px; margin-bottom: 20px; overflow: hidden; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(31, 38, 135, 0.1); }
-        .builder-section:hover { box-shadow: 0 8px 30px rgba(31, 38, 135, 0.15); transform: translateY(-2px); }
-        .builder-section.expanded { border-color: rgba(99, 102, 241, 0.3); }
-        .builder-section-header { padding: 20px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%); transition: all 0.3s; border-bottom: 1px solid rgba(255,255,255,0.3); }
-        .builder-section-header:hover { background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%); }
-        .builder-section-header h3 { font-size: 18px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 12px; margin: 0; }
-        .builder-section-header .section-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-        .builder-section-content { padding: 24px; display: none; animation: slideDown 0.4s ease; }
-        .builder-section-content.active { display: block; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
-        .section-toggle { width: 32px; height: 32px; border-radius: 50%; background: rgba(255, 255, 255, 0.6); display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0; border: none; cursor: pointer; }
-        .section-toggle:hover { background: rgba(255, 255, 255, 0.9); transform: scale(1.1); }
-        .builder-section.expanded .section-toggle { transform: rotate(180deg); background: var(--primary); color: white; }
-        .section-optional-badge { font-size: 11px; padding: 4px 10px; background: rgba(99, 102, 241, 0.15); color: var(--primary); border-radius: 20px; margin-left: 8px; font-weight: 500; }
-        
-        /* Form Inputs */
-        .builder-input { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.9); font-family: inherit; }
-        .builder-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); background: white; }
-        .builder-input::placeholder { color: #94a3b8; }
-        .builder-select { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.9); cursor: pointer; font-family: inherit; }
-        .builder-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
-        .builder-textarea { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; transition: all 0.3s; background: rgba(255, 255, 255, 0.9); font-family: inherit; resize: vertical; min-height: 100px; }
-        .builder-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); background: white; }
-        
-        /* Drag and Drop Uploader */
-        .drop-zone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 40px 20px; text-align: center; transition: all 0.3s; cursor: pointer; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%); position: relative; overflow: hidden; }
-        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.12) 100%); transform: scale(1.01); }
-        .drop-zone.dragover { border-style: solid; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); }
-        .drop-zone-icon { font-size: 52px; color: var(--primary); margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        .drop-zone-text { font-size: 16px; color: #64748b; line-height: 1.6; }
-        .drop-zone-text strong { color: var(--primary); font-weight: 600; }
-        .drop-zone-hint { font-size: 13px; color: #94a3b8; margin-top: 8px; }
-        
-        /* Media Preview Grid */
-        .media-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
-        .media-preview-item { position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: rgba(255, 255, 255, 0.5); border: 3px solid transparent; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .media-preview-item:hover { transform: scale(1.05) rotate(1deg); box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
-        .media-preview-item img, .media-preview-item video { width: 100%; height: 100%; object-fit: cover; }
-        .media-preview-item .media-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.3s; }
-        .media-preview-item:hover .media-actions { opacity: 1; }
-        .media-preview-item .media-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-        .media-btn-delete { background: rgba(239, 68, 68, 0.95); color: white; }
-        .media-btn-delete:hover { background: #ef4444; transform: scale(1.15); }
-        .media-btn-category { background: rgba(99, 102, 241, 0.95); color: white; }
-        .media-btn-category:hover { background: var(--primary); transform: scale(1.15); }
-        .media-preview-item .media-category-badge { position: absolute; bottom: 8px; left: 8px; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: rgba(0, 0, 0, 0.75); color: white; backdrop-filter: blur(4px); display: flex; align-items: center; gap: 4px; }
-        
-        /* Image Category Dropdown */
-        .category-dropdown { position: absolute; top: 100%; left: 0; background: white; border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); padding: 8px; z-index: 100; display: none; min-width: 150px; animation: fadeIn 0.2s; }
-        .category-dropdown.show { display: block; animation: fadeIn 0.2s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-        .category-dropdown button { display: flex; align-items: center; width: 100%; padding: 10px 14px; text-align: left; background: none; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; transition: all 0.2s; color: #475569; }
-        .category-dropdown button:hover { background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%); color: var(--primary); }
-        .category-dropdown button i { margin-right: 10px; width: 18px; text-align: center; }
-        .category-dropdown .divider { height: 1px; background: #e2e8f0; margin: 6px 0; }
-        
-        /* 3D Property Preview Card */
-        .preview-3d-container { perspective: 1200px; margin: 30px auto; max-width: 380px; }
-        .preview-3d-card { position: relative; width: 100%; height: 440px; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
-        .preview-3d-card.flipped { transform: rotateY(180deg); }
-        .preview-3d-front, .preview-3d-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
-        .preview-3d-front { background: white; }
-        .preview-3d-back { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transform: rotateY(180deg); padding: 30px; color: white; display: flex; flex-direction: column; justify-content: center; }
-        .preview-image-container { position: relative; height: 220px; overflow: hidden; }
-        .preview-image-container img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-        .preview-3d-card:hover .preview-image-container img { transform: scale(1.05); }
-        .preview-image-nav { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
-        .preview-image-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.3s; }
-        .preview-image-dot.active { background: white; width: 24px; border-radius: 4px; }
-        .preview-content { padding: 20px; }
-        .preview-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1e293b; line-height: 1.3; }
-        .preview-location { color: #64748b; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-        .preview-features { display: flex; gap: 16px; margin-bottom: 12px; font-size: 13px; color: #475569; flex-wrap: wrap; }
-        .preview-features span { display: flex; align-items: center; gap: 4px; }
-        .preview-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
-        .preview-price { font-size: 24px; font-weight: 700; color: var(--primary); }
-        .preview-price span { font-size: 14px; font-weight: 400; color: #64748b; }
-        .preview-rating { display: flex; align-items: center; gap: 6px; background: #fef3c7; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 13px; }
-        .preview-flip-hint { position: absolute; bottom: 16px; right: 16px; background: rgba(0,0,0,0.6); color: white; padding: 8px 14px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(4px); }
-        .preview-back-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center; }
-        .preview-back-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .preview-stat { text-align: center; padding: 16px; background: rgba(255,255,255,0.15); border-radius: 16px; }
-        .preview-stat-value { font-size: 32px; font-weight: 700; }
-        .preview-stat-label { font-size: 14px; opacity: 0.9; }
-        
-        /* Amenities & Services Tags */
-        .amenity-grid, .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-        .amenity-tag, .service-tag { display: inline-flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(255, 255, 255, 0.6); border: 2px solid transparent; border-radius: 14px; cursor: pointer; transition: all 0.3s; font-size: 14px; font-weight: 500; color: #475569; }
-        .amenity-tag:hover, .service-tag:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--primary); transform: translateY(-2px); }
-        .amenity-tag.selected, .service-tag.selected { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); border-color: var(--primary); color: var(--primary); }
-        .amenity-tag i, .service-tag i { color: var(--primary); font-size: 16px; }
-        
-        /* Upload Progress */
-        .upload-progress { position: fixed; bottom: 24px; right: 24px; background: white; border-radius: 18px; padding: 18px 22px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); z-index: 9999; min-width: 300px; display: none; }
-        .upload-progress.show { display: block; animation: slideInRight 0.3s; }
-        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .upload-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .upload-progress-title { font-weight: 600; font-size: 14px; color: #1e293b; }
-        .upload-progress-close { background: none; border: none; cursor: pointer; font-size: 20px; color: #64748b; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .upload-progress-close:hover { background: #f1f5f9; color: #ef4444; }
-        .upload-progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-        .upload-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 4px; transition: width 0.3s; }
-        
-        /* Property Type Cards */
-        .property-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-        .property-type-card { padding: 20px; background: rgba(255, 255, 255, 0.6); border: 2px solid transparent; border-radius: 16px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .property-type-card:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--primary); transform: translateY(-3px); }
-        .property-type-card.selected { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%); border-color: var(--primary); }
-        .property-type-card i { font-size: 32px; color: var(--primary); margin-bottom: 10px; }
-        .property-type-card span { font-weight: 500; color: #475569; }
-        
-        /* Section Icons */
-        .icon-details { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .icon-type { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
-        .icon-compound { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
-        .icon-rooms { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
-        .icon-amenities { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
-        .icon-services { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #1e293b; }
-        .icon-preview { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        
-        /* Auto-detect badge */
-        .auto-detect-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); color: #059669; border-radius: 20px; font-size: 12px; font-weight: 600; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        
-        /* Empty State */
-        .empty-media-state { text-align: center; padding: 30px; color: #94a3b8; }
-        .empty-media-state i { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -733,7 +604,7 @@
         </div>
     </div>
     
-    <footer class="mt-12 py-8 text-white"
+    <footer class="mt-12 py-8 text-white">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6 px-6">
             <div><h3 class="font-bold mb-2">Company</h3><ul class="text-sm opacity-80"><li>About Us</li><li>Careers</li></ul></div>
             <div><h3 class="font-bold mb-2">Support</h3><ul class="text-sm opacity-80"><li>Help Center</li><li>Contact</li></ul></div>
@@ -761,7 +632,7 @@
         const welcomeHeader = document.getElementById('welcome-header');
         if (welcomeHeader && user.name) welcomeHeader.textContent = `Welcome back, ${user.name}!`;
         animateSections();
-        initializeHostDashboard();
+        initializeHostDashboard().catch(console.error);
         checkTheme();
         startConnectionMonitoring();
     });
@@ -784,8 +655,21 @@
     function animateSections() { document.querySelectorAll('.dashboard-section').forEach((section, index) => { setTimeout(() => section.classList.add('visible'), index * 100); }); }
 
     async function initializeHostDashboard() {
-        try { await loadHostProperties(); await loadStats(); }
-        catch (error) { console.error('Error:', error); showToast('Error loading dashboard', 'error'); }
+        try {
+            // Check onboarding status first
+            const status = await api.getOnboardingStatus();
+            if (!status.complete) {
+                window.location.href = 'host-onboarding.html';
+                return;
+            }
+            
+            await loadHostProperties(); 
+            await loadStats(); 
+        }
+        catch (error) { 
+            console.error('Error:', error); 
+            showToast('Error loading dashboard', 'error'); 
+        }
     }
 
     async function loadStats() {
@@ -803,7 +687,15 @@
         } catch (e) { console.error('Error loading stats:', e); }
     }
 
-    function toggleSidebar() { document.getElementById('sidebar').classList.add('active'); document.getElementById('sidebarBackdrop').classList.add('active'); }
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        const isActive = sidebar.classList.contains('active');
+        
+        if (isActive) closeSidebar();
+        else { sidebar.classList.add('active'); backdrop.classList.add('active'); }
+    }
+
     function closeSidebar() { document.getElementById('sidebar').classList.remove('active'); document.getElementById('sidebarBackdrop').classList.remove('active'); }
     function toggleProfileMenu() { document.getElementById('profileMenu').classList.toggle('hidden'); }
     function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
@@ -891,7 +783,98 @@
         catch (error) { showToast('Error deleting', 'error'); }
     }
 
-    // Property Builder State
+    // Global Wizard State
+    let wizardState = {
+        currentStep: 1,
+        totalSteps: 8,
+        buildingType: null, // 'single' or 'multi'
+        location: { lat: -1.286389, lng: 36.817223, address: '', city: '' },
+        buildingData: {
+            name: '',
+            description: '',
+            amenities: [],
+            rules: '',
+            type: 'Apartment'
+        },
+        units: [], // Array of unit objects
+        buildingImages: [],
+        unitImages: {}, // Map of unitId -> images array
+        pricingGlobal: { deposit: 0, serviceFee: 10 },
+        isDraft: true
+    };
+
+    // Wizard Navigation Functions
+    function updateWizardProgress() {
+        const progressBar = document.getElementById('progressBar');
+        const stepNumber = document.getElementById('stepNumber');
+        const stepTitle = document.getElementById('stepTitle');
+        const stepProgress = document.getElementById('stepProgress');
+        
+        if (!progressBar || !stepNumber || !stepTitle || !stepProgress) return;
+        
+        const progress = (wizardState.currentStep / wizardState.totalSteps) * 100;
+        progressBar.style.width = progress + '%';
+        
+        stepNumber.textContent = wizardState.currentStep;
+        stepProgress.textContent = `Step ${wizardState.currentStep} of ${wizardState.totalSteps} • ${Math.round(progress)}%`;
+        
+        // Update step title based on current step
+        const stepTitles = [
+            'Building Type', 'Location', 'Property Details', 'Unit Management',
+            'Image Gallery', 'Smart Pricing', 'Availability', 'Review & Publish'
+        ];
+        stepTitle.textContent = stepTitles[wizardState.currentStep - 1] || 'Review & Publish';
+        
+        // Update buttons
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        if (prevBtn) prevBtn.disabled = wizardState.currentStep === 1;
+        if (nextBtn) nextBtn.textContent = wizardState.currentStep === wizardState.totalSteps ? 'Finish' : 'Next';
+    }
+
+    function showStep(stepNum) {
+        document.querySelectorAll('.wizard-step').forEach((step, index) => {
+            step.style.display = index + 1 === stepNum ? 'block' : 'none';
+            step.classList.toggle('active', index + 1 === stepNum);
+        });
+        wizardState.currentStep = stepNum;
+        updateWizardProgress();
+    }
+
+    function nextStep() {
+        if (wizardState.currentStep < wizardState.totalSteps) {
+            // Basic validation
+            if (!validateCurrentStep()) return;
+            
+            showStep(wizardState.currentStep + 1);
+        } else {
+            // Final step - submit
+            submitProperty();
+        }
+    }
+
+    function prevStep() {
+        if (wizardState.currentStep > 1) {
+            showStep(wizardState.currentStep - 1);
+        }
+    }
+
+    function validateCurrentStep() {
+        const step = wizardState.currentStep;
+        switch(step) {
+            case 1:
+                return wizardState.buildingType !== null;
+            case 2:
+                return wizardState.location.address !== '';
+            default:
+                return true;
+        }
+    }
+
+    // Global map variables
+    let wizardMap, wizardMarker, autocomplete;
+
+    // Legacy for backward compatibility with 3D preview functions
     let propertyBuilderData = {
         title: '',
         location: '',
@@ -951,14 +934,350 @@
 
     function renderAddPropertyView(container) {
         container.innerHTML = `
-            <div class="property-builder">
-                <div class="glass p-6 mb-6">
-                    <h2 class="text-2xl font-bold"><i class="fas fa-plus-circle mr-2"></i>Add Property</h2>
-                    <p class="text-gray-600 mt-2">Create your listing with our modern property builder. All sections are optional - you decide what to add!</p>
-                </div>
+                    <!-- Multi-Step Wizard -->
+                    <div class="property-builder">
+                        <div class="glass p-6 mb-6">
+                            <h2 class="text-2xl font-bold"><i class="fas fa-plus-circle mr-2"></i>Add Property</h2>
+                            <p class="text-gray-600 mt-2">Modern 8-step wizard for single or multi-unit buildings</p>
+                        </div>
 
-                <!-- Property Details Section -->
-                <div class="builder-section expanded" id="section-details">
+                        <!-- Wizard Progress Bar -->
+                        <div class="glass p-4 mb-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold" id="stepNumber">1</div>
+                                    <span class="font-semibold" id="stepTitle">Building Type</span>
+                                </div>
+                                <div class="text-sm text-gray-500" id="stepProgress">Step 1 of 8 • 12%</div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500" style="width: 12%" id="progressBar"></div>
+                            </div>
+                            <div class="flex justify-between mt-3 text-xs text-gray-500">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span>
+                            </div>
+                        </div>
+
+                        <!-- Steps Container -->
+                        <div id="wizardSteps">
+                            <!-- STEP 1: Building Type Selection -->
+                            <div class="glass p-8 text-center wizard-step active" data-step="1">
+                                <div class="text-5xl mb-6 mx-auto w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold mb-4">What type of building?</h3>
+                                <p class="text-gray-600 mb-8 max-w-md mx-auto">Choose single unit or multi-unit building to unlock specialized features</p>
+                                
+                                <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                                    <div class="glass-heavy p-8 cursor-pointer hover:shadow-2xl transition-all border-2 border-transparent hover:border-indigo-500 rounded-3xl group" onclick="selectBuildingType('single')">
+                                        <div class="w-20 h-20 bg-green-500 rounded-2xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <i class="fas fa-home text-2xl text-white"></i>
+                                        </div>
+                                        <h4 class="font-bold text-xl mb-2">Single Unit</h4>
+                                        <p class="text-gray-600 mb-4">One apartment/house/room</p>
+                                        <div class="bg-green-100 text-green-800 px-4 py-2 rounded-xl font-semibold inline-block">Faster setup</div>
+                                    </div>
+                                    <div class="glass-heavy p-8 cursor-pointer hover:shadow-2xl transition-all border-2 border-transparent hover:border-indigo-500 rounded-3xl group" onclick="selectBuildingType('multi')">
+                                        <div class="w-20 h-20 bg-blue-500 rounded-2xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <i class="fas fa-building text-2xl text-white"></i>
+                                        </div>
+                                        <h4 class="font-bold text-xl mb-2">Multi-Unit Building</h4>
+                                        <p class="text-gray-600 mb-4">Apartment building with multiple units</p>
+                                        <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-xl font-semibold inline-block">Advanced features</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 2: Location Picker -->
+                            <div class="wizard-step" data-step="2" style="display:none;">
+                                <div class="glass p-8">
+                                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                                        <i class="fas fa-map-marker-alt text-indigo-500"></i>
+                                        Location
+                                    </h3>
+                                    <div id="mapContainer" class="w-full h-96 bg-gray-200 rounded-2xl mb-6 relative overflow-hidden">
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="text-center">
+                                                <i class="fas fa-map text-6xl text-gray-400 mb-4"></i>
+                                                <p class="text-gray-500 font-semibold">Click "Search Location" or drag map</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-3">Search Address</label>
+                                            <div class="relative">
+                                                <input type="text" id="locationSearch" class="builder-input pr-12" placeholder="Start typing address...">
+                                                <button onclick="searchLocation()" class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-500 hover:text-indigo-700">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-3">Selected Coordinates</label>
+                                            <div class="space-y-2 text-sm">
+                                                <div><span class="font-medium">Lat:</span> <span id="selectedLat" class="ml-2 font-mono">0.0000</span></div>
+                                                <div><span class="font-medium">Lng:</span> <span id="selectedLng" class="ml-2 font-mono">0.0000</span></div>
+                                                <div><span class="font-medium">Address:</span> <span id="selectedAddress" class="ml-2">Not selected</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 3: Detailed Info (Unified Version) -->
+                            <div class="wizard-step" data-step="3" style="display:none;">
+                                <div class="builder-section" id="section-details">
+                                    <div class="builder-section-header" onclick="toggleBuilderSection('details')">
+                                        <h3><span class="section-icon icon-details"><i class="fas fa-home"></i></span>Property Details</h3>
+                                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
+                                    </div>
+                                    <div class="builder-section-content active" id="content-details">
+                                        <div class="grid md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">Property Title</label>
+                                                <input type="text" id="title" class="builder-input" placeholder="e.g., Cozy Downtown Apartment" oninput="updatePropertyData('title', this.value); updatePreview();">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">Location</label>
+                                                <input type="text" id="location" class="builder-input" placeholder="e.g., Nairobi, Kenya" oninput="updatePropertyData('location', this.value); updatePreview();">
+                                            </div>
+                                        </div>
+                                        <div class="grid md:grid-cols-3 gap-4 mt-4">
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">Price per Night (KSh)</label>
+                                                <input type="number" id="price" class="builder-input" placeholder="e.g., 5000" oninput="updatePropertyData('price', this.value); updatePreview();">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">Max Guests</label>
+                                                <input type="number" id="maxGuests" class="builder-input" placeholder="e.g., 4" oninput="updatePropertyData('maxGuests', this.value); updatePreview();">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">Rating (0-5)</label>
+                                                <input type="number" step="0.1" id="rating" class="builder-input" placeholder="e.g., 4.5" max="5" oninput="updatePropertyData('rating', this.value); updatePreview();">
+                                            </div>
+                                        </div>
+                                        <div class="mt-4">
+                                            <label class="block text-sm font-medium mb-2">Description</label>
+                                            <textarea id="description" class="builder-textarea" placeholder="Describe your property..." rows="4" oninput="updatePropertyData('description', this.value);"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 4: Unit Management -->
+                            <div class="wizard-step" data-step="4" style="display:none;">
+                                <div class="glass p-8">
+                                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                                        <i class="fas fa-layer-group text-green-500"></i>
+                                        Unit Management
+                                    </h3>
+                                    <p class="text-gray-600 mb-8">Add individual units/apartments/rooms (skip for single-unit)</p>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full bg-white rounded-xl shadow-lg">
+                                            <thead class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+                                                <tr>
+                                                    <th class="p-4 text-left rounded-tl-xl">Unit Name</th>
+                                                    <th class="p-4 text-left">Guests</th>
+                                                    <th class="p-4 text-left">Beds</th>
+                                                    <th class="p-4 text-left">Price</th>
+                                                    <th class="p-4 text-left">Status</th>
+                                                    <th class="p-4 text-right rounded-tr-xl">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="unitsTableBody">
+                                                <tr class="border-b hover:bg-gray-50">
+                                                    <td colspan="6" class="p-8 text-center text-gray-500">
+                                                        <button onclick="addUnit()" class="btn-gradient px-6 py-2 rounded-xl">
+                                                            <i class="fas fa-plus mr-2"></i>Add First Unit
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 5: Advanced Image Gallery -->
+                            <div class="wizard-step" data-step="5" style="display:none;">
+                                <div class="glass p-8">
+                                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                                        <i class="fas fa-images text-pink-500"></i>
+                                        Image Gallery & 360° Tour
+                                    </h3>
+                                    <div class="grid md:grid-cols-2 gap-8">
+                                        <div>
+                                            <h4 class="font-bold mb-4 flex items-center gap-2">
+                                                <i class="fas fa-camera"></i> Photo Gallery (20 max)
+                                            </h4>
+                                            <div class="drop-zone h-64 mb-4" id="galleryDropZone">
+                                                <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                                                <div class="drop-zone-text">Upload up to 20 high-quality photos</div>
+                                            </div>
+                                            <div class="media-preview-grid h-48 overflow-y-auto" id="galleryPreview"></div>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold mb-4 flex items-center gap-2">
+                                                <i class="fas fa-globe"></i> 360° Virtual Tour
+                                            </h4>
+                                            <div class="drop-zone h-48 mb-4" id="tourDropZone">
+                                                <div class="drop-zone-icon"><i class="fas fa-360"></i></div>
+                                                <div class="drop-zone-text">Upload 360° panorama (optional)</div>
+                                            </div>
+                                            <div id="tourPreview" class="h-48 bg-gray-200 rounded-xl flex items-center justify-center">
+                                                <span class="text-gray-500">No 360° tour yet</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 6: Dynamic Pricing -->
+                            <div class="wizard-step" data-step="6" style="display:none;">
+                                <div class="glass p-8">
+                                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                                        <i class="fas fa-tag text-emerald-500"></i>
+                                        Smart Pricing
+                                    </h3>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div>
+                                            <h4 class="font-bold mb-4">Base Pricing</h4>
+                                            <div class="space-y-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium mb-2">Nightly Rate (KSh)</label>
+                                                    <input type="number" id="basePrice" class="builder-input" placeholder="5000">
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label class="block text-sm font-medium mb-2">Min Stay</label>
+                                                        <input type="number" id="minStay" class="builder-input" placeholder="1">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-sm font-medium mb-2">Service Fee (%)</label>
+                                                        <input type="number" id="serviceFee" class="builder-input" placeholder="10">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="border-l pl-6">
+                                            <h4 class="font-bold mb-4 flex items-center gap-2">
+                                                <i class="fas fa-brain text-purple-500"></i> AI Pricing Suggestions
+                                            </h4>
+                                            <div id="aiPricingSuggestions" class="space-y-3">
+                                                <div class="p-4 bg-purple-50 rounded-xl">
+                                                    <div class="font-bold text-purple-800 mb-1">Optimal Price</div>
+                                                    <div class="text-2xl font-bold text-emerald-600" id="optimalPrice">KSh 4,800</div>
+                                                    <div class="text-sm text-purple-600">+12% above market (High demand)</div>
+                                                </div>
+                                                <button onclick="getAIPrice()" class="glass px-4 py-2 rounded-xl w-full">
+                                                    <i class="fas fa-magic mr-2"></i>Refresh AI Analysis
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 7: Availability Calendar -->
+                            <div class="wizard-step" data-step="7" style="display:none;">
+                                <div class="glass p-8">
+                                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                                        <i class="fas fa-calendar-check text-blue-500"></i>
+                                        Set Availability
+                                    </h3>
+                                    <div class="grid md:grid-cols-2 gap-8">
+                                        <div>
+                                            <h4 class="font-bold mb-4">Monthly Calendar</h4>
+                                            <div id="availabilityCalendar" class="calendar-grid h-80 overflow-y-auto bg-white rounded-xl p-4 border-2 border-dashed border-gray-300"></div>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold mb-4">Quick Blocks</h4>
+                                            <div class="space-y-3">
+                                                <div class="flex gap-3 p-4 bg-gray-50 rounded-xl">
+                                                    <input type="date" id="blockStart" class="flex-1 p-3 border rounded-xl">
+                                                    <input type="date" id="blockEnd" class="flex-1 p-3 border rounded-xl">
+                                                    <button onclick="addBlock()" class="btn-gradient px-6 py-3 rounded-xl">
+                                                        <i class="fas fa-ban"></i>
+                                                    </button>
+                                                </div>
+                                                <div id="blockedDates" class="space-y-2 max-h-32 overflow-y-auto">
+                                                    <!-- Blocked dates will appear here -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 8: Review & Publish -->
+                            <div class="wizard-step" data-step="8" style="display:none;">
+                                <div class="glass p-8">
+                                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                                        <i class="fas fa-check-circle text-emerald-500"></i>
+                                        Review & Publish
+                                    </h3>
+                                    <div class="grid md:grid-cols-2 gap-8 mb-8">
+                                        <div>
+                                            <div class="bg-gradient-to-br from-emerald-500 to-green-600 text-white p-6 rounded-3xl mb-6">
+                                                <div class="text-4xl font-bold mb-2" id="optimizationScore">92</div>
+                                                <div class="text-emerald-100">AI Optimization Score</div>
+                                                <div class="mt-4 space-y-1 text-sm">
+                                                    <div>🏠 Complete details <span class="float-right">✓</span></div>
+                                                    <div>📸 12+ photos <span class="float-right">✓</span></div>
+                                                    <div>🗓️ Calendar set <span class="float-right">✓</span></div>
+                                                    <div>💰 Smart pricing <span class="float-right">✓</span></div>
+                                                </div>
+                                            </div>
+                                            <h4 class="font-bold mb-4">Final Checklist</h4>
+                                            <div class="space-y-3 text-sm">
+                                                <label class="flex items-center gap-3 p-3 bg-white rounded-xl cursor-pointer">
+                                                    <input type="checkbox" checked class="w-5 h-5 rounded">
+                                                    <span>Contact phone verified</span>
+                                                </label>
+                                                <label class="flex items-center gap-3 p-3 bg-white rounded-xl cursor-pointer">
+                                                    <input type="checkbox" checked class="w-5 h-5 rounded">
+                                                    <span>House rules added</span>
+                                                </label>
+                                                <label class="flex items-center gap-3 p-3 bg-white rounded-xl cursor-pointer">
+                                                    <input type="checkbox" class="w-5 h-5 rounded">
+                                                    <span>NFT Property Badge (Premium)</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="preview-3d-container">
+                                            <div class="preview-3d-card flipped">
+                                                <!-- Live preview from Step 3 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-4 pt-6 border-t">
+                                        <button onclick="saveDraft()" class="flex-1 glass px-8 py-4 rounded-xl font-bold">
+                                            <i class="fas fa-save mr-2"></i>Save Draft
+                                        </button>
+                                        <button onclick="submitProperty()" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl hover:shadow-3xl transition-all">
+                                            <i class="fas fa-rocket mr-2"></i>🚀 Publish Property
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Wizard Navigation -->
+                        <div class="glass p-6 mt-8 flex justify-between items-center">
+                            <button id="prevBtn" class="glass px-8 py-3 rounded-xl font-semibold opacity-50 cursor-not-allowed" onclick="prevStep()" disabled>
+                                <i class="fas fa-arrow-left mr-2"></i>Previous
+                            </button>
+                            <div class="flex-1 text-center">
+                                <button onclick="saveDraft()" class="glass px-6 py-3 rounded-xl mr-3">
+                                    <i class="fas fa-save mr-2"></i>Save Draft
+                                </button>
+                            </div>
+                            <button id="nextBtn" class="btn-gradient px-8 py-3 rounded-xl font-semibold" onclick="nextStep()">
+                                Next
+                                <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
                     <div class="builder-section-header" onclick="toggleBuilderSection('details')">
                         <h3><span class="section-icon icon-details"><i class="fas fa-home"></i></span>Property Details <span class="section-optional-badge">Optional</span></h3>
                         <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
@@ -1175,20 +1494,6 @@
                     </div>
                 </div>
 
-                <!-- Submit Buttons -->
-                <div class="glass p-6 mt-6">
-                    <div class="flex gap-4 flex-wrap">
-                        <button type="button" onclick="savePropertyDraft()" class="btn-cyan flex-1 py-4">
-                            <i class="fas fa-save mr-2"></i>Save Draft
-                        </button>
-                        <button type="button" onclick="submitProperty()" class="btn-gradient flex-1 py-4">
-                            <i class="fas fa-paper-plane mr-2"></i>Publish Property
-                        </button>
-                        <button type="button" onclick="handleSidebarAction('Dashboard')" class="glass flex-1 py-4">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
             </div>
         `;
 
@@ -1634,7 +1939,7 @@
     function handleLogout() { localStorage.clear(); window.location.href = 'index.html'; }
     
     // Test backend connection
-    async function testBackendConnection() {
+    async function testBackendConnection() { //
         try {
             const response = await fetch('/api/properties', { method: 'GET' });
             if (response.ok) {
@@ -1670,5 +1975,6 @@
     function handleAdvertiseUpload(files) { Array.from(files).forEach(file => { const reader = new FileReader(); reader.onload = (e) => { const preview = document.getElementById('advertiseMediaPreview'); const isVideo = file.type.startsWith('video'); const item = document.createElement('div'); item.className = 'media-preview-item'; item.innerHTML = (isVideo ? `<video src="${e.target.result}" controls></video>` : `<img src="${e.target.result}" alt="${file.name}">`) + `<div class="media-actions"><button class="media-btn media-btn-delete" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-trash"></i></button></div><div class="media-category-badge"><i class="fas fa-${isVideo ? 'video' : 'image'}"></i> ${isVideo ? 'Video' : 'Image'}</div>`; preview.appendChild(item); }; reader.readAsDataURL(file); }); }
     document.addEventListener('DOMContentLoaded', initAdvertiseDropZone);
 </script>
+
 </body>
 </html>

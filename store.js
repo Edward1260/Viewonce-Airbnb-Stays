@@ -29,7 +29,6 @@ class Store {
             notifications: [],
             hostApplications: [],
             users: [],
-            bookings: [],
             emails: [],
             reports: []
         };
@@ -285,7 +284,7 @@ class Store {
 
         if (filters.propertyType) {
             filtered = filtered.filter(property =>
-                property.title.toLowerCase().includes(filters.propertyType.toLowerCase())
+                property.type && property.type.toLowerCase() === filters.propertyType.toLowerCase()
             );
         }
 

@@ -240,13 +240,14 @@ export class PropertiesService {
     
     const property = this.propertyRepository.create({
       ...rest,
-      host: hostId ? { id: hostId } : propertyData.host,
+      hostId: hostId || (propertyData.host as any)?.id,
       status: propertyData.status || PropertyStatus.PENDING, // ✅ Default to pending for admin approval
     });
     try {
-      const [savedProperty] = await this.propertyRepository.save(property);
+      const savedProperty = await this.propertyRepository.save(property);
 
       // Fetch full property to ensure host relation is loaded for notification
+      // Using findOne ensures relations like 'host' are fully populated
       const fullProperty = await this.findOne(savedProperty.id);
 
       // Clear all property caches when a new property is created
@@ -306,6 +307,9 @@ export class PropertiesService {
       } catch (error) {
         // Ignore errors for non-existent keys
       }
+      // In standard cache-manager, we clear the whole store for safety 
+      // if specific keys cannot be determined.
+      await this.cacheManager.reset();
     } catch (error) {
       console.error('Failed to clear property caches:', error);
     }

@@ -8,8 +8,7 @@
     <script src="config.js?v=20241201"></script>
     <script src="store.js"></script>
     <script src="api.js"></script>
-    <script src="router.js"></script>
-    <script src="ai-luxury-dashboard.js"></script>
+    <script src="admin-host-invitation.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -995,7 +994,7 @@
             .stat-value {
                 font-size: 24px;
             }
-        .grid-cols-4 {
+            .grid-cols-4 {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
@@ -1319,60 +1318,55 @@
                 <div class="sidebar-logo-icon">🏠</div>
                 <div class="sidebar-logo-text">ViewOnce</div>
             </div>
-            <button id="sidebarCloseBtn" onclick="closeSidebar()" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <button id="sidebarClose" onclick="closeSidebar()" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px;">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         
-        <button onclick="navigateTo('dashboard', this)" class="sidebar-item active" data-page="dashboard">
+        <button class="sidebar-item active" data-page="dashboard">
             <i class="fas fa-th-large"></i>
-            <span>Dashboard</span>
+            <span class="sidebar-text">Dashboard</span>
         </button>
         
-        <button onclick="navigateTo('hosts', this)" class="sidebar-item" data-page="hosts">
+        <button class="sidebar-item" data-page="hosts" onclick="navigateTo('hosts', this)">
             <i class="fas fa-home"></i>
-            <span>Hosts</span>
+            <span class="sidebar-text">Hosts</span>
         </button>
         
-        <button onclick="navigateTo('customers', this)" class="sidebar-item" data-page="customers">
+        <button class="sidebar-item" data-page="customers" onclick="navigateTo('customers', this)">
             <i class="fas fa-users"></i>
-            <span>Customers</span>
+            <span class="sidebar-text">Customers</span>
         </button>
         
-        <button onclick="navigateTo('properties', this)" class="sidebar-item" data-page="properties">
+        <button class="sidebar-item" data-page="properties">
             <i class="fas fa-building"></i>
-            <span>Properties</span>
+            <span class="sidebar-text">Properties</span>
         </button>
         
-        <button onclick="navigateTo('bookings', this)" class="sidebar-item" data-page="bookings">
+        <button class="sidebar-item" data-page="bookings">
             <i class="fas fa-calendar-check"></i>
-            <span>Bookings</span>
+            <span class="sidebar-text">Bookings</span>
         </button>
         
-        <button onclick="navigateTo('analytics', this)" class="sidebar-item" data-page="analytics">
+        <button class="sidebar-item" data-page="analytics">
             <i class="fas fa-chart-line"></i>
-            <span>Analytics</span>
+            <span class="sidebar-text">Analytics</span>
         </button>
         
-        <button onclick="navigateTo('revenue', this)" class="sidebar-item" data-page="revenue">
-            <i class="fas fa-dollar-sign"></i>
-            <span>Revenue</span>
-        </button>
-        
-        <button onclick="window.location.href='admin-payments.html'" class="sidebar-item">
+        <button class="sidebar-item" onclick="window.location.href='admin-payments.html'">
             <i class="fas fa-credit-card"></i>
-            <span>Payments</span>
+            <span class="sidebar-text">Payments</span>
             <span class="badge" style="margin-left: auto; background: var(--danger); padding: 2px 8px; border-radius: 10px; font-size: 10px;">3</span>
         </button>
         
-        <button onclick="navigateTo('reviews', this)" class="sidebar-item" data-page="reviews">
+        <button class="sidebar-item" data-page="reviews">
             <i class="fas fa-star"></i>
-            <span>Reviews</span>
+            <span class="sidebar-text">Reviews</span>
         </button>
         
-        <button onclick="navigateTo('messages', this)" class="sidebar-item" data-page="messages">
+        <button class="sidebar-item" data-page="messages">
             <i class="fas fa-envelope"></i>
-            <span>Messages</span>
+            <span class="sidebar-text">Messages</span>
             <span class="badge" style="margin-left: auto; background: var(--danger); padding: 2px 8px; border-radius: 10px; font-size: 10px;">3</span>
         </button>
         
@@ -1394,12 +1388,12 @@
         </button>
     </aside>
     
-    <div id="sidebarBackdrop" onclick="closeSidebar()" class="sidebar-backdrop"></div>
+    <div id="sidebarOverlay" onclick="closeSidebar()" class="sidebar-backdrop"></div>
     
     <!-- Header -->
     <header class="header" id="header">
         <div class="header-left">
-            <button class="menu-toggle" onclick="toggleSidebar()">
+            <button id="sidebarToggle" class="menu-toggle" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
             <h1 class="page-title" id="pageTitle">Dashboard</h1>
@@ -1611,7 +1605,7 @@
                     <h2 class="text-xl font-bold">Host Management</h2>
                     <div class="flex gap-4">
                         <input type="text" placeholder="Search hosts..." class="glass-input px-4 py-2 rounded-xl" style="width: 250px;">
-                        <button class="btn-gradient" onclick="showInviteHostModal()">
+                        <button class="btn-gradient" onclick="openInviteHostModal()">
                             <i class="fas fa-user-plus mr-2"></i>Invite Host
                         </button>
                         <button class="btn-gradient" style="background: linear-gradient(135deg, #06b6d4, #22d3ee);">
@@ -1620,7 +1614,7 @@
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="data-table" id="hostsTable">
+                    <table class="data-table" id="hostTable">
                         <thead>
                             <tr>
                                 <th>Host</th>
@@ -1632,7 +1626,7 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="hostsTableBody">
+                        <tbody id="hostTableBody">
                             <tr>
                                 <td colspan="7" class="text-center py-8">
                                     <div class="loading-spinner mx-auto"></div>
@@ -1657,7 +1651,7 @@
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="data-table" id="customersTable">
+                    <table class="data-table" id="customerTable">
                         <thead>
                             <tr>
                                 <th>Customer</th>
@@ -1669,7 +1663,7 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="customersTableBody">
+                        <tbody id="customerTableBody">
                             <tr>
                                 <td colspan="7" class="text-center py-8">
                                     <div class="loading-spinner mx-auto"></div>
@@ -2141,11 +2135,6 @@
         </div>
     </div>
     
-    <!-- AI Floating Button -->
-    <button class="ai-float" onclick="window.location.href='admin-ai.html'">
-        <i class="fas fa-robot"></i>
-        <span>AI Assistant</span>
-    </button>
 
     <!-- Invite Host Modal -->
     <div id="inviteHostModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; align-items: center; justify-content: center;">
@@ -2366,15 +2355,15 @@
         const sidebar = document.getElementById('sidebar');
         const header = document.getElementById('header');
         const mainContent = document.getElementById('mainContent');
-        const backdrop = document.getElementById('sidebarBackdrop');
+        const backdrop = document.getElementById('sidebarOverlay');
         
         if (window.innerWidth <= 1024) {
             if (sidebar.classList.contains('active')) {
                 sidebar.classList.remove('active');
-                backdrop.classList.remove('active');
+                if (backdrop) backdrop.classList.remove('active');
             } else {
                 sidebar.classList.add('active');
-                backdrop.classList.add('active');
+                if (backdrop) backdrop.classList.add('active');
             }
         } else {
             sidebarCollapsed = !sidebarCollapsed;
@@ -2394,9 +2383,9 @@
     
     function closeSidebar() {
         const sidebar = document.getElementById('sidebar');
-        const backdrop = document.getElementById('sidebarBackdrop');
-        sidebar.classList.remove('active');
-        backdrop.classList.remove('active');
+        const backdrop = document.getElementById('sidebarOverlay');
+        if (sidebar) sidebar.classList.remove('active');
+        if (backdrop) backdrop.classList.remove('active');
     }
     
     // Navigation
@@ -2658,8 +2647,8 @@
     // Load Page Data
     async function loadPageData(page) {
         const tableBodyIds = {
-            'hosts': 'hostsTableBody',
-            'customers': 'customersTableBody',
+            'hosts': 'hostTableBody',
+            'customers': 'customerTableBody',
             'properties': 'propertiesTableBody',
             'bookings': 'bookingsTableBody'
         };

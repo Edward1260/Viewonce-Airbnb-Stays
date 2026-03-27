@@ -8,8 +8,13 @@ import {
   Param,
   Query,
   UseGuards,
+  BadRequestException,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
+import { UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ImageClassificationService } from '../image-classification/image-classification.service';
 import { PropertiesService } from './properties.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -17,10 +22,14 @@ import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../entities/user.entity';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
+import { PropertyOwnershipPipe } from './pipes/property-ownership.pipe';
 
 @Controller('properties')
 export class PropertiesController {
-  constructor(private readonly propertiesService: PropertiesService) {}
+  constructor(
+    private readonly propertiesService: PropertiesService,
+    private readonly imageClassificationService: ImageClassificationService
+  ) {}
 
   // =========================
   // CUSTOMER / PUBLIC VIEW
@@ -86,7 +95,41 @@ export class PropertiesController {
       ...dto,
       hostId: req.user.id,
     });
-    // Return plain object to avoid circular reference issues
+    return this.mapPropertyResponse(property);
+  }
+
+  @Post('classify-image')
+  @UseInterceptors(FileInterceptor('image'))
+  async classifyImage(@UploadedFile() image: Express.Multer.File) {
+    if (!image) {
+      throw new BadRequestException('No image file provided');
+    }
+    //Adapt this code to your file structure, the code below is just an example
+    const classification = await this.imageClassificationService.classifyImage(image.buffer);
+    return classification;
+  }
+
+  // =========================
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async update(
+    @Param('id', PropertyOwnershipPipe) id: string,
+    @Body() updatePropertyDto: UpdatePropertyDto,
+  ) {
+    const updated = await this.propertiesService.update(id, updatePropertyDto);
+    return this.mapPropertyResponse(updated);
+  }
+
+  // =========================
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async remove(@Param('id', PropertyOwnershipPipe) id: string) {
+    return this.propertiesService.remove(id);
+  }
+
+  private mapPropertyResponse(property: any) {
     return {
       id: property.id,
       title: property.title,
@@ -103,24 +146,5 @@ export class PropertiesController {
       createdAt: property.createdAt,
       updatedAt: property.updatedAt,
     };
-  }
-
-  // =========================
-  @Put(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HOST, UserRole.ADMIN)
-  async update(
-    @Param('id') id: string,
-    @Body() updatePropertyDto: UpdatePropertyDto,
-  ) {
-    return this.propertiesService.update(id, updatePropertyDto);
-  }
-
-  // =========================
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HOST, UserRole.ADMIN)
-  async remove(@Param('id') id: string) {
-    return this.propertiesService.remove(id);
   }
 }

@@ -336,12 +336,32 @@
         // Check for invitation token
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-            const role = urlParams.get('role');
+            const token = urlParams.get('token') || urlParams.get('invite');
+            const role = urlParams.get('role') || 'host';
+            const emailParam = urlParams.get('email');
+            const nameParam = urlParams.get('name');
             
             if (token) {
                 localStorage.setItem('invitationToken', token);
                 localStorage.setItem('invitationRole', role || 'host');
+            }
+            
+            // Pre-fill fields from invitation
+            if (emailParam) {
+                const emailInput = document.getElementById('email');
+                if (emailInput) {
+                    emailInput.value = emailParam;
+                    emailInput.readOnly = true; // Lock email to invitation
+                    emailInput.style.backgroundColor = '#f0f0f0';
+                    emailInput.title = "This email is linked to your invitation";
+                }
+            }
+            
+            if (nameParam) {
+                const nameInput = document.getElementById('name');
+                if (nameInput) {
+                    nameInput.value = nameParam;
+                }
             }
             
             // Check if already logged in
@@ -411,10 +431,14 @@
                 localStorage.removeItem('invitationToken');
                 localStorage.removeItem('invitationRole');
                 
-                // Redirect to host dashboard
-                setTimeout(() => {
+                // Check onboarding status and redirect
+                try {
+                    const status = await api.getOnboardingStatus();
+                    window.location.href = status.complete ? 'host-dashboard-upgraded.html' : 'host-onboarding.html';
+                } catch (error) {
+                    console.warn('Onboarding check failed:', error);
                     window.location.href = 'host-dashboard-upgraded.html';
-                }, 500);
+                }
                 
             } catch (error) {
                 console.error('Signup error:', error);
@@ -428,9 +452,14 @@
                 localStorage.removeItem('invitationToken');
                 localStorage.removeItem('invitationRole');
                 
-                setTimeout(() => {
+                // Check onboarding status and redirect
+                try {
+                    const status = await api.getOnboardingStatus();
+                    window.location.href = status.complete ? 'host-dashboard-upgraded.html' : 'host-onboarding.html';
+                } catch (error) {
+                    console.warn('Onboarding check failed:', error);
                     window.location.href = 'host-dashboard-upgraded.html';
-                }, 500);
+                }
             }
         }
     </script>

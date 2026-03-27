@@ -3,6 +3,10 @@ node_modules/
 dist/
 *.log
 
+# Environment variables
+.env*
+!.env.example
+
 # Ignore corrupted directories from AI tools
 backend/src/entities./
 "backend/src to use a tool. Let me add graceful shutdown handling to main.ts./"

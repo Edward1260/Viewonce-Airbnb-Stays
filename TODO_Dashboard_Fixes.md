@@ -17,8 +17,8 @@
 
 ### 3. Host Dashboard Fixes (host-dashboard-upgraded.html)
 - [x] Fix sidebar close button functionality (Already has functionality)
-- [x] Fix property submission - set status to 'pending' not 'active' ✅ ALREADY FIXED - code has: `status: 'pending'`
-- [x] Add "pending approval" message after submission (Need to verify)
+- [x] Fix property submission - set status to 'pending' not 'active'
+- [x] Add "pending approval" message after submission
 
 ### 4. Customer Dashboard Fixes (customer-dashboard.html)
 - [x] Fix property filtering - show only 'active' properties ✅ ALREADY FIXED - code has: `filters.status = 'active'`

@@ -42,7 +42,7 @@ header .actions{display:flex;align-items:center;gap:15px}
 header .actions button{padding:10px 18px;border:none;border-radius:12px;cursor:pointer;color:#fff;font-weight:600;background:var(--accent);box-shadow:0 4px 15px rgba(0,0,0,0.3)}
 header .actions button:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.4)}
 .search-container input{padding:10px 18px;border:2px solid var(--border);border-radius:12px;background:rgba(255,255,255,0.1);color:var(--text);font-weight:500;min-width:250px}
-.search-container input:focus{outline:none;border-color:var(--light-purple);background:rgba(255,255,255,0.15)}
+.search-container input:focus{outline:none;border-color:var(--light-purple);background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .notification-badge{position:absolute;top:-8px;right:-8px;background:var(--error);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
 .threat-badge{position:absolute;top:-8px;right:-8px;background:var(--danger);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;animation:pulse 1s infinite}
 .wrapper{flex:1;display:flex;overflow:hidden}
@@ -1017,64 +1017,70 @@ function updateRevenueChart(bookings) {
 }
 
 // ==================== SECURITY DATA ====================
-function loadSecurityData() {
-  var threats = [
-    {type: 'Failed Login', ip: '192.168.1.105', count: 5, time: '2 min ago'},
-    {type: 'Unusual Activity', ip: '10.0.0.45', count: 12, time: '5 min ago'},
-    {type: 'Brute Force', ip: '172.16.0.88', count: 25, time: '10 min ago'}
-  ];
-  
-  var threatCount = threats.length;
-  document.getElementById('threatCount').textContent = threatCount;
-  document.getElementById('blockedIPs').textContent = Math.floor(Math.random()*20) + 5;
-  document.getElementById('suspiciousLogins').textContent = Math.floor(Math.random()*10) + 3;
-  document.getElementById('failedAttempts').textContent = Math.floor(Math.random()*50) + 10;
-  
-  // Update threat level
-  var threatLevel = 'LOW';
-  if(threatCount > 5) threatLevel = 'MEDIUM';
-  if(threatCount > 10) threatLevel = 'HIGH';
-  document.getElementById('threatLevel').textContent = threatLevel;
-  
-  // Update security score
-  securityScore = Math.max(50, 100 - threatCount*3);
-  document.getElementById('securityScoreValue').textContent = securityScore;
-  document.getElementById('securityScoreCircle').style.setProperty('--score', securityScore + '%');
-  
-  // Update threats list
-  var threatList = document.getElementById('threatDetectionList');
-  if(threatCount > 0) {
-    threatList.innerHTML = threats.map(function(t) {
-      return '<div class="threat-item"><div class="threat-info"><div class="threat-type">' + t.type + '</div><div class="threat-detail">IP: ' + t.ip + ' | Attempts: ' + t.count + ' | ' + t.time + '</div></div><div class="threat-actions"><button class="luxury-btn danger sm" onclick="blockIP(\'' + t.ip + '\')">Block</button><button class="luxury-btn sm" onclick="investigateIP(\'' + t.ip + '\')">Investigate</button></div></div>';
-    }).join('');
-  } else {
-    threatList.innerHTML = '<div class="alert success">No active threats - System secure</div>';
-  }
-  
-  // Update security events
-  var events = [
-    {type: 'info', msg: 'Security scan completed', time: '5 min ago'},
-    {type: 'success', msg: 'Firewall rules updated', time: '15 min ago'},
-    {type: 'warn', msg: 'Unusual login pattern detected', time: '30 min ago'}
-  ];
-  document.getElementById('securityEvents').innerHTML = events.map(function(e) { 
-    return '<div class="alert ' + e.type + '">' + e.msg + ' <small>(' + e.time + ')</small></div>'; 
-  }).join('');
-  
-  // Update threat indicator
-  var indicator = document.getElementById('threatIndicator');
-  var securityBadge = document.getElementById('securityBadge');
-  var threatBadge = document.getElementById('threatBadge');
-  if(threatCount > 0) {
-    indicator.style.display = 'block';
-    securityBadge.style.display = 'inline';
-    threatBadge.style.display = 'inline';
-    threatBadge.textContent = threatCount;
-  } else {
-    indicator.style.display = 'none';
-    securityBadge.style.display = 'none';
-    threatBadge.style.display = 'none';
-  }
+async function loadSecurityData() {
+    try {
+        const [stats, threats, events] = await Promise.all([
+            secureApiCall(api.getSecurityStats),
+            secureApiCall(api.getActiveThreats),
+            secureApiCall(api.getSecurityEvents)
+        ]);
+
+        const threatCount = threats.length;
+        document.getElementById('threatCount').textContent = threatCount;
+        document.getElementById('blockedIPs').textContent = stats.blockedIPs || 0;
+        document.getElementById('suspiciousLogins').textContent = stats.suspiciousLogins || 0;
+        document.getElementById('failedAttempts').textContent = stats.failedAttempts || 0;
+
+        // Update threat level
+        let threatLevel = 'LOW';
+        if (threatCount > 5) threatLevel = 'MEDIUM';
+        if (threatCount > 10) threatLevel = 'HIGH';
+        document.getElementById('threatLevel').textContent = threatLevel;
+
+        // Update security score
+        securityScore = Math.max(50, 100 - threatCount * 3 - (stats.suspiciousLogins || 0));
+        document.getElementById('securityScoreValue').textContent = securityScore;
+        document.getElementById('securityScoreCircle').style.setProperty('--score', securityScore + '%');
+
+        // Update threats list
+        const threatList = document.getElementById('threatDetectionList');
+        if (threatCount > 0) {
+            threatList.innerHTML = threats.map(function(t) {
+                return `<div class="threat-item"><div class="threat-info"><div class="threat-type">${t.type}</div><div class="threat-detail">IP: ${t.ip} | Count: ${t.count} | ${new Date(t.timestamp).toLocaleString()}</div></div><div class="threat-actions"><button class="luxury-btn danger sm" onclick="blockIP('${t.ip}')">Block</button><button class="luxury-btn sm" onclick="investigateIP('${t.ip}')">Investigate</button></div></div>`;
+            }).join('');
+        } else {
+            threatList.innerHTML = '<div class="alert success">No active threats - System secure</div>';
+        }
+
+        // Update security events
+        const securityEventsEl = document.getElementById('securityEvents');
+        if (events.length > 0) {
+            securityEventsEl.innerHTML = events.map(function(e) {
+                return `<div class="alert ${e.level || 'info'}">${e.message} <small>(${new Date(e.timestamp).toLocaleString()})</small></div>`;
+            }).join('');
+        } else {
+            securityEventsEl.innerHTML = '<div class="alert info">Monitoring for security events...</div>';
+        }
+
+        // Update threat indicator
+        const indicator = document.getElementById('threatIndicator');
+        const securityBadge = document.getElementById('securityBadge');
+        const threatBadge = document.getElementById('threatBadge');
+        if (threatCount > 0) {
+            indicator.style.display = 'block';
+            securityBadge.style.display = 'inline';
+            threatBadge.style.display = 'inline';
+            threatBadge.textContent = threatCount;
+        } else {
+            indicator.style.display = 'none';
+            securityBadge.style.display = 'none';
+            threatBadge.style.display = 'none';
+        }
+    } catch (e) {
+        console.error("Failed to load security data:", e);
+        document.getElementById('threatDetectionList').innerHTML = '<div class="alert error">Could not load threat data.</div>';
+        document.getElementById('securityEvents').innerHTML = '<div class="alert error">Could not load security events.</div>';
+    }
 }
 
 function refreshThreatDetection() {
@@ -1110,26 +1116,32 @@ function configureResponseRules() {
 }
 
 // ==================== ERROR CENTER ====================
-function loadErrorData() {
-  var errors = [
-    {type: 'database', msg: 'Connection timeout - retry #3', time: '2 min ago', status: 'active'},
-    {type: 'api', msg: 'Payment gateway timeout', time: '5 min ago', status: 'resolved'},
-    {type: 'security', msg: 'Failed authentication attempt', time: '10 min ago', status: 'active'},
-    {type: 'api', msg: 'Invalid API key detected', time: '15 min ago', status: 'auto-fixed'}
-  ];
-  
-  document.getElementById('errorCount').textContent = errors.filter(function(e) { return e.status === 'active'; }).length;
-  document.getElementById('warningCount').textContent = errors.filter(function(e) { return e.status === 'resolved'; }).length;
-  document.getElementById('resolvedCount').textContent = errors.filter(function(e) { return e.status === 'resolved'; }).length;
-  document.getElementById('autoFixedCount').textContent = errors.filter(function(e) { return e.status === 'auto-fixed'; }).length;
-  
-  var errorList = document.getElementById('errorList');
-  errorList.innerHTML = errors.map(function(e) {
-    var cls = 'error';
-    if(e.status === 'resolved') cls = 'success';
-    if(e.status === 'auto-fixed') cls = 'warn';
-    return '<div class="error-log-entry ' + cls + '"><div class="error-time">' + e.time + '</div><div class="error-message">[' + e.type.toUpperCase() + '] ' + e.msg + '</div><div style="margin-top:10px"><span class="status-indicator ' + (e.status === 'active' ? 'danger' : e.status === 'resolved' ? 'success' : 'warning') + '">' + e.status + '</span> <button class="luxury-btn sm" onclick="fixError(\'' + e.msg + '\')">Fix</button></div></div>';
-  }).join('');
+async function loadErrorData() {
+    try {
+        const errors = await secureApiCall(api.getErrors);
+
+        document.getElementById('errorCount').textContent = errors.filter(e => e.status === 'active' || e.status === 'new').length;
+        document.getElementById('warningCount').textContent = errors.filter(e => e.level === 'warning').length;
+        document.getElementById('resolvedCount').textContent = errors.filter(e => e.status === 'resolved').length;
+        document.getElementById('autoFixedCount').textContent = errors.filter(e => e.status === 'auto-fixed').length;
+
+        const errorList = document.getElementById('errorList');
+        if (errors.length > 0) {
+            errorList.innerHTML = errors.map(function(e) {
+                let cls = 'error';
+                if (e.status === 'resolved') cls = 'success';
+                if (e.status === 'auto-fixed') cls = 'warn';
+                if (e.level === 'warning') cls = 'warning';
+
+                return `<div class="error-log-entry ${cls}"><div class="error-time">${new Date(e.timestamp).toLocaleString()}</div><div class="error-message">[${e.context.toUpperCase()}] ${e.message}</div><div style="margin-top:10px"><span class="status-indicator ${e.status === 'active' ? 'danger' : e.status === 'resolved' ? 'success' : 'warning'}">${e.status}</span> <button class="luxury-btn sm" onclick="fixError('${e.id}')">Fix</button></div></div>`;
+            }).join('');
+        } else {
+            errorList.innerHTML = '<div class="alert info">No errors detected</div>';
+        }
+    } catch (e) {
+        console.error("Failed to load error data:", e);
+        document.getElementById('errorList').innerHTML = '<div class="alert error">Could not load error logs.</div>';
+    }
 }
 
 function switchErrorTab(tab) {
@@ -1324,22 +1336,29 @@ function viewUser(id) {
 
 // ==================== PERFORMANCE ====================
 async function loadPerformanceData() {
-  try {
-    var cpu = Math.floor(Math.random()*40) + 20;
-    var mem = Math.floor(Math.random()*30) + 40;
-    var apiResp = Math.floor(Math.random()*100) + 50;
-    
-    document.getElementById('cpuUsage').textContent = cpu + '%';
-    document.getElementById('memoryUsage').textContent = mem + '%';
-    document.getElementById('apiResponseTime').textContent = apiResp + 'ms';
-    document.getElementById('queryTime').textContent = (Math.random()*10 + 5).toFixed(2) + 'ms';
-    document.getElementById('dbConnections').textContent = Math.floor(Math.random()*20) + 5;
-    document.getElementById('cacheRate').textContent = (Math.random()*20 + 80).toFixed(1) + '%';
-    document.getElementById('cpuProgress').style.width = cpu + '%';
-    document.getElementById('memoryProgress').style.width = mem + '%';
-    
-    updatePerformanceCharts({cpu: cpu, mem: mem, apiResp: apiResp});
-  } catch(e) { console.error('Performance error:', e); }
+    try {
+        const metrics = await secureApiCall(api.getPerformanceMetrics);
+
+        const cpu = metrics.cpuUsage || 0;
+        const mem = metrics.memoryUsage || 0;
+        const apiResp = metrics.apiResponseTime || 0;
+
+        document.getElementById('cpuUsage').textContent = cpu.toFixed(1) + '%';
+        document.getElementById('memoryUsage').textContent = mem.toFixed(1) + '%';
+        document.getElementById('apiResponseTime').textContent = apiResp.toFixed(0) + 'ms';
+        document.getElementById('queryTime').textContent = (metrics.dbQueryTime || 0).toFixed(2) + 'ms';
+        document.getElementById('dbConnections').textContent = metrics.dbConnections || 0;
+        document.getElementById('cacheRate').textContent = (metrics.cacheHitRate || 0).toFixed(1) + '%';
+        document.getElementById('cpuProgress').style.width = cpu + '%';
+        document.getElementById('memoryProgress').style.width = mem + '%';
+
+        updatePerformanceCharts({ cpu: cpu, mem: mem, apiResp: apiResp });
+    } catch (e) {
+        console.error('Performance error:', e);
+        document.getElementById('cpuUsage').textContent = 'N/A';
+        document.getElementById('memoryUsage').textContent = 'N/A';
+        document.getElementById('apiResponseTime').textContent = 'N/A';
+    }
 }
 
 function updatePerformanceCharts(d) {
