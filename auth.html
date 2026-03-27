@@ -225,6 +225,22 @@
             margin-bottom: 18px;
             position: relative;
         }
+
+        .password-toggle {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #636E72;
+            z-index: 10;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+
+        .password-toggle:hover {
+            color: #6C5CE7;
+        }
         
         .form-input {
             width: 100%;
@@ -246,6 +262,16 @@
         
         .form-input::placeholder {
             color: #a0a0a0;
+        }
+
+        /* Role Select Styling */
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23636E72'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 20px center;
+            background-size: 18px;
+            cursor: pointer;
         }
 
         /* Social Login Buttons */
@@ -398,6 +424,32 @@
             transition: all 0.3s ease;
             margin-top: 10px;
             box-shadow: 0 5px 20px rgba(214, 48, 49, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading .btn-spinner {
+            display: block;
+        }
+
+        .loading .btn-text {
+            opacity: 0.8;
         }
         
         .login-btn:hover {
@@ -567,11 +619,11 @@
         }
         
         /* FADE TRANSITION - Login and Signup forms */
-        .login-form, .signup-form {
+        .login-form, .signup-form, .forgot-password-form {
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
         
-        .login-form.hidden, .signup-form.hidden {
+        .login-form.hidden, .signup-form.hidden, .forgot-password-form.hidden {
             position: absolute;
             top: 0;
             left: 0;
@@ -582,13 +634,21 @@
             z-index: 1;
         }
         
-        .login-form.active, .signup-form.active {
+        .login-form.active, .signup-form.active, .forgot-password-form.active {
             position: relative;
             opacity: 1;
             transform: scale(1);
             pointer-events: auto;
             z-index: 2;
         }
+
+        /* Shake animation for errors */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
         
         /* Floating Bubbles - Background */
         .floating-bubbles {
@@ -913,14 +973,22 @@
                     <div class="form-container">
                         <!-- Login Form -->
                         <div class="login-form active" id="loginForm">
-                            <form onsubmit="handleLogin(event)">
+                            <div id="login-error" class="text-red-500 text-xs mb-3 font-medium"></div>
+                            <form onsubmit="handleLogin(event)" id="login-form-el">
                                 <div class="form-group">
-                                    <input type="email" class="form-input" placeholder="Email address" required>
+                                    <input type="email" id="loginEmail" class="form-input" placeholder="Email address" required>
                                 </div>
                                 <div class="form-group">
-                                    <input type="password" class="form-input" placeholder="Password" required>
+                                    <input type="password" id="loginPassword" class="form-input" placeholder="Password" required>
+                                    <span class="password-toggle" onclick="togglePassword('loginPassword')">👁️</span>
                                 </div>
-                                <button type="submit" class="login-btn">Sign In</button>
+                                <div class="form-group" style="text-align: right; margin-top: -10px; margin-bottom: 15px;">
+                                    <a onclick="switchToForgotPassword()" class="text-xs text-indigo-600 hover:underline cursor-pointer">Forgot Password?</a>
+                                </div>
+                                <button type="submit" class="login-btn" id="loginSubmit">
+                                    <div class="btn-spinner"></div>
+                                    <span class="btn-text">Sign In</span>
+                                </button>
                             </form>
                             
                             <!-- Social Login Buttons -->
@@ -955,23 +1023,31 @@
                         
                         <!-- Signup Form -->
                         <div class="signup-form hidden" id="signupForm">
-                            <form onsubmit="handleSignup(event)">
+                            <div id="signup-error" class="text-red-500 text-xs mb-3 font-medium"></div>
+                            <form onsubmit="handleSignup(event)" id="signup-form-el">
                                 <div class="form-group">
-                                    <input type="text" class="form-input" placeholder="Full Name" required>
+                                    <input type="text" id="signupName" class="form-input" placeholder="Full Name" required>
                                 </div>
                                 <div class="form-group">
-                                    <input type="email" class="form-input" placeholder="Email address" required>
+                                    <input type="email" id="signupEmail" class="form-input" placeholder="Email address" required>
                                 </div>
                                 <div class="form-group">
-                                    <input type="tel" class="form-input" placeholder="Phone Number" pattern="[0-9+\-\s]*">
+                                    <select id="signupRole" class="form-input form-select" required>
+                                        <option value="customer">I want to stay (Customer)</option>
+                                        <option value="host">I want to host (Host)</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
-                                    <input type="password" class="form-input" placeholder="Password" required>
+                                    <input type="password" id="signupPassword" class="form-input" placeholder="Password" required>
+                                    <span class="password-toggle" onclick="togglePassword('signupPassword')">👁️</span>
                                 </div>
                                 <div class="form-group">
-                                    <input type="password" class="form-input" placeholder="Confirm Password" required>
+                                    <input type="password" id="signupConfirmPassword" class="form-input" placeholder="Confirm Password" required>
                                 </div>
-                                <button type="submit" class="login-btn">Create Account</button>
+                                <button type="submit" class="login-btn" id="signupSubmit">
+                                    <div class="btn-spinner"></div>
+                                    <span class="btn-text">Create Account</span>
+                                </button>
                             </form>
                             
                             <!-- Social Login Buttons -->
@@ -1100,6 +1176,12 @@
             wave.classList.add('active');
         }
         
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+        }
+
         // Switch to Signup with FADE effect
         function switchToSignup() {
             const loginForm = document.getElementById('loginForm');
@@ -1126,17 +1208,39 @@
             }, 400);
         }
         
-        // Switch to Login with FADE effect
-        function switchToLogin() {
+        function switchToForgotPassword() {
             const loginForm = document.getElementById('loginForm');
+            const forgotPasswordForm = document.getElementById('forgotPasswordForm');
             const signupForm = document.getElementById('signupForm');
             const formTitle = document.getElementById('formTitle');
             
             triggerLiquidWave();
             
-            // Fade out signup form
+            loginForm.classList.remove('active');
+            loginForm.classList.add('hidden');
             signupForm.classList.remove('active');
             signupForm.classList.add('hidden');
+            
+            setTimeout(() => {
+                forgotPasswordForm.classList.remove('hidden');
+                forgotPasswordForm.classList.add('active');
+                formTitle.textContent = 'Reset Password';
+            }, 400);
+        }
+
+        // Switch to Login with FADE effect
+        function switchToLogin() {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+            const formTitle = document.getElementById('formTitle');
+            
+            triggerLiquidWave();
+            
+            signupForm.classList.remove('active');
+            signupForm.classList.add('hidden');
+            forgotPasswordForm.classList.remove('active');
+            forgotPasswordForm.classList.add('hidden');
             
             // Wait for fade out, then fade in login form
             setTimeout(() => {
@@ -1152,17 +1256,63 @@
             }, 400);
         }
         
-        // Handle Login with API call
-        async function handleLogin(event) {
-            event.preventDefault();
-            const email = event.target.querySelector('input[type="email"]').value;
-            const password = event.target.querySelector('input[type="password"]').value;
+        // Real-time email validation for Signup
+        document.getElementById('signupEmail').addEventListener('input', function(e) {
+            const email = e.target.value.trim();
+            const errorDiv = document.getElementById('signup-error');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             
-            console.log('Login attempt:', { email });
+            if (email.length > 0 && !emailRegex.test(email)) {
+                errorDiv.textContent = 'Please enter a valid email address.';
+            } else {
+                errorDiv.textContent = '';
+            }
+        });
+
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            const btn = document.getElementById('forgotSubmit');
+            const errorDiv = document.getElementById('forgot-error');
+            const successDiv = document.getElementById('forgot-success');
+            
+            errorDiv.textContent = '';
+            successDiv.textContent = '';
             triggerLiquidWave();
             
             try {
-                // Call the actual API for login
+                btn.classList.add('loading');
+                btn.disabled = true;
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API
+                successDiv.textContent = 'If an account exists for ' + email + ', a reset link has been sent.';
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        // Handle Login with API call
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginSubmit');
+            const errorDiv = document.getElementById('login-error');
+            
+            errorDiv.textContent = '';
+            triggerLiquidWave();
+            
+            try {
+                btn.classList.add('loading');
+                btn.disabled = true;
+
+                if (password.length < 6) {
+                    throw new Error('Password must be at least 6 characters.');
+                }
+
                 const response = await api.login({ email, password });
                 
                 console.log('Login response:', response);
@@ -1172,22 +1322,19 @@
                 localStorage.setItem('token', response.token || response.accessToken);
                 localStorage.setItem('refreshToken', response.refreshToken);
                 
-                // Get user profile to determine role
-                let userProfile = null;
-                try {
-                    userProfile = await api.getUserProfile();
-                } catch (profileErr) {
-                    console.log('Could not get user profile, using response data');
-                }
-                
                 // Create user object with role from API
-                const user = {
-                    id: response.userId || response.id || userProfile?.id,
+                const user = response.user || {
+                    id: response.userId || response.id,
                     email: email,
-                    name: response.name || userProfile?.firstName + ' ' + userProfile?.lastName || email,
-                    role: response.role || userProfile?.role || 'customer',
-                    profile: userProfile || response
+                    name: response.name || (response.firstName ? `${response.firstName} ${response.lastName}` : email),
+                    role: response.role || 'customer'
                 };
+
+                // Ensure role is available for redirection
+                if (!user.role && response.accessToken) {
+                    const profile = await api.getProfile();
+                    Object.assign(user, profile);
+                }
                 
                 localStorage.setItem('user', JSON.stringify(user));
                 
@@ -1201,16 +1348,14 @@
                 
             } catch (error) {
                 console.error('Login error:', error);
+                errorDiv.textContent = error.message;
                 
-                // Fallback to demo mode if API is not available
-                console.log('Using demo mode - API not available');
-                
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('user', JSON.stringify({ email, role: 'customer' }));
-                localStorage.setItem('token', 'demo-token');
-                
+                const card = document.querySelector('.liquid-card');
+                card.classList.add('shake');
                 setTimeout(() => {
-                    window.location.href = 'customer-dashboard.html';
+                    card.classList.remove('shake');
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
                 }, 500);
             }
         }
@@ -1218,20 +1363,30 @@
         // Handle Signup with API call
         async function handleSignup(event) {
             event.preventDefault();
-            const name = event.target.querySelector('input[type="text"]').value;
-            const email = event.target.querySelectorAll('input[type="email"]')[1].value;
-            const phone = event.target.querySelector('input[type="tel"]').value;
-            const password = event.target.querySelectorAll('input[type="password"]')[0].value;
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const role = document.getElementById('signupRole').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+            const btn = document.getElementById('signupSubmit');
+            const errorDiv = document.getElementById('signup-error');
             
-            console.log('Signup attempt:', { name, email, phone });
+            errorDiv.textContent = '';
             triggerLiquidWave();
-            
-            // Split name into first and last name
-            const nameParts = name.split(' ');
-            const firstName = nameParts[0];
-            const lastName = nameParts.slice(1).join(' ') || '';
-            
+
             try {
+                if (password !== confirmPassword) {
+                    throw new Error('Passwords do not match.');
+                }
+
+                btn.classList.add('loading');
+                btn.disabled = true;
+
+                // Split name into first and last name
+                const nameParts = name.split(' ');
+                const firstName = nameParts[0];
+                const lastName = nameParts.slice(1).join(' ') || '';
+
                 // Call the actual API for signup
                 const response = await api.signup({
                     email,
@@ -1239,7 +1394,7 @@
                     firstName,
                     lastName,
                     phone,
-                    role: 'customer' // Default role for customer signup
+                    role: role
                 });
                 
                 console.log('Signup response:', response);
@@ -1254,7 +1409,7 @@
                     id: response.userId || response.id,
                     email: email,
                     name: name,
-                    role: 'customer', // Default role for customer signup
+                    role: role,
                     profile: response
                 };
                 
@@ -1267,16 +1422,14 @@
                 
             } catch (error) {
                 console.error('Signup error:', error);
-                
-                // Fallback to demo mode if API is not available
-                console.log('Using demo mode - API not available');
-                
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('user', JSON.stringify({ name, email, phone, role: 'customer' }));
-                localStorage.setItem('token', 'demo-token');
-                
+                errorDiv.textContent = error.message;
+
+                const card = document.querySelector('.liquid-card');
+                card.classList.add('shake');
                 setTimeout(() => {
-                    window.location.href = 'customer-dashboard.html';
+                    card.classList.remove('shake');
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
                 }, 500);
             }
         }

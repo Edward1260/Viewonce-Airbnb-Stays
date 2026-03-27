@@ -25,6 +25,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { AiModule } from './ai/ai.module';
 import { TermsAcceptanceModule } from './terms-acceptance/terms-acceptance.module';
 import { UiSettingsModule } from './ui-settings/ui-settings.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { UiSettingsModule } from './ui-settings/ui-settings.module';
     AiModule,
     TermsAcceptanceModule,
     UiSettingsModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

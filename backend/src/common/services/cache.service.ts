@@ -37,10 +37,12 @@ export class CacheService {
    * Clear all cache - implementation depends on cache store
    */
   async reset(): Promise<void> {
-    // For in-memory cache, we can loop through and delete
-    // For Redis, use FLUSHDB or similar
-    // This is a placeholder - actual implementation depends on cache store
-    console.log('Cache reset called');
+    try {
+      await this.cacheManager.reset();
+    } catch (error) {
+      console.error('Failed to reset cache:', error);
+      // Fallback: if reset() is not supported by the store, handle gracefully
+    }
   }
 
   /**
@@ -71,6 +73,13 @@ export class CacheService {
     await this.del(`property:${propertyId}`);
     await this.del('properties:all');
     await this.del('properties:latest');
+    
+    // Note: If using Redis, we would use a wildcard pattern here:
+    // await this.cacheManager.store.keys('properties:public:*')
+    
+    // For standard cache-manager, we clear the main entry points
+    // and rely on the PropertiesService to manage its specific list keys.
+    await this.del('properties:public:{}'); 
   }
 
   /**

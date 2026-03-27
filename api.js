@@ -1,12 +1,28 @@
-// c:\Users\Administrator\Downloads\Viewonce Airbnb Stays\api.js
+ // c:\Users\Administrator\Downloads\Viewonce Airbnb Stays\api.js
 // This file provides a centralized API client for the frontend.
 
-// API Configuration - based on SETUP_DEPLOYMENT.md and APP_UPGRADE_IMPLEMENTATION.md
+/* Supabase Migration - Phase 2 MVP */
+let supabase = window.supabase;
+
+// API Configuration - Supabase + Backend hybrid during migration
 const API_CONFIG = {
-  baseUrl: 'http://localhost:3001/api/v1', // Backend URL from SETUP_DEPLOYMENT.md
-  timeout: 30000, // 30 seconds
-  retries: 0 // Simple implementation, no retries for now
+  baseUrl: 'http://localhost:3001/api/v1', // Backend fallback
+  socketUrl: 'http://localhost:3001',
+  timeout: 30000,
+  retries: 0
 };
+
+function checkSupabase() {
+  if (!supabase) {
+    console.warn('Supabase not loaded. Using backend fallback. Load lib/supabase.js first.');
+    return false;
+  }
+  return true;
+}
+
+let socket = null;
+const propertyRefreshCallbacks = [];
+const typingCallbacks = [];
 
 /**
  * Generic API call function.
@@ -61,7 +77,54 @@ async function apiCall(endpoint, options = {}) {
 
 // Expose API functions globally via window.api
 window.api = {
-  // Authentication
+  // Real-time WebSocket Initialization
+  initRealtime: async () => {
+    if (typeof io === 'undefined') {
+      console.warn('Socket.io client not loaded. Real-time features disabled.');
+      return;
+    }
+
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    socket = io(API_CONFIG.socketUrl, {
+      auth: { token },
+      transports: ['websocket']
+    });
+
+    socket.on('connect', () => console.log('Connected to Realtime Gateway'));
+    
+    // Listen for property updates from backend
+    socket.on('propertyUpdate', (data) => {
+      console.log('Real-time property update received:', data);
+      propertyRefreshCallbacks.forEach(cb => cb(data));
+    });
+
+    socket.on('newMessage', (message) => {
+      console.log('New chat message received:', message);
+      window.dispatchEvent(new CustomEvent('chat:newMessage', { detail: message }));
+    });
+
+    socket.on('bookingUpdate', (data) => {
+      console.log('Real-time booking update:', data);
+      // Trigger global notification or specific UI update if needed
+    });
+
+    socket.on('support:userTyping', (data) => {
+      typingCallbacks.forEach(cb => cb(data));
+    });
+  },
+
+  registerPropertyRefreshCallback: (cb) => propertyRefreshCallbacks.push(cb),
+
+  // Real-time Support Chat Methods
+  joinTicketRoom: (ticketId) => {
+    if (socket) socket.emit('support:joinTicket', { ticketId });
+  },
+  sendTypingStatus: (ticketId, isTyping) => {
+    if (socket) socket.emit('support:typing', { ticketId, isTyping });
+  },
+  onTypingStatus: (cb) => typingCallbacks.push(cb),
+
+  // Authentication - NestJS Auth
   login: (credentials) => apiCall('/auth/login', { method: 'POST', body: credentials }),
   signup: (userData) => apiCall('/auth/signup', { method: 'POST', body: userData }),
   logout: () => apiCall('/auth/logout', { method: 'POST' }),
@@ -69,17 +132,21 @@ window.api = {
 
   // Users
   getUsers: (role) => apiCall(`/users${role ? `?role=${role}` : ''}`),
-  getHosts: () => apiCall('/users?role=host'), // Specific for admin-dashboard.html
+  getHosts: async () => window.api.getUsers('host'),
 
   // Properties
-  getProperties: (filters) => apiCall(`/properties?${new URLSearchParams(filters).toString()}`),
-  getAllProperties: () => apiCall('/properties/admin/all'), // Specific for admin-dashboard.html
-  createProperty: (propertyData) => apiCall('/properties', { method: 'POST', body: propertyData }),
-  updateProperty: (id, propertyData) => apiCall(`/properties/${id}`, { method: 'PUT', body: propertyData }),
+  getProperties: (filters = {}) => {
+    const params = new URLSearchParams(filters).toString();
+    return apiCall(`/properties${params ? `?${params}` : ''}`);
+  },
+  getAllProperties: () => apiCall('/properties'),
+  createProperty: (data) => apiCall('/properties', { method: 'POST', body: data }),
+  updateProperty: (id, data) => apiCall(`/properties/${id}`, { method: 'PATCH', body: data }),
   deleteProperty: (id) => apiCall(`/properties/${id}`, { method: 'DELETE' }),
 
   // Bookings
   getBookings: () => apiCall('/bookings'),
+  getBookingById: (id) => apiCall(`/bookings/${id}`),
   createBooking: (bookingData) => apiCall('/bookings', { method: 'POST', body: bookingData }),
   cancelBooking: (id) => apiCall(`/bookings/${id}/cancel`, { method: 'POST' }),
 
@@ -97,10 +164,20 @@ window.api = {
   rejectPayout: (id, reason) => apiCall(`/payments/admin/payouts/${id}/reject`, { method: 'POST', body: { reason } }), // Placeholder - adjust endpoint if different
   processPayout: (id) => apiCall(`/payments/admin/payouts/${id}/process`, { method: 'POST' }), // Placeholder - adjust endpoint if different
   completePayout: (id) => apiCall(`/payments/admin/payouts/${id}/complete`, { method: 'POST' }), // Placeholder - adjust endpoint if different
+  reschedulePayout: (id) => apiCall(`/admin/payments/payouts/${id}/reschedule`, { method: 'POST' }),
   getAllPayments: () => apiCall('/payments/admin/all'), // Placeholder for all transactions
 
   // AI Chat - This is the core of the request
-  sendAIMessage: (data) => apiCall('/ai/chat', { method: 'POST', body: data }),
+  sendAIMessage: (message, dashboardState = {}) => {
+    const body = {
+      message,
+      context: {
+        ...dashboardState,
+        timestamp: new Date().toISOString()
+      }
+    };
+    return apiCall('/ai/chat', { method: 'POST', body });
+  },
   getAIChatHistory: (userId) => apiCall(`/ai/chat/history?userId=${userId}`), // Placeholder - adjust endpoint if different
   getAIInsights: (filters) => apiCall(`/ai/analytics/insights?${new URLSearchParams(filters).toString()}`),
 
@@ -133,5 +210,15 @@ window.api = {
   getHostInvitationStats: () => apiCall('/properties/host-invitations/stats'),
 
   // Support Stats (placeholder, assuming a dedicated endpoint for support dashboard KPIs)
-  getSupportStats: () => apiCall('/support/stats'), // Placeholder - adjust endpoint if different
+  getSupportStats: () => apiCall('/support/stats'),
+  getSupportTickets: (filters = {}) => apiCall(`/support/tickets?${new URLSearchParams(filters).toString()}`),
+  getSupportTicket: (id) => apiCall(`/support/tickets/${id}`),
+  getTickets: (filters = {}) => apiCall(`/support/tickets?${new URLSearchParams(filters).toString()}`),
+  updateTicket: (id, data) => apiCall(`/support/tickets/${id}`, { method: 'PUT', body: data }),
+  
+  // Support: Update Host Phone (for B2C security)
+  updateHostPhone: (hostId, phone) => 
+    apiCall(`/support/hosts/${hostId}/phone`, { method: 'PUT', body: { phone } }),
+
+  addSupportComment: (id, data) => apiCall(`/support/tickets/${id}/comments`, { method: 'POST', body: data }),
 };

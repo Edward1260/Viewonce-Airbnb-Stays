@@ -8,6 +8,7 @@
     <script src="config-fixed.js"></script>
     <script src="store.js"></script>
     <script src="api.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="router.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#CC9AA1">
@@ -808,6 +809,32 @@
         </footer>
     </div>
 
+    <!-- AI Chat Widget - Context Aware -->
+    <div class="ai-chat-widget">
+        <div class="ai-chat-window" id="dashboardAiWindow">
+            <div class="ai-chat-header">
+                <span class="font-bold"><i class="fas fa-magic mr-2"></i>Assistant</span>
+                <button onclick="toggleAIChat()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="ai-chat-messages" id="dashboardAiMessages">
+                <div class="ai-message ai-message-bot">
+                    Hello! I'm your ViewOnce assistant. I can see your current filters. Ask me anything!
+                </div>
+            </div>
+            <div class="ai-chat-input">
+                <input type="text" id="dashboardAiInput" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendDashboardAiMessage()">
+                <button onclick="sendDashboardAiMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+        <button class="ai-chat-toggle" onclick="toggleAIChat()">
+            <i class="fas fa-robot"></i>
+        </button>
+    </div>
+
     <!-- PREMIUM MODAL -->
     <div id="premiumModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50 p-4">
         <div class="modal-glass p-6 w-full max-w-lg">
@@ -872,6 +899,15 @@
         let maxPrice = 50000;
         let selectedAmenities = [];
 
+        // Debounce utility for fast response
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
         // Sidebar Functions
         function toggleSidebar() {
             document.getElementById('sidebar').classList.add('active');
@@ -905,6 +941,14 @@
             loadUserBookings();
             loadUserReviews();
             updateAnalytics();
+            
+            // Initialize Real-time WebSockets
+            if (window.api && window.api.initRealtime) {
+                window.api.initRealtime();
+                window.api.registerPropertyRefreshCallback(() => {
+                    loadFeaturedProperties(); // Refresh UI when notified
+                });
+            }
         }
 
         // Filter Functions
@@ -944,11 +988,11 @@
             loadFeaturedProperties();
         }
 
-        function updatePrice(value) {
+        const updatePrice = debounce((value) => {
             maxPrice = value;
             document.getElementById('priceValue').textContent = parseInt(value).toLocaleString();
             loadFeaturedProperties();
-        }
+        }, 300);
 
         function toggleAmenity(amenity, element) {
             if (selectedAmenities.includes(amenity)) {
@@ -1186,8 +1230,55 @@
 
         // AI Chat Toggle Function
         function toggleAIChat() {
-            // Navigate to AI chat page
-            window.location.href = 'ai-chat.html';
+            const aiWindow = document.getElementById('dashboardAiWindow');
+            aiWindow.classList.toggle('show');
+        }
+
+        async function sendDashboardAiMessage() {
+            const input = document.getElementById('dashboardAiInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const container = document.getElementById('dashboardAiMessages');
+            
+            // User Message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'ai-message ai-message-user';
+            userMsg.textContent = message;
+            container.appendChild(userMsg);
+            
+            input.value = '';
+            container.scrollTop = container.scrollHeight;
+
+            try {
+                // Typing Indicator
+                const typing = document.createElement('div');
+                typing.className = 'ai-message ai-message-bot';
+                typing.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>AI is thinking...';
+                container.appendChild(typing);
+                container.scrollTop = container.scrollHeight;
+
+                // Dashboard Context: Automatically capture current UI state
+                const context = {
+                    currentCity: currentCity || 'Nairobi',
+                    maxPrice: maxPrice,
+                    propertyType: currentPropertyType,
+                    activeFilter: currentPropertyFilter
+                };
+
+                const response = await api.sendAIMessage(message, context);
+                
+                container.removeChild(typing);
+
+                const botMsg = document.createElement('div');
+                botMsg.className = 'ai-message ai-message-bot';
+                const msgText = response.data?.response?.message || response.data?.message || response.message || "I'm sorry, I couldn't process that.";
+                botMsg.innerHTML = msgText.replace(/\n/g, '<br>');
+                container.appendChild(botMsg);
+            } catch (err) {
+                console.error('AI error:', err);
+            }
+            container.scrollTop = container.scrollHeight;
         }
 
         // Theme Toggle Functions

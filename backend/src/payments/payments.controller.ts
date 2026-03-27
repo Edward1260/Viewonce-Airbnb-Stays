@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, Headers, RawBodyRequest, HttpCode } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../entities/user.entity';
 import { PaymentsService } from './payments.service';
+import { MpesaIpGuard } from './mpesa-ip.guard';
+import { Public } from '../auth/public.decorator';
 
 @Controller('payments')
 @UseGuards(JwtAuthGuard)
@@ -44,6 +47,22 @@ export class PaymentsController {
   @Get('card/verify/:paymentId')
   async verifyCardPayment(@Param('paymentId') paymentId: string) {
     return this.paymentsService.verifyCardPayment(paymentId);
+  }
+
+  // Stripe Webhook (Public)
+  @Post('stripe/webhook')
+  @Public()
+  /* 
+   * Allow 100 requests per minute from Stripe IPs. 
+   * Stripe retries can be frequent during outages.
+   */
+  @Throttle({ default: { limit: 100, ttl: 60000 } })
+  @Roles(UserRole.CUSTOMER, UserRole.HOST, UserRole.ADMIN, UserRole.SUPPORT) // Or a @Public() decorator if available
+  async stripeWebhook(
+    @Headers('stripe-signature') signature: string,
+    @Request() req: RawBodyRequest<Request>,
+  ) {
+    return this.paymentsService.handleStripeWebhook(signature, req.rawBody);
   }
 
   // ==================== PAYPAL ====================
@@ -113,6 +132,47 @@ export class PaymentsController {
   @Post('mpesa/verify')
   async verifyMpesaPayment(@Body() body: { paymentId: string }) {
     return this.paymentsService.verifyMpesaPayment(body.paymentId);
+  }
+
+  // M-Pesa Callback (Public endpoint)
+  @Post('mpesa/callback')
+  @Public()
+  /*
+   * M-Pesa callbacks are high-priority. 
+   * We allow a burst but strictly limit per IP (which should be Safaricom's).
+   */
+  @Throttle({ default: { limit: 50, ttl: 60000 } })
+  @HttpCode(202) // Return 202 Accepted for async processing
+  @UseGuards(MpesaIpGuard)
+  async mpesaCallback(@Body() body: any) {
+    return this.paymentsService.handleMpesaCallback(body);
+  }
+
+  // M-Pesa Balance Callback (Public endpoint)
+  @Post('mpesa/balance-callback')
+  @Public()
+  @HttpCode(202) // Return 202 Accepted for async processing
+  @UseGuards(MpesaIpGuard)
+  async mpesaBalanceCallback(@Body() body: any) {
+    return this.paymentsService.handleBalanceCallback(body);
+  }
+
+  // M-Pesa B2C Callback (Public endpoint)
+  @Post('mpesa/b2c-callback')
+  @Public()
+  @HttpCode(202) // Return 202 Accepted for async processing
+  @UseGuards(MpesaIpGuard)
+  async mpesaB2cCallback(@Body() body: any) {
+    return this.paymentsService.handleB2cPayoutCallback(body);
+  }
+
+  // M-Pesa B2C Timeout Callback (Public endpoint)
+  @Post('mpesa/b2c-timeout')
+  @Public()
+  @HttpCode(202) // Return 202 Accepted for async processing
+  @UseGuards(MpesaIpGuard)
+  async mpesaB2cTimeout(@Body() body: any) {
+    return this.paymentsService.handleB2cTimeoutCallback(body);
   }
 
   // ==================== PAYMENT HISTORY & METHODS ====================
@@ -244,6 +304,32 @@ export class PaymentsController {
   }
 }
 
+// Platform Master Hub Controller (Highest Authority)
+@Controller('platform-master-hub')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.PLATFORM_MASTER_HUB)
+export class PlatformMasterHubController {
+  constructor(private readonly paymentsService: PaymentsService) {}
+
+  // Global Financial Overview (Commission vs Subscriptions)
+  @Get('finance/stats')
+  async getMasterFinancialStats(@Query() query: { startDate?: string; endDate?: string }) {
+    return this.paymentsService.getMasterFinancialStats(query);
+  }
+
+  // System Float Management (Sensitive Config)
+  @Get('mpesa/balance')
+  async checkMpesaBalance() {
+    return this.paymentsService.checkAccountBalance();
+  }
+
+  // Comprehensive Audit Logs are usually handled here too
+  @Get('system/health')
+  async getSystemHealth() {
+    return { status: 'operational', timestamp: new Date() };
+  }
+}
+
 // Admin Payments Controller
 @Controller('admin/payments')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -263,6 +349,24 @@ export class AdminPaymentsController {
   @Get(':paymentId')
   async getPaymentById(@Param('paymentId') paymentId: string) {
     return this.paymentsService.getPaymentById(paymentId);
+  }
+
+  // Retry Failed Payout
+  @Post('payouts/:payoutId/retry')
+  async retryPayout(@Param('payoutId') payoutId: string) {
+    return this.paymentsService.retryB2cPayout(payoutId);
+  }
+
+  // Reschedule Failed Payout (Reset retry count)
+  @Post('payouts/:payoutId/reschedule')
+  async reschedulePayout(@Param('payoutId') payoutId: string) {
+    return this.paymentsService.reschedulePayout(payoutId);
+  }
+
+  // Approve Host Phone Update (Checker)
+  @Post('hosts/:userId/approve-phone')
+  async approvePhoneUpdate(@Param('userId') userId: string, @Request() req: any) {
+    return this.paymentsService.approveHostPhoneUpdate(userId, req.user.id);
   }
 
   // Verify Payment

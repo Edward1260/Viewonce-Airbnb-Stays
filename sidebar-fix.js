@@ -1,5 +1,5 @@
 ```javascript
-// Admin & Host Dashboard Sidebar Fix - ENHANCED VERSION
+// Admin & Host Dashboard Sidebar Fix - PRODUCTION VERSION
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🛠️ Sidebar Fix: Initializing sidebar navigation...');
   
@@ -28,10 +28,34 @@ document.addEventListener('DOMContentLoaded', function() {
     closeBtn.addEventListener('click', window.closeSidebar);
   }
 
+  // Function to inject a "Back to Dashboard" button for sub-pages
+  function injectBackButton(container) {
+    if (!container || container.id === 'dashboard' || container.id === 'dashboardPage') return;
+    
+    let backBtn = container.querySelector('.back-to-dashboard-btn');
+    if (!backBtn) {
+      backBtn = document.createElement('button');
+      backBtn.className = 'back-to-dashboard-btn mb-4 flex items-center text-sm font-medium text-gray-500 hover:text-black transition-all transform hover:-translate-x-1';
+      backBtn.innerHTML = '<i class="fas fa-arrow-left mr-2"></i> Back to Dashboard';
+      backBtn.onclick = () => window.navigateTo('dashboard');
+      container.insertBefore(backBtn, container.firstChild);
+    }
+  }
+
+  // Clean up duplicate elements (addressed in TODO_admin_dashboard_fix.md)
+  function cleanupDuplicates() {
+    try {
+      const sidebars = document.querySelectorAll('#sidebar');
+      if (sidebars.length > 1) {
+        for (let i = 1; i < sidebars.length; i++) sidebars[i].remove();
+      }
+    } catch (e) { console.warn('Cleanup skipped:', e); }
+  }
+
   // 1. Fallback for navigateTo if it's missing or broken in admin-functions.js
   // This fixes Step 3 & 4 in TODO.md (Selector mismatch & Page ID handling)
   if (typeof window.navigateTo !== 'function') {
-    console.warn('⚠️ navigateTo function not found. Defining robust fallback.');
+    console.log('ℹ️ Navigation Engine: Initializing fallback...');
     
     window.navigateTo = function(pageId, element) {
       console.log(`Navigate to: ${pageId}`);
@@ -62,19 +86,48 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target) {
           target.style.display = 'block';
           console.log(`✅ Showing page: #${id}`);
+          
+          // Automatically inject Back button and scroll to top
+          injectBackButton(target);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
           found = true;
           break;
         }
       }
       
       if (!found) {
-        console.error(`❌ Target page not found for: ${pageId}. Checked IDs: ${targetIds.join(', ')}`);
+        console.warn(`❌ Page [${pageId}] not found. Redirecting to Dashboard.`);
         // Fallback: show dashboard if target not found
         const dashboard = document.getElementById('dashboard');
         if (dashboard) dashboard.style.display = 'block';
       }
+
+      // Update Main Header Title
+      const headerTitle = document.querySelector('header h1, #mainPageTitle');
+      if (headerTitle) {
+        headerTitle.textContent = pageId.charAt(0).toUpperCase() + pageId.slice(1).replace('-', ' ');
+      }
     };
   }
+
+  // Safe Initializer with Catch Blocks (Fixing Step 1 in TODO_admin_dashboard_fix.md)
+  async function safeInit(fnName) {
+    if (typeof window[fnName] === 'function') {
+      try {
+        await windowfnName;
+        console.log(`✅ ${fnName} initialized`);
+      } catch (error) {
+        console.error(`❌ ${fnName} failed:`, error);
+      }
+    }
+  }
+
+  // Run Cleanup and Feature Updates
+  cleanupDuplicates();
+  safeInit('initializePayoutsManagement');
+  safeInit('loadAdminStats');
+  safeInit('initActivityMap');
 
   // Add click handlers to ALL sidebar navigation items
   // Fixes Step 2 in TODO.md (Add onclick handlers)

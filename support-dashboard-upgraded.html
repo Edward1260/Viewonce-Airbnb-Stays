@@ -1782,12 +1782,13 @@
         let chatSessions = [];
         let currentChatId = null;
         let charts = {};
+        let activeTicketId = null; // Track active ticket for AI context
 
         // Initialize on load
         document.addEventListener('DOMContentLoaded', function() {
             // Check authentication
             if (!checkAuth()) {
-                window.location.href = 'login-signup.html';
+                window.location.href = 'auth.html';
                 return;
             }
 
@@ -1882,13 +1883,17 @@
             document.querySelector(`.nav-item-3d[data-page="${page}"]`)?.classList.add('active');
 
             // Show selected page - convert hyphenated names to camelCase
-            // e.g., "ai-assistant" -> "aiAssistantPage", "knowledge-base" -> "knowledgeBasePage"
-            let pageId = page.split('-').map((word, i) => i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)).join('') + 'Page';
+            const pageMap = {
+                'overview': 'overviewPage',
+                'tickets': 'ticketsPage',
+                'live-chat': 'liveChatPage',
+                'ai-assistant': 'aiAssistantPage',
+                'knowledge-base': 'knowledgeBasePage',
+                'analytics': 'analyticsPage',
+                'settings': 'settingsPage'
+            };
             
-            // Manual mapping for specific naming inconsistencies
-            if (page === 'live-chat') pageId = 'liveChatPage';
-            
-            console.log('Looking for element with id:', pageId);
+            let pageId = pageMap[page] || (page + 'Page');
             const pageElement = document.getElementById(pageId);
             console.log('Page element found:', !!pageElement);
             
@@ -1923,27 +1928,24 @@
         // Load KPI data from API - FIXED: Better error handling + real stats
         async function loadKPIData() {
             try {
-                let stats = {
-                    activeTickets: 0,
-                    resolutionRate: 89,
-                    avgResponseTime: 24,
-                    satisfaction: 4.8
-                };
+                // Show loading placeholders
+                document.getElementById('activeTicketsCount').innerHTML = '<span class="text-sm">...</span>';
+                document.getElementById('resolutionRate').innerHTML = '<span class="text-sm">...</span>';
 
+                let stats = { activeTickets: 0, resolutionRate: 89, avgResponseTime: 24, satisfaction: 4.8 };
+
+                // Real-time integration with Support & Analytics API
                 if (window.api && checkAuth()) {
                     try {
-                        const [bookingsRes, supportStatsRes] = await Promise.all([
-                            window.api.getBookings(),
-                            window.api.getSupportStats?.() || Promise.resolve({}) // Optional support endpoint
+                        const [supportStats, analytics] = await Promise.all([
+                            api.getSupportStats().catch(() => ({})),
+                            api.apiCall('/analytics/dashboard').catch(() => ({}))
                         ]);
-                        
-                        const bookings = bookingsRes?.data || bookingsRes || [];
-                        const supportStats = supportStatsRes?.data || {};
-                        
-                        stats.activeTickets = supportStats.activeTickets || bookings.filter(b => b.status === 'active' || !b.status).length;
-                        stats.resolutionRate = supportStats.resolutionRate || 89;
-                        stats.avgResponseTime = supportStats.avgResponseTime || 24;
-                        stats.satisfaction = (supportStats.satisfaction || 4.8).toFixed(1);
+
+                        stats.activeTickets = supportStats.activeCount || analytics.activeSupportTickets || 0;
+                        stats.resolutionRate = analytics.supportResolutionRate || 89;
+                        stats.avgResponseTime = analytics.averageResponseTime || 24;
+                        stats.satisfaction = (analytics.customerSatisfactionScore || 4.8).toFixed(1);
                         
                     } catch (apiError) {
                         console.warn('Support API unavailable, using booking proxy:', apiError);
@@ -1974,21 +1976,8 @@
                 const container = document.getElementById('recentTicketsList');
                 let tickets = [];
 
-                if (window.api) {
-                    try {
-                        const bookings = await api.getBookings();
-                        tickets = (bookings?.data || bookings || []).slice(0, 5).map(b => ({
-                            id: b.id || 'N/A',
-                            subject: b.propertyTitle || b.property?.title || 'Booking Inquiry',
-                            customer: b.customerName || b.user?.name || 'Customer',
-                            status: b.status || 'open',
-                            priority: 'medium',
-                            createdAt: b.createdAt || new Date().toISOString()
-                        }));
-                    } catch (e) {
-                        console.log('Could not fetch tickets from API');
-                    }
-                }
+                const response = await window.api.getSupportTickets({ limit: 5 });
+                tickets = Array.isArray(response) ? response : (response.data || []);
 
                 // If no tickets from API, show empty state
                 if (tickets.length === 0) {
@@ -2309,13 +2298,16 @@
                 let response = '';
                 
                 if (window.api?.sendAIMessage) {
-                    const aiResponse = await window.api.sendAIMessage({
-                        message: userQuery,
-                        context: 'support_dashboard',
+                    // Enhanced contextual call matching centralized api.js logic
+                    const context = {
+                        view: 'support_dashboard',
+                        activeTicketId: activeTicketId,
+                        currentPage: currentPage,
                         userRole: JSON.parse(localStorage.getItem('user') || '{}').role || 'support'
-                    });
+                    };
                     
-                    response = aiResponse.message || aiResponse.response || aiResponse;
+                    const responseData = await window.api.sendAIMessage(userQuery, context);
+                    response = responseData.data?.response?.message || responseData.data?.message || responseData.message || responseData;
                 } else {
                     throw new Error('AI API not available');
                 }
@@ -2397,14 +2389,181 @@
             }, 5000);
         }
 
-        // Action functions
-        function createNewTicket() {
-            showToast('Opening new ticket form...', 'info');
+        /**
+         * View Ticket Details & Chat
+         */
+        async function viewTicket(id) {
+            try {
+                const ticket = await window.api.getSupportTicket(id);
+                activeTicketId = id; // Set context for AI interactions
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                
+                // Join the real-time room for this ticket
+                window.api.joinTicketRoom(id);
+                
+                // Create Modal if it doesn't exist
+                let modal = document.getElementById('ticketDetailModal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'ticketDetailModal';
+                    modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm';
+                    document.body.appendChild(modal);
+                }
+
+                modal.innerHTML = `
+                    <div class="frosted-glass w-full max-w-5xl p-6 shadow-2xl flex flex-col md:flex-row gap-6">
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 class="text-2xl font-bold text-white">${ticket.subject}</h3>
+                                    <p class="text-gray-400 text-sm">Ticket ID: #${ticket.id.slice(-8)} | Status: ${ticket.status}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="aiSummarizeTicket('${ticket.id}')" class="text-xs bg-purple-500/20 text-purple-400 px-3 py-1 rounded-lg border border-purple-500/30 hover:bg-purple-500/40 transition-all">
+                                        <i class="fas fa-magic mr-1"></i> AI Summarize
+                                    </button>
+                                    <button onclick="closeTicketModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+                                </div>
+                            </div>
+                            
+                            <div class="comment-thread mb-6 overflow-y-auto" style="max-height: 400px;" id="commentThread">
+                                <div class="comment-bubble comment-customer mb-4">
+                                    <p class="text-xs font-bold text-purple-400 mb-1">Original Issue</p>
+                                    ${ticket.description}
+                                </div>
+                                ${renderComments(ticket.comments, user.id)}
+                            </div>
+
+                            <div id="typingIndicator" class="hidden mb-4 ml-2">
+                                <p class="text-[10px] text-gray-400 italic">
+                                    Someone is typing
+                                    <span class="typing-indicator-dot"></span>
+                                    <span class="typing-indicator-dot" style="animation-delay: 0.2s"></span>
+                                    <span class="typing-indicator-dot" style="animation-delay: 0.4s"></span>
+                                </p>
+                            </div>
+
+                            <div class="space-y-4 pt-4 border-t border-white/10">
+                                <textarea id="replyContent" class="glass-input w-full h-24" placeholder="Type your response..."></textarea>
+                                <div class="flex justify-between items-center">
+                                    <label class="flex items-center text-sm text-gray-400 cursor-pointer">
+                                        <input type="checkbox" id="isInternal" class="mr-2"> Internal Note (Private)
+                                    </label>
+                                    <button class="btn-gradient" onclick="submitComment('${ticket.id}')">Post Response</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Side Panel -->
+                        <div id="aiSummaryPanel" class="w-full md:w-80 border-t md:border-t-0 md:border-l border-white/10 pt-6 md:pt-0 md:pl-6 hidden">
+                            <h4 class="text-lg font-bold text-purple-400 mb-4 flex items-center">
+                                <i class="fas fa-robot mr-2"></i> AI Assistant Summary
+                            </h4>
+                            <div id="aiSummaryContent" class="text-xs text-gray-300 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/10 max-h-[500px] overflow-y-auto">
+                                Click "AI Summarize" to analyze this ticket.
+                            </div>
+                        </div>
+                    </div>
+                `;
+                modal.style.display = 'flex';
+                const thread = document.getElementById('commentThread');
+                thread.scrollTop = thread.scrollHeight;
+
+                // Set up Typing Emitter
+                const replyInput = document.getElementById('replyContent');
+                let typingTimeout;
+                replyInput.addEventListener('input', () => {
+                    window.api.sendTypingStatus(id, true);
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        window.api.sendTypingStatus(id, false);
+                    }, 3000);
+                });
+
+                // Set up Typing Listener
+                window.api.onTypingStatus((data) => {
+                    if (data.ticketId === id) {
+                        const indicator = document.getElementById('typingIndicator');
+                        if (indicator) {
+                            // Don't show indicator if the "typer" is the current user
+                            if (data.userId !== user.id) {
+                                indicator.classList.toggle('hidden', !data.isTyping);
+                                thread.scrollTop = thread.scrollHeight;
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                showToast('Failed to load ticket details', 'error');
+            }
         }
 
-        function viewTicket(id) {
-            // Create or show ticket detail modal
-            let modal = document.getElementById('ticketDetailModal');
+        function closeTicketModal() {
+            const modal = document.getElementById('ticketDetailModal');
+            if (modal) modal.remove();
+            activeTicketId = null; // Clear AI context
+        }
+
+        async function aiSummarizeTicket(id) {
+            const panel = document.getElementById('aiSummaryPanel');
+            const content = document.getElementById('aiSummaryContent');
+            
+            panel.classList.remove('hidden');
+            content.innerHTML = '<div class="flex items-center gap-2 text-purple-400"><i class="fas fa-spinner fa-spin"></i> Generating summary...</div>';
+            
+            try {
+                const context = {
+                    view: 'support_dashboard',
+                    activeTicketId: id,
+                    userRole: JSON.parse(localStorage.getItem('user') || '{}').role || 'support'
+                };
+                
+                const responseData = await window.api.sendAIMessage(`Please provide a concise summary of this ticket.`, context);
+                const summary = responseData.data?.response?.message || responseData.data?.message || responseData.message || "Failed to generate summary.";
+                
+                content.innerHTML = summary.replace(/\n/g, '<br>');
+            } catch (err) {
+                console.error('AI summarization failed:', err);
+                content.innerHTML = '<span class="text-red-400">AI service unavailable.</span>';
+            }
+        }
+
+        function renderComments(comments, currentUserId) {
+            if (!comments || comments.length === 0) return '';
+            return comments.map(c => {
+                const isAgent = c.author?.role !== 'customer';
+                const typeClass = c.isInternal ? 'comment-internal' : (isAgent ? 'comment-agent' : 'comment-customer');
+                const authorName = c.author ? `${c.author.firstName} ${c.author.lastName}` : 'Unknown';
+                
+                return `
+                    <div class="comment-bubble ${typeClass}">
+                        <div class="flex justify-between items-center mb-1 gap-4">
+                            <span class="text-[10px] font-bold uppercase tracking-wider ${c.isInternal ? 'text-yellow-500' : 'text-gray-400'}">
+                                ${c.isInternal ? 'INTERNAL NOTE' : authorName}
+                            </span>
+                            <span class="text-[10px] text-gray-500">${formatDate(c.createdAt)}</span>
+                        </div>
+                        ${c.content}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function submitComment(ticketId) {
+            const content = document.getElementById('replyContent').value;
+            const isInternal = document.getElementById('isInternal').checked;
+            
+            if (!content.trim()) return;
+
+            try {
+                await window.api.addSupportComment(ticketId, { content, isInternal });
+                showToast('Comment posted', 'success');
+                viewTicket(ticketId); // Refresh
+            } catch (error) {
+                showToast('Failed to post comment', 'error');
+            }
+        }
 
         function selectChat(id) {
             currentChatId = id;

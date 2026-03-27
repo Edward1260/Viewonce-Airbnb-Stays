@@ -6,7 +6,8 @@ export enum TransactionType {
   PAYMENT = 'payment',
   REFUND = 'refund',
   COMMISSION = 'commission',
-  PAYOUT = 'payout'
+  PAYOUT = 'payout',
+  SUBSCRIPTION = 'subscription'
 }
 
 export enum TransactionStatus {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ViewOnce Airbnb - Redirecting...</title>
+    <title>ViewOnce | Luxury Stays</title>
     <meta http-equiv="refresh" content="0; url=welcome.html">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
@@ -13,10 +13,9 @@
 </head>
 <body>
     <script>
-        // Instant redirect fallback
+        // Ensuring welcome.html is the first experience for all visitors.
         window.location.replace('welcome.html');
         
-        // Preserve PWA if needed
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').catch(() => {});
         }

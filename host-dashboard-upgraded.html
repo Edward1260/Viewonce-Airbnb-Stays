@@ -846,6 +846,7 @@
             // Basic validation
             if (!validateCurrentStep()) return;
             
+            if (wizardState.currentStep === 7) calculateAIScore();
             showStep(wizardState.currentStep + 1);
         } else {
             // Final step - submit

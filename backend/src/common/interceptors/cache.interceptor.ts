@@ -1,6 +1,6 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject } from '@nestjs/common';
-import { Observable, of, from } from 'rxjs';
-import { tap, switchMap } from 'rxjs/operators';
+import { Observable, from } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Reflector } from '@nestjs/core';
 import { CACHE_KEY_METADATA, CACHE_TTL_METADATA, CACHE_SKIP_METADATA } from '../decorators/cache.decorator';

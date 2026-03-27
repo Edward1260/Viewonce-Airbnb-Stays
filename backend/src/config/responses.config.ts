@@ -1,4 +1,30 @@
+export enum AiIntent {
+  GREETING = 'greeting',
+  SEARCH = 'search',
+  BOOKING_HELP = 'booking_help',
+  COMPLAINT = 'complaint',
+  GENERAL = 'general',
+}
+
+export const intentMap: { [key: string]: AiIntent } = {
+  'hello': AiIntent.GREETING,
+  'hi': AiIntent.GREETING,
+  'hey': AiIntent.GREETING,
+  'find': AiIntent.SEARCH,
+  'search': AiIntent.SEARCH,
+  'look': AiIntent.SEARCH,
+  'book': AiIntent.BOOKING_HELP,
+  'cancel': AiIntent.BOOKING_HELP,
+  'angry': AiIntent.COMPLAINT,
+  'bad': AiIntent.COMPLAINT,
+  'expensive': AiIntent.COMPLAINT,
+};
+
 export const responseMap: { [key: string]: string[] } = {
+  'greeting': [
+    'Hello! I am your ViewOnce personal assistant. How can I make your stay in Kenya amazing today?',
+    'Hi there! Looking for a perfect getaway or need help with a booking?',
+  ],
   'check-in': [
     'Check-in is flexible! You can arrive anytime after 3 PM. For early check-in (before 12 PM), there\'s a small fee of Ksh 2,000. Just let me know your preferred time.',
   ],
@@ -73,13 +99,29 @@ export const responseMap: { [key: string]: string[] } = {
   ],
 };
 
-export const defaultResponses = [
-  'That\'s a great question! Let me help you with that.',
-  'I\'d be happy to provide more details about the property.',
-  'Is there anything specific you\'d like to know about your stay?',
-  'Feel free to ask me anything about the property or the area!',
-  'I\'m here to make sure you have an amazing stay. What else can I help with?',
-  'Thanks for your question! The property has everything you need for a comfortable stay.',
-  'I love hosting guests from all over. What brings you to the area?',
-  'The property is perfect for your needs. Would you like me to check availability for your dates?',
-];
+/**
+ * Find the best response based on keywords in the user input.
+ */
+/**
+ * Advanced Response Generator
+ */
+export const getAIResponse = (input: string, context?: any): string => {
+  const lowerInput = input.toLowerCase();
+  let detectedIntent = AiIntent.GENERAL;
+
+  for (const [key, intent] of Object.entries(intentMap)) {
+    if (lowerInput.includes(key)) {
+      detectedIntent = intent;
+      break;
+    }
+  }
+
+  if (detectedIntent === AiIntent.GREETING && context?.user?.firstName) {
+    return `Welcome back, ${context.user.firstName}! Ready to explore more of ${context?.user?.location || 'Kenya'}?`;
+  }
+
+  const options = responseMap[detectedIntent] || responseMap['general'];
+  const baseResponse = options ? options[Math.floor(Math.random() * options.length)] : 'How can I help?';
+  
+  return baseResponse;
+};

@@ -9,6 +9,7 @@ async function bootstrap() {
 
   // Global pipes & middleware
   app.use(helmet());
+  app.setGlobalPrefix('api/v1');
   app.enableCors({
     origin: true, // Reflects the request origin (fixes '*' + credentials issue)
     credentials: true,

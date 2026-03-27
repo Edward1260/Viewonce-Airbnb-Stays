@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -6,15 +6,36 @@ import { Cache } from 'cache-manager';
 import { Property } from '../entities/property.entity';
 import { PropertyStatus } from '../entities/property.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CacheService } from '../common/services/cache.service';
 
 @Injectable()
-export class PropertiesService {
+export class PropertiesService implements OnModuleInit {
+  private readonly logger = new Logger(PropertiesService.name);
+
   constructor(
     @InjectRepository(Property)
     private propertyRepository: Repository<Property>,
     private notificationsService: NotificationsService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private cacheService: CacheService,
   ) {}
+
+  async onModuleInit() {
+    this.logger.log('Starting cache warm-up for popular locations...');
+    const popularLocations = ['Nairobi', 'Mombasa']; // Define popular locations
+
+    for (const location of popularLocations) {
+      try {
+        // Call findAll with location filter to pre-populate cache
+        // Use a reasonable limit and page for initial warm-up
+        await this.findAll({ location, limit: 10, page: 1 });
+        this.logger.log(`Cache warmed up for properties in ${location}`);
+      } catch (error) {
+        this.logger.error(`Failed to warm up cache for ${location}: ${error.message}`);
+      }
+    }
+    this.logger.log('Cache warm-up complete.');
+  }
 
   // =========================
   // CUSTOMER / PUBLIC VIEW
@@ -251,7 +272,7 @@ export class PropertiesService {
       const fullProperty = await this.findOne(savedProperty.id);
 
       // Clear all property caches when a new property is created
-      await this.clearPropertyCaches();
+      await this.clearPropertyCaches(savedProperty.id);
 
       // Send notification to admins about new property creation
       try {
@@ -276,7 +297,7 @@ export class PropertiesService {
     await this.propertyRepository.update(id, propertyData);
 
     // Clear all property caches when a property is updated
-    await this.clearPropertyCaches();
+    await this.clearPropertyCaches(id);
 
     return this.findOne(id);
   }
@@ -290,26 +311,19 @@ export class PropertiesService {
     }
 
     // Clear all property caches when a property is deleted
-    await this.clearPropertyCaches();
+    await this.clearPropertyCaches(id);
   }
 
   // =========================
   // CACHE MANAGEMENT
   // =========================
-  private async clearPropertyCaches(): Promise<void> {
+  private async clearPropertyCaches(propertyId?: string): Promise<void> {
     try {
-      // Note: In a production environment with Redis, use SCAN or KEYS.
-      // Since cache-manager doesn't support wildcards easily, we clear specific keys.
-      // Ideally, implement a cache tag or versioning strategy.
-      try {
-        // Clear default public search cache
-        await this.cacheManager.del('properties:public:{}');
-      } catch (error) {
-        // Ignore errors for non-existent keys
+      if (propertyId) {
+        await this.cacheService.invalidatePropertyCache(propertyId);
       }
-      // In standard cache-manager, we clear the whole store for safety 
-      // if specific keys cannot be determined.
-      await this.cacheManager.reset();
+      // Specifically clear the default public list which is the most common entry point
+      await this.cacheService.del('properties:public:{}');
     } catch (error) {
       console.error('Failed to clear property caches:', error);
     }

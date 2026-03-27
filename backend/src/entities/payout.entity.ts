@@ -6,6 +6,7 @@ export enum PayoutStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   COMPLETED = 'completed',
+  FAILED = 'failed',
   CANCELLED = 'cancelled',
   DISPUTED = 'disputed'
 }
@@ -40,6 +41,12 @@ export class Payout {
 
   @Column({ default: PayoutStatus.PENDING })
   status: string;
+
+  @Column({ nullable: true })
+  jobId: string; // To link with BullMQ job for tracking
+
+  @Column({ default: 0 })
+  retryCount: number;
 
   @Column({ type: 'text', nullable: true })
   notes: string;

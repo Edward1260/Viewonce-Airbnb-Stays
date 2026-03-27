@@ -101,6 +101,8 @@ function renderPayoutsTable() {
                 <button class="btn-view" onclick="viewPayoutDetails('${payout.id}')">View</button>
                 ${payout.status === 'pending' ? `<button class="btn-approve" onclick="approvePayout('${payout.id}')">Approve</button>` : ''}
                 ${payout.status === 'approved' ? `<button class="btn-complete" onclick="completePayout('${payout.id}')">Complete</button>` : ''}
+                ${payout.status === 'failed' ? `<button class="btn-reschedule" onclick="reschedulePayout('${payout.id}')">Reschedule</button>` : ''}
+                ${payout.status === 'failed' ? `<button class="btn-retry" onclick="retryPayout('${payout.id}')">Retry Now</button>` : ''}
                 ${payout.status !== 'completed' && payout.status !== 'cancelled' ? `<button class="btn-cancel" onclick="cancelPayout('${payout.id}')">Cancel</button>` : ''}
                 ${payout.status !== 'completed' && payout.status !== 'cancelled' ? `<button class="btn-dispute" onclick="disputePayout('${payout.id}')">Dispute</button>` : ''}
             </div>
@@ -146,7 +148,7 @@ async function viewPayoutDetails(payoutId) {
                     <div class="detail-value">Ksh ${payout.amount?.toLocaleString()}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Commission (10%)</div>
+                    <div class="detail-label">Commission (8%)</div>
                     <div class="detail-value">Ksh ${payout.commission?.toLocaleString()}</div>
                 </div>
                 <div class="detail-item">
@@ -235,6 +237,31 @@ async function completePayout(payoutId) {
     } catch (error) {
         console.error('Failed to complete payout:', error);
         alert('Failed to complete payout');
+    }
+}
+
+async function retryPayout(payoutId) {
+    if (!confirm('Attempt an immediate M-Pesa B2C retry?')) return;
+    try {
+        const result = await api.retryPayout(payoutId);
+        alert(result.message || 'Retry initiated.');
+        await initializePayoutsManagement();
+    } catch (error) {
+        console.error('Retry failed:', error);
+        alert('Retry failed: ' + error.message);
+    }
+}
+
+async function reschedulePayout(payoutId) {
+    if (!confirm('Reschedule this payout? This resets the auto-retry counter.')) return;
+    try {
+        const result = await api.reschedulePayout(payoutId);
+        alert(result.message || 'Payout rescheduled.');
+        await initializePayoutsManagement();
+        closePayoutPanel();
+    } catch (error) {
+        console.error('Failed to reschedule:', error);
+        alert('Reschedule failed: ' + error.message);
     }
 }
 

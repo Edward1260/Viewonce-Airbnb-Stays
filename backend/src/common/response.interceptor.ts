@@ -10,15 +10,11 @@ export class ResponseInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       map(data => {
-        // Don't wrap auth responses
-        if (url.startsWith('/api/auth')) {
-          return data;
-        }
-
         return {
           success: true,
-          data,
+          data: data || {},
           message: 'Request successful',
+          path: url,
           timestamp: new Date().toISOString(),
         };
       }),

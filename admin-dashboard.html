@@ -8,6 +8,7 @@
     <script src="config.js?v=20241201"></script>
     <script src="store.js"></script>
     <script src="api.js"></script>
+    <script src="payout-functions.js"></script>
     <script src="admin-host-invitation.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1323,7 +1324,7 @@
             </button>
         </div>
         
-        <button class="sidebar-item active" data-page="dashboard">
+        <button class="sidebar-item active" data-page="dashboard" onclick="navigateTo('dashboard', this)">
             <i class="fas fa-th-large"></i>
             <span class="sidebar-text">Dashboard</span>
         </button>
@@ -1338,7 +1339,7 @@
             <span class="sidebar-text">Customers</span>
         </button>
         
-        <button class="sidebar-item" data-page="properties">
+        <button class="sidebar-item" data-page="properties" onclick="navigateTo('properties', this)">
             <i class="fas fa-building"></i>
             <span class="sidebar-text">Properties</span>
         </button>
@@ -1352,11 +1353,21 @@
             <i class="fas fa-chart-line"></i>
             <span class="sidebar-text">Analytics</span>
         </button>
-        
-        <button class="sidebar-item" onclick="window.location.href='admin-payments.html'">
+
+        <button class="sidebar-item" data-page="payments" onclick="navigateTo('payments', this)">
             <i class="fas fa-credit-card"></i>
             <span class="sidebar-text">Payments</span>
-            <span class="badge" style="margin-left: auto; background: var(--danger); padding: 2px 8px; border-radius: 10px; font-size: 10px;">3</span>
+        </button>
+
+        <button class="sidebar-item" data-page="payouts" onclick="navigateTo('payouts', this)">
+            <i class="fas fa-money-bill-wave"></i>
+            <span class="sidebar-text">Payouts</span>
+            <span class="badge" id="pendingPayoutsBadge" style="margin-left: auto; background: var(--warning); color: black; padding: 2px 8px; border-radius: 10px; font-size: 10px; display: none;">0</span>
+        </button>
+
+        <button class="sidebar-item" data-page="refunds" onclick="navigateTo('refunds', this)">
+            <i class="fas fa-undo"></i>
+            <span class="sidebar-text">Refunds</span>
         </button>
         
         <button class="sidebar-item" data-page="reviews">
@@ -1963,6 +1974,105 @@
                                     <button class="btn-gradient py-1 px-3 text-xs">Reply</button>
                                 </td>
                             </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments Management Page -->
+        <div id="paymentsPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Transaction History</h2>
+                    <div class="flex gap-4">
+                        <button class="btn-gradient" onclick="loadPageData('payments')">
+                            <i class="fas fa-sync mr-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="paymentsTable">
+                        <thead>
+                            <tr>
+                                <th>Txn ID</th>
+                                <th>Customer</th>
+                                <th>Property</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                            <tr><td colspan="7" class="text-center py-8">Loading transactions...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payouts Management Page -->
+        <div id="payoutsPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Host Payouts</h2>
+                    <div class="flex gap-4">
+                        <select class="glass-input px-4 py-2 rounded-xl" id="payoutStatusFilter" onchange="loadPageData('payouts')">
+                            <option value="all">All Payouts</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="payoutsTable">
+                        <thead>
+                            <tr>
+                                <th>Host</th>
+                                <th>Total Amount</th>
+                                <th>Fee (10%)</th>
+                                <th>Net Payout</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payoutsTableBody">
+                            <tr><td colspan="7" class="text-center py-8">Loading payouts...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refunds Management Page -->
+        <div id="refundsPage" class="page">
+            <div class="glass-card p-6 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Refund Requests</h2>
+                    <div class="flex gap-4">
+                        <button class="btn-gradient" onclick="loadPageData('refunds')">
+                            <i class="fas fa-sync mr-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="refundsTable">
+                        <thead>
+                            <tr>
+                                <th>Booking Ref</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th>Requested Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="refundsTableBody">
+                            <tr><td colspan="7" class="text-center py-8">Loading refund requests...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -2637,10 +2747,12 @@
             document.getElementById('totalProperties').textContent = properties.length;
             
             const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
-            document.getElementById('totalRevenue').textContent = 'KSh ' + totalRevenue.toLocaleString();
+            const revEl = document.getElementById('totalRevenue');
+            if (revEl) revEl.textContent = 'KSh ' + totalRevenue.toLocaleString();
             
         } catch (error) {
-            console.log('Loading demo data');
+            console.error('Admin Load Error:', error);
+            showToast('Failed to load live stats. Showing cached data.', 'error');
         }
     }
     
@@ -2650,7 +2762,10 @@
             'hosts': 'hostTableBody',
             'customers': 'customerTableBody',
             'properties': 'propertiesTableBody',
-            'bookings': 'bookingsTableBody'
+            'bookings': 'bookingsTableBody',
+            'payments': 'paymentsTableBody',
+            'payouts': 'payoutsTableBody',
+            'refunds': 'refundsTableBody'
         };
         
         const tbodyId = tableBodyIds[page];
@@ -2687,6 +2802,18 @@
                 case 'bookings':
                     data = await api.getBookings();
                     renderBookingsTable(tbody, data);
+                    break;
+                case 'payments':
+                    data = await api.getPayments();
+                    renderPaymentsTable(tbody, data);
+                    break;
+                case 'payouts':
+                    data = await api.getPayouts();
+                    renderPayoutsTable(tbody, data);
+                    break;
+                case 'refunds':
+                    data = await api.getRefunds();
+                    renderRefundsTable(tbody, data);
                     break;
             }
         } catch (error) {
@@ -2847,6 +2974,132 @@
         `).join('');
     }
     
+    // Render Payments Table
+    function renderPaymentsTable(tbody, payments) {
+        if (!payments || payments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/50">No transactions found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = payments.map(p => `
+            <tr>
+                <td class="font-mono text-xs">#${p.id.slice(-8)}</td>
+                <td>${p.userName || 'N/A'}</td>
+                <td class="max-w-xs truncate">${p.propertyTitle || 'N/A'}</td>
+                <td class="font-bold">KSh ${parseInt(p.amount).toLocaleString()}</td>
+                <td><span class="text-xs bg-white/10 px-2 py-1 rounded">${p.method || 'M-Pesa'}</span></td>
+                <td>${new Date(p.createdAt).toLocaleDateString()}</td>
+                <td><span class="status-badge confirmed">Paid</span></td>
+            </tr>
+        `).join('');
+    }
+
+    // Render Payouts Table
+    function renderPayoutsTable(tbody, payouts) {
+        if (!payouts || payouts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/50">No payouts found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = payouts.map(p => `
+            <tr>
+                <td>
+                    <p class="font-medium">${p.hostName || 'Host'}</p>
+                    <p class="text-[10px] text-white/40">${p.hostEmail}</p>
+                </td>
+                <td>KSh ${parseInt(p.totalAmount).toLocaleString()}</td>
+                <td class="text-red-400">-KSh ${parseInt(p.feeAmount).toLocaleString()}</td>
+                <td class="text-green-400 font-bold">KSh ${parseInt(p.netAmount).toLocaleString()}</td>
+                <td>${p.method}</td>
+                <td><span class="status-badge ${p.status}">${p.status}</span></td>
+                <td>
+                    ${p.status === 'pending' ? `
+                        <button class="btn-gradient py-1 px-3 text-xs" onclick="approvePayout('${p.id}')">Approve</button>
+                    ` : (p.status === 'approved' ? `
+                        <button class="btn-neon py-1 px-3 text-xs" onclick="completePayout('${p.id}')">Complete</button>
+                    ` : '<i class="fas fa-check-double text-green-500"></i>')}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Render Refunds Table
+    function renderRefundsTable(tbody, refunds) {
+        if (!refunds || refunds.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/50">No refund requests</td></tr>';
+            return;
+        }
+        tbody.innerHTML = refunds.map(r => `
+            <tr>
+                <td class="font-mono text-xs">#${r.bookingId.slice(-8)}</td>
+                <td>${r.userName}</td>
+                <td class="font-bold">KSh ${parseInt(r.amount).toLocaleString()}</td>
+                <td class="max-w-xs truncate text-xs text-white/60">${r.reason}</td>
+                <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+                <td><span class="status-badge ${r.status}">${r.status}</span></td>
+                <td>
+                    ${r.status === 'pending' ? `
+                        <button class="btn-gradient py-1 px-3 text-xs" onclick="processRefund('${r.id}', 'approve')">Approve</button>
+                        <button class="btn-neon py-1 px-3 text-xs" onclick="processRefund('${r.id}', 'reject')">Reject</button>
+                    ` : '<span class="text-white/30 italic">Processed</span>'}
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // Gateway Actions
+    async function approvePayout(id) {
+        if(!confirm('Confirm payout approval for processing?')) return;
+        try {
+            await api.approvePayout(id);
+            showToast('Payout approved and queued for transfer', 'success');
+            loadPageData('payouts');
+        } catch(e) { showToast('Gateway communication failed', 'error'); }
+    }
+
+    async function completePayout(id) {
+        if(!confirm('Finalize transfer to host? This action cannot be reversed.')) return;
+        try {
+            await api.completePayout(id);
+            showToast('Funds transferred successfully', 'success');
+            loadPageData('payouts');
+        } catch(e) { showToast('Transfer failed: Check gateway logs', 'error'); }
+    }
+
+    async function processRefund(id, action) {
+        const msg = action === 'approve' ? 'Refund amount to customer?' : 'Reject this refund request?';
+        if(!confirm(msg)) return;
+        try {
+            await api.processRefund(id, action);
+            showToast(`Refund request ${action}d`, action === 'approve' ? 'success' : 'warning');
+            loadPageData('refunds');
+        } catch(e) { showToast('Refund processing error', 'error'); }
+    }
+
+    function navigateTo(page, element) {
+        currentPage = page;
+        document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+        if (element) element.classList.add('active');
+        
+        const titles = {
+            'dashboard': 'Dashboard',
+            'hosts': 'Host Management',
+            'customers': 'Customer Management',
+            'properties': 'Property Management',
+            'bookings': 'Booking Management',
+            'analytics': 'Analytics',
+            'payments': 'Payments Management',
+            'payouts': 'Payouts Management',
+            'refunds': 'Refunds Management',
+            'settings': 'Settings'
+        };
+        document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
+        
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const pageEl = document.getElementById(page + 'Page');
+        if (pageEl) pageEl.classList.add('active');
+        closeSidebar();
+        loadPageData(page);
+    }
+
     // View functions
     function viewHost(hostId) {
         showToast('Viewing host: ' + hostId, 'info');
@@ -2961,19 +3214,17 @@
     }
     
     // Send host invitation
-    function sendHostInvitation(event) {
+    async function sendHostInvitation(event) {
         event.preventDefault();
         
         const name = document.getElementById('hostName').value;
         const email = document.getElementById('hostEmail').value;
         const phone = document.getElementById('hostPhone').value;
-        const message = document.getElementById('inviteMessage').value;
         
-        // Generate unique invitation link
-        const token = generateInviteToken();
-        const inviteLink = window.location.origin + window.location.pathname.replace('admin-dashboard.html', '') + 'host-onboarding.html?invite=' + token;
+        try {
+            const response = await api.createHostInvitation({ name, email, phone });
+            const inviteLink = `${window.location.origin}/host-onboarding.html?token=${response.token}`;
         
-        // Display the generated link
         document.getElementById('generatedLink').value = inviteLink;
         document.getElementById('generatedLinkContainer').style.display = 'block';
         

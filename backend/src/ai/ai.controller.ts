@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -7,17 +7,17 @@ import { UserRole } from '../entities/user.entity';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.CUSTOMER, UserRole.HOST, UserRole.SUPPORT)
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('chat')
   async sendMessage(
-    @Body() body: { message: string; sessionId: string },
-    @Query('userId') userId: string,
+    @Req() req,
+    @Body() body: { message: string; context?: any },
   ) {
     try {
-      const response = await this.aiService.processChatMessage(body.message, body.sessionId, userId);
+      const response = await this.aiService.handleChatMessage(req.user, body);
       return {
         success: true,
         data: {

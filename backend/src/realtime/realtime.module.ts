@@ -5,13 +5,14 @@ import { RealtimeGateway } from './realtime.gateway';
 
 @Module({
   imports: [
+    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET') || 'default-jwt-secret-for-development',
         signOptions: { expiresIn: '24h' },
       }),
-      inject: [ConfigService],
     }),
   ],
   providers: [RealtimeGateway],

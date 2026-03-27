@@ -6,6 +6,7 @@
     <title>Welcome to ViewOnce | Luxury Stays</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -121,13 +122,21 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
             border-radius: 1.5rem;
-            transition: all 0.4s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .glass-card:hover {
             background: rgba(255, 255, 255, 0.1);
             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 212, 255, 0.2), inset 0 0 0 1px rgba(0, 212, 255, 0.3);
             transform: translateY(-10px);
+        }
+
+        .hero-glass {
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 3rem;
         }
 
         /* Neon Glow Effects */
@@ -241,11 +250,36 @@
         .nav-link:hover::after { width: 100%; }
 
         /* Glass Nav */
+        #navbar {
+            background: transparent;
+            border-bottom: 1px solid transparent;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #navbar .nav-link, 
+        #navbar .font-playfair {
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s ease;
+        }
+
         .glass-nav {
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.9) !important;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3) !important;
+        }
+
+        .glass-nav .nav-link, 
+        .glass-nav .font-playfair {
+            text-shadow: none;
+        }
+
+        #nav-inner {
+            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-nav #nav-inner {
+            height: 4rem !important;
         }
 
         /* Hero Gradient */
@@ -284,14 +318,14 @@
             font-weight: 600;
             padding: 1rem 2.5rem;
             border-radius: 3rem;
-            transition: all 0.4s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
             position: relative;
             overflow: hidden;
         }
 
         .btn-neon:hover {
-            transform: translateY(-3px);
+            transform: translateY(-3px) scale(1.02);
             box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4), 0 0 20px rgba(176, 0, 255, 0.3);
         }
 
@@ -302,13 +336,14 @@
             font-weight: 600;
             padding: 1rem 2.5rem;
             border-radius: 3rem;
-            transition: all 0.4s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-outline:hover {
             background: var(--neon-blue);
             color: #0f172a;
             box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            transform: translateY(-3px) scale(1.02);
         }
 
         /* Scrollbar */
@@ -429,27 +464,67 @@
     <!-- Navigation -->
     <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 glass-nav">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
+            <div id="nav-inner" class="flex justify-between items-center h-20">
                 <div class="flex items-center">
                     <a href="#home" class="font-playfair text-3xl font-bold text-gold nav-link">ViewOnce</a>
                 </div>
                 <div class="hidden md:flex space-x-10">
                     <a href="#home" class="text-white/80 nav-link font-medium">Home</a>
-                    <a href="#about" onclick="navigateTo('/about')" class="text-white/80 nav-link font-medium">About</a>
+                    <a href="#features" class="text-white/80 nav-link font-medium">About</a>
                     <a href="#features" class="text-white/80 nav-link font-medium">Experiences</a>
-                    <a href="#dashboard" class="text-white/80 nav-link font-medium">Dashboard</a>
+                    <a href="#dashboard" class="text-white/80 nav-link font-medium">Stats</a>
                     <a href="#gallery" class="text-white/80 nav-link font-medium">Gallery</a>
                     <a href="#contact" class="text-white/80 nav-link font-medium">Concierge</a>
                 </div>
-                <div class="flex space-x-4 items-center">
+                <div class="hidden md:flex space-x-4 items-center">
                     <button onclick="navigateTo('/login')" class="px-5 py-2.5 text-white/80 font-medium hover:text-neon-blue transition nav-link">Sign In</button>
                     <button onclick="navigateTo('/signup')" class="btn-neon px-6 py-2.5 rounded-full font-semibold text-sm">
                         Join Now
                     </button>
                 </div>
+                <!-- Mobile Menu Toggle -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-open" class="text-white p-2 hover:text-neon-blue transition-colors">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
+
+    <!-- Mobile Menu Drawer -->
+    <div id="mobile-menu" class="fixed inset-0 z-[60] bg-navy-deep/95 backdrop-blur-xl translate-x-full transition-transform duration-300 md:hidden">
+        <div class="flex flex-col h-full p-8">
+            <div class="flex justify-between items-center mb-12">
+                <span class="font-playfair text-3xl font-bold text-gold">ViewOnce</span>
+                <button id="mobile-menu-close" class="text-white p-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="flex flex-col space-y-8 text-center text-xl">
+                <a href="#home" class="text-white font-medium hover:text-neon-blue transition">Home</a>
+                <a href="#features" class="text-white font-medium hover:text-neon-blue transition">About</a>
+                <a href="#dashboard" class="text-white font-medium hover:text-neon-blue transition">Stats</a>
+                <a href="#gallery" class="text-white font-medium hover:text-neon-blue transition">Gallery</a>
+                <a href="#contact" class="text-white font-medium hover:text-neon-blue transition">Concierge</a>
+            </div>
+            <div class="mt-auto flex flex-col gap-4">
+                <button onclick="navigateTo('/login')" class="w-full py-4 text-white font-medium border border-white/20 rounded-2xl hover:bg-white/5 transition">Sign In</button>
+                <button onclick="navigateTo('/signup')" class="w-full btn-neon py-4 rounded-2xl font-bold">Join Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Top Button -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 z-[100] w-12 h-12 bg-gradient-to-r from-neon-blue to-neon-purple text-white rounded-full shadow-2xl opacity-0 translate-y-10 pointer-events-none transition-all duration-300 flex items-center justify-center hover:scale-110 active:scale-95" aria-label="Back to top">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+        </svg>
+    </button>
 
     <!-- Hero Section -->
     <section id="home" class="min-h-screen flex items-center justify-center hero-bg relative overflow-hidden">
@@ -474,7 +549,7 @@
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
             <div class="grid lg:grid-cols-2 gap-16 items-center">
                 <!-- Left Content -->
-                <div class="text-center lg:text-left animate-slide-up">
+                <div class="text-center lg:text-left animate-slide-up hero-glass p-8 md:p-12">
                     <div class="inline-block px-4 py-1.5 bg-neon-blue/10 border border-neon-blue/20 rounded-full mb-6">
                         <span class="text-neon-blue text-sm font-medium tracking-wider uppercase">Premium Collection</span>
                     </div>
@@ -883,13 +958,31 @@
     <script src="script.js"></script>
 
     <script>
-        // Navbar
+        // Navbar & Back to Top Scroll Effects
         window.addEventListener('scroll', function() {
             const navbar = document.getElementById('navbar');
-            if (window.scrollY > 50) {
+            const backToTop = document.getElementById('back-to-top');
+
+            // Toggle Navbar Glass Effect
+            if (window.scrollY > 20) {
                 navbar.classList.add('glass-nav');
+            } else {
+                navbar.classList.remove('glass-nav');
+            }
+
+            // Toggle Back to Top Button Visibility
+            if (window.scrollY > 500) {
+                backToTop.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+                backToTop.classList.add('opacity-100', 'translate-y-0', 'pointer-events-auto');
+            } else {
+                backToTop.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+                backToTop.classList.remove('opacity-100', 'translate-y-0', 'pointer-events-auto');
             }
         });
+
+        document.getElementById('back-to-top').onclick = () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
 
         // Image Slideshows for shapes (fade + pulse)
         function startSlideshow(slideshowId, interval = 4000) {
@@ -908,6 +1001,21 @@
         startSlideshow('slideshow2', 4500);
         startSlideshow('slideshow3', 5000);
         startSlideshow('slideshow4', 3500);
+
+        // Mobile Menu Navigation Controller
+        const mobileMenu = document.getElementById('mobile-menu');
+        const openBtn = document.getElementById('mobile-menu-open');
+        const closeBtn = document.getElementById('mobile-menu-close');
+        const menuLinks = mobileMenu.querySelectorAll('a');
+
+        const toggleMenu = (show) => {
+            mobileMenu.style.transform = show ? 'translateX(0)' : 'translateX(100%)';
+            document.body.style.overflow = show ? 'hidden' : '';
+        };
+
+        openBtn.onclick = () => toggleMenu(true);
+        closeBtn.onclick = () => toggleMenu(false);
+        menuLinks.forEach(link => link.onclick = () => toggleMenu(false));
 
         // Animated counters
         function animateCounters() {
@@ -955,7 +1063,10 @@
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
             if (token && user && isLoggedIn) {
                 try {
-                    const userData = JSON.parse(user);
+                    // Auto-redirect if session is active
+                    if (window.navigateTo) {
+                        window.navigateTo('/dashboard');
+                    }
                 } catch (error) {
                     console.error('Error:', error);
                 }
