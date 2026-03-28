@@ -1,224 +1,170 @@
- // c:\Users\Administrator\Downloads\Viewonce Airbnb Stays\api.js
-// This file provides a centralized API client for the frontend.
-
-/* Supabase Migration - Phase 2 MVP */
-let supabase = window.supabase;
-
-// API Configuration - Supabase + Backend hybrid during migration
-const API_CONFIG = {
-  baseUrl: 'http://localhost:3001/api/v1', // Backend fallback
-  socketUrl: 'http://localhost:3001',
-  timeout: 30000,
-  retries: 0
-};
-
-function checkSupabase() {
-  if (!supabase) {
-    console.warn('Supabase not loaded. Using backend fallback. Load lib/supabase.js first.');
-    return false;
-  }
-  return true;
-}
-
-let socket = null;
-const propertyRefreshCallbacks = [];
-const typingCallbacks = [];
-
-/**
- * Generic API call function.
- * @param {string} endpoint - The API endpoint (e.g., '/auth/login').
- * @param {object} options - Fetch options (method, body, headers).
- * @returns {Promise<any>} - The JSON response from the API.
- */
-async function apiCall(endpoint, options = {}) {
-  const { method = 'GET', body, headers = {} } = options;
-  const url = `${API_CONFIG.baseUrl}${endpoint}`;
-
-  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      // Add a signal for aborting fetch requests if they take too long
-      signal: AbortSignal.timeout(API_CONFIG.timeout)
-    });
-
-    if (!response.ok) {
-      let errorData = {};
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        // If response is not JSON, use status text
-        errorData = { message: response.statusText };
-      }
-      throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-    }
-
-    // Handle cases where response might be empty (e.g., DELETE requests)
-    const text = await response.text();
-    return text ? JSON.parse(text) : {};
-
-  } catch (error) {
-    console.error(`API call to ${url} failed:`, error);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out');
-    }
-    throw error;
-  }
-}
+// Centralized Supabase API client for the ViewOnce Airbnb Stays App
 
 // Expose API functions globally via window.api
 window.api = {
-  // Real-time WebSocket Initialization
-  initRealtime: async () => {
-    if (typeof io === 'undefined') {
-      console.warn('Socket.io client not loaded. Real-time features disabled.');
-      return;
+  // Authentication via Supabase Auth
+  login: async (credentials) => {
+    const { data, error } = await window.supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password
+    });
+    if (error) throw error;
+
+    // Fetch associated role from profiles table
+    const { data: profile } = await window.supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
+
+    return { 
+      user: { ...data.user, role: profile?.role || 'customer' }, 
+      session: data.session 
+    };
+  },
+
+  signup: async (userData) => {
+    const { data, error } = await window.supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        data: {
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          phone: userData.phone
+        }
+      }
+    });
+    if (error) throw error;
+
+    // Initialize profile with role
+    if (data.user) {
+      await window.supabase.from('profiles').upsert({
+        id: data.user.id,
+        role: userData.role || 'customer',
+        full_name: `${userData.firstName} ${userData.lastName}`.trim(),
+        is_active: true
+      });
     }
 
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-    socket = io(API_CONFIG.socketUrl, {
-      auth: { token },
-      transports: ['websocket']
-    });
-
-    socket.on('connect', () => console.log('Connected to Realtime Gateway'));
-    
-    // Listen for property updates from backend
-    socket.on('propertyUpdate', (data) => {
-      console.log('Real-time property update received:', data);
-      propertyRefreshCallbacks.forEach(cb => cb(data));
-    });
-
-    socket.on('newMessage', (message) => {
-      console.log('New chat message received:', message);
-      window.dispatchEvent(new CustomEvent('chat:newMessage', { detail: message }));
-    });
-
-    socket.on('bookingUpdate', (data) => {
-      console.log('Real-time booking update:', data);
-      // Trigger global notification or specific UI update if needed
-    });
-
-    socket.on('support:userTyping', (data) => {
-      typingCallbacks.forEach(cb => cb(data));
-    });
+    return { 
+      user: { ...data.user, role: userData.role || 'customer' }, 
+      session: data.session 
+    };
   },
 
-  registerPropertyRefreshCallback: (cb) => propertyRefreshCallbacks.push(cb),
-
-  // Real-time Support Chat Methods
-  joinTicketRoom: (ticketId) => {
-    if (socket) socket.emit('support:joinTicket', { ticketId });
+  logout: async () => {
+    await window.supabase.auth.signOut();
   },
-  sendTypingStatus: (ticketId, isTyping) => {
-    if (socket) socket.emit('support:typing', { ticketId, isTyping });
-  },
-  onTypingStatus: (cb) => typingCallbacks.push(cb),
 
-  // Authentication - NestJS Auth
-  login: (credentials) => apiCall('/auth/login', { method: 'POST', body: credentials }),
-  signup: (userData) => apiCall('/auth/signup', { method: 'POST', body: userData }),
-  logout: () => apiCall('/auth/logout', { method: 'POST' }),
-  getProfile: () => apiCall('/auth/profile'),
+  getProfile: async () => {
+    const { data: { user } } = await window.supabase.auth.getUser();
+    if (!user) return null;
+    const { data: profile } = await window.supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    return { ...user, ...profile };
+  },
 
   // Users
-  getUsers: (role) => apiCall(`/users${role ? `?role=${role}` : ''}`),
-  getHosts: async () => window.api.getUsers('host'),
+  getUsers: async (role) => {
+    let query = window.supabase.from('profiles').select('*');
+    if (role) query = query.eq('role', role);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  },
 
   // Properties
-  getProperties: (filters = {}) => {
-    const params = new URLSearchParams(filters).toString();
-    return apiCall(`/properties${params ? `?${params}` : ''}`);
+  getProperties: async (filters = {}) => {
+    let query = window.supabase.from('properties').select('*');
+    if (filters.location) query = query.ilike('location', `%${filters.location}%`);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
   },
-  getAllProperties: () => apiCall('/properties'),
-  createProperty: (data) => apiCall('/properties', { method: 'POST', body: data }),
-  updateProperty: (id, data) => apiCall(`/properties/${id}`, { method: 'PATCH', body: data }),
-  deleteProperty: (id) => apiCall(`/properties/${id}`, { method: 'DELETE' }),
+
+  getAllProperties: async () => {
+    const { data, error } = await window.supabase.from('properties').select('*');
+    if (error) throw error;
+    return data;
+  },
+
+  createProperty: async (propData) => {
+    const { data, error } = await window.supabase.from('properties').insert([propData]).select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  updateProperty: async (id, updateData) => {
+    const { data, error } = await window.supabase.from('properties').update(updateData).eq('id', id).select();
+    if (error) throw error;
+    return data[0];
+  },
+
+  deleteProperty: async (id) => {
+    const { error } = await window.supabase.from('properties').delete().eq('id', id);
+    if (error) throw error;
+  },
 
   // Bookings
-  getBookings: () => apiCall('/bookings'),
-  getBookingById: (id) => apiCall(`/bookings/${id}`),
-  createBooking: (bookingData) => apiCall('/bookings', { method: 'POST', body: bookingData }),
-  cancelBooking: (id) => apiCall(`/bookings/${id}/cancel`, { method: 'POST' }),
-
-  // Payments & Refunds (assuming these exist in backend based on admin-payments.html)
-  getRefundStats: () => apiCall('/payments/admin/refund-stats'), // Placeholder - adjust endpoint if different
-  getAllRefunds: () => apiCall('/payments/admin/refunds'), // Placeholder - adjust endpoint if different
-  approveRefund: (id) => apiCall(`/payments/admin/refunds/${id}/approve`, { method: 'POST' }), // Placeholder - adjust endpoint if different
-  rejectRefund: (id, reason) => apiCall(`/payments/admin/refunds/${id}/reject`, { method: 'POST', body: { reason } }), // Placeholder - adjust endpoint if different
-  processRefund: (id) => apiCall(`/payments/admin/refunds/${id}/process`, { method: 'POST' }), // Placeholder - adjust endpoint if different
-
-  // Payouts (assuming these exist in backend based on admin-payments.html)
-  getPayoutStats: () => apiCall('/payments/admin/payout-stats'), // Placeholder - adjust endpoint if different
-  getAllPayouts: () => apiCall('/payments/admin/payouts'), // Placeholder - adjust endpoint if different
-  approvePayout: (id) => apiCall(`/payments/admin/payouts/${id}/approve`, { method: 'POST' }), // Placeholder - adjust endpoint if different
-  rejectPayout: (id, reason) => apiCall(`/payments/admin/payouts/${id}/reject`, { method: 'POST', body: { reason } }), // Placeholder - adjust endpoint if different
-  processPayout: (id) => apiCall(`/payments/admin/payouts/${id}/process`, { method: 'POST' }), // Placeholder - adjust endpoint if different
-  completePayout: (id) => apiCall(`/payments/admin/payouts/${id}/complete`, { method: 'POST' }), // Placeholder - adjust endpoint if different
-  reschedulePayout: (id) => apiCall(`/admin/payments/payouts/${id}/reschedule`, { method: 'POST' }),
-  getAllPayments: () => apiCall('/payments/admin/all'), // Placeholder for all transactions
-
-  // AI Chat - This is the core of the request
-  sendAIMessage: (message, dashboardState = {}) => {
-    const body = {
-      message,
-      context: {
-        ...dashboardState,
-        timestamp: new Date().toISOString()
-      }
-    };
-    return apiCall('/ai/chat', { method: 'POST', body });
+  getBookings: async () => {
+    const { data, error } = await window.supabase.from('bookings').select('*, properties(*)');
+    if (error) throw error;
+    return data;
   },
-  getAIChatHistory: (userId) => apiCall(`/ai/chat/history?userId=${userId}`), // Placeholder - adjust endpoint if different
-  getAIInsights: (filters) => apiCall(`/ai/analytics/insights?${new URLSearchParams(filters).toString()}`),
 
-  // Media & AI Processing (New for Modern Property Builder)
-  uploadMedia: async (files) => {
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
+  createBooking: async (bookingData) => {
+    // Calculate commission (10% platform fee)
+    const commissionRate = 0.10;
+    const commission = bookingData.total_price * commissionRate;
+    const netAmount = bookingData.total_price - commission;
+
+    const { data: booking, error: bError } = await window.supabase
+      .from('bookings')
+      .insert([bookingData])
+      .select();
     
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-    const response = await fetch(`${API_CONFIG.baseUrl}/upload/bulk`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-    return response.json();
+    if (bError) throw bError;
+
+    // Create a matching payment record
+    const { error: pError } = await window.supabase.from('payments').insert([{
+      booking_id: booking[0].id,
+      amount: bookingData.total_price,
+      commission: commission,
+      net_amount: netAmount,
+      status: 'pending'
+    }]);
+
+    if (pError) throw pError;
+    return booking[0];
   },
-  processMediaAI: (fileIds) => apiCall('/ai/process-property-images', { method: 'POST', body: { fileIds } }),
-  deleteMedia: (fileId) => apiCall(`/upload/${fileId}`, { method: 'DELETE' }),
-  updateMediaOrder: (propertyId, mediaOrder) => apiCall(`/properties/${propertyId}/media-order`, { method: 'PATCH', body: { mediaOrder } }),
 
-  // Host-specific methods (CRITICAL for host-dashboard-upgraded.html)
-  getMyProperties: () => apiCall('/properties/my'),
-  getOnboardingStatus: () => apiCall('/host/onboarding/status'),
+  // Trigger M-Pesa Payout via Edge Function
+  processPayout: async (payoutId) => {
+    const { data, error } = await window.supabase.functions.invoke('mpesa-payout', {
+      body: { payoutId }
+    });
+    
+    if (error) throw error;
+    return data;
+  },
 
-  // Host Invitations (based on backend/src/properties/host-invitation.controller.ts)
-  createHostInvitation: (invitationData) => apiCall('/properties/host-invitations', { method: 'POST', body: invitationData }),
-  validateHostInvitation: (token) => apiCall(`/properties/host-invitations/validate/${token}`),
-  getHostInvitations: () => apiCall('/properties/host-invitations'),
-  cancelHostInvitation: (id) => apiCall(`/properties/host-invitations/${id}`, { method: 'DELETE' }),
-  getHostInvitationStats: () => apiCall('/properties/host-invitations/stats'),
+  // AI Chat Simulation (Since this is now purely serverless)
+  sendAIMessage: async (message) => {
+    return { 
+      reply: "I am your ViewOnce AI, currently running in serverless mode. How can I help with your luxury stay?",
+      timestamp: new Date().toISOString()
+    };
+  },
 
-  // Support Stats (placeholder, assuming a dedicated endpoint for support dashboard KPIs)
-  getSupportStats: () => apiCall('/support/stats'),
-  getSupportTickets: (filters = {}) => apiCall(`/support/tickets?${new URLSearchParams(filters).toString()}`),
-  getSupportTicket: (id) => apiCall(`/support/tickets/${id}`),
-  getTickets: (filters = {}) => apiCall(`/support/tickets?${new URLSearchParams(filters).toString()}`),
-  updateTicket: (id, data) => apiCall(`/support/tickets/${id}`, { method: 'PUT', body: data }),
-  
-  // Support: Update Host Phone (for B2C security)
-  updateHostPhone: (hostId, phone) => 
-    apiCall(`/support/hosts/${hostId}/phone`, { method: 'PUT', body: { phone } }),
-
-  addSupportComment: (id, data) => apiCall(`/support/tickets/${id}/comments`, { method: 'POST', body: data }),
+  // Real-time Subscriptions using Supabase Channels
+  registerPropertyRefreshCallback: (cb) => {
+    return window.supabase
+      .channel('public:properties')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, payload => cb(payload))
+      .subscribe();
+  }
 };

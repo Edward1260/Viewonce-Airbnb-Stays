@@ -88,9 +88,14 @@ window.handleLogin = async function() {
             errorDiv.innerHTML = 'Login successful! Redirecting...';
         }
 
-        // Store tokens and user
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
+        // Ensure user profile is synced locally
+        if (typeof window.syncUserProfile === 'function') {
+            await window.syncUserProfile(data.user);
+        }
+
+        // Store Supabase session and user
+        localStorage.setItem('token', data.session.access_token);
+        localStorage.setItem('refreshToken', data.session.refresh_token);
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('isLoggedIn', 'true');
 
@@ -99,16 +104,13 @@ window.handleLogin = async function() {
             store.setState({user: data.user});
         }
 
-        // Record terms acceptance
-        try {
-            await api.acceptTerms('login');
-        } catch (error) {
-            // Terms acceptance failed, but continue with login
-            console.warn('Terms acceptance failed:', error);
-        }
-
         // Redirect directly to appropriate dashboard based on role
-        window.location.href = dashboardMap[data.user.role] || 'welcome.html';
+        const role = data.user.role || 'customer';
+        const targetPage = dashboardMap[role] || 'welcome.html';
+        
+        setTimeout(() => {
+            window.location.href = targetPage;
+        }, 1000);
 
     } catch (error) {
         let errorMessage = error.message;
@@ -201,8 +203,8 @@ window.handleSignup = async function() {
         }
 
         // Store tokens and user
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('token', data.session.access_token);
+        localStorage.setItem('refreshToken', data.session.refresh_token);
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('isLoggedIn', 'true');
 

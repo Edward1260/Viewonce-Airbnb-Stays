@@ -1,24 +1,17 @@
-// Centralized configuration for the application - SINGLE PORT VERSION
-// Backend serves frontend on port 3001 - no separate frontend port needed
+// Centralized configuration for the application - SUPABASE SERVERLESS VERSION
 const config = {
-// Backend API base URL - serves frontend static files
-API_BASE_URL: process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api',
+    // Supabase Configuration
+    SUPABASE_URL: 'https://oosbloogsjimcdsffjfy.supabase.co',
+    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vc2Jsb29nc2ppbWNkc2ZmamZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2Njg2MDEsImV4cCI6MjA5MDI0NDYwMX0.y78TPC4A1c4L0grcJg_cA4I7LNIeGjajXA1ChG0YlHQ',
 
     // Environment
     NODE_ENV: 'development',
 
-    // Enable debug logging in development
+    // Debugging
     DEBUG: true,
-
-    // Force cache refresh - VERSION 10
-    VERSION: '10.0.0-supabase',
+    VERSION: '11.0.0-supabase-direct',
     TIMESTAMP: Date.now(),
-    CACHE_BUSTER: Math.random(),
-    FORCE_REFRESH: true
 };
-
-// Supabase DISABLED - use backend APIs only
-// config.SUPABASE_CONFIG = { ... }; // REMOVED - backend handles DB
 
 // Make available globally immediately
 if (typeof window !== 'undefined') {
