@@ -32,3 +32,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backend
+backend/dist/
+backend/node_modules/
+backend/airbnb_db
+backend/.env
+backend/db.sqlite
+
+# tools
+.blackboxcli/
+.aireview-port.json
+
+# patches and temps
+*.patch
+temp*.txt
+sidebar-fix*.js
+host-dashboard-fix.patch
+
+# TODO docs (optional clutter)
+TODO*.md
+DEBUG*.md
+FIX*.md
+!TODO.md  # keep main TODO.md
