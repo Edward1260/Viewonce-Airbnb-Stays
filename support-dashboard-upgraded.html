@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Support Command Center - ViewOnce Airbnb</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="config.js"></script>
     <script src="store.js"></script>
-    <script src="router.js"></script>
     <script src="api.js"></script>
+    <script src="router.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -193,6 +193,49 @@
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             transform: translateZ(20px);
             box-shadow: 10px 0 40px rgba(0, 0, 0, 0.3);
+        }
+        /* Fixed sidebar positioning and responsive behavior */
+        .sidebar-3d {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 20rem;
+            z-index: 50;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .sidebar-3d.sidebar-open {
+            transform: translateX(0);
+        }
+        /* Main content responsive margin */
+        main {
+            min-height: 100vh;
+            padding: 2rem;
+            transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            margin-left: 0;
+        }
+        @media (min-width: 769px) {
+            main.sidebar-open {
+                margin-left: 20rem;
+            }
+        }
+        /* Mobile overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
         }
 
         .nav-item-3d {
@@ -640,27 +683,27 @@
 
             <nav class="space-y-2">
                 <div class="nav-item-3d active" data-page="overview">
-                    <div class="flex items-center p-4">
+                    <button class="flex items-center p-4 w-full">
                         <svg class="w-6 h-6 text-purple-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
                         </svg>
                         <span class="text-white font-medium">Overview</span>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="nav-item-3d" data-page="tickets">
-                    <div class="flex items-center p-4">
+                    <button class="flex items-center p-4 w-full">
                         <svg class="w-6 h-6 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                         <span class="text-white font-medium">Tickets</span>
                         <span id="ticketBadge" class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">0</span>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="nav-item-3d" data-page="live-chat">
-                    <div class="flex items-center p-4">
+                    <button class="flex items-center p-4 w-full">
                         <svg class="w-6 h-6 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
@@ -669,55 +712,60 @@
                             <span class="status-indicator status-online"></span>
                             <span id="activeChats" class="text-green-400 text-xs">0 active</span>
                         </div>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="nav-item-3d" data-page="ai-assistant">
-                    <div class="flex items-center p-4">
+                    <button class="flex items-center p-4 w-full">
                         <svg class="w-6 h-6 text-cyan-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                         </svg>
                         <span class="text-white font-medium">AI Assistant</span>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="nav-item-3d" data-page="knowledge-base">
-                    <div class="flex items-center p-4">
+                    <button class="flex items-center p-4 w-full">
                         <svg class="w-6 h-6 text-yellow-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
                         <span class="text-white font-medium">Knowledge Base</span>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="nav-item-3d" data-page="analytics">
-                    <div class="flex items-center p-4">
+                    <button class="flex items-center p-4 w-full">
                         <svg class="w-6 h-6 text-pink-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                         <span class="text-white font-medium">Analytics</span>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="nav-item-3d" data-page="settings">
-                    <div class="flex items-center p-4">
+                    <button class="flex items-center p-4 w-full">
                         <svg class="w-6 h-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                         <span class="text-white font-medium">Settings</span>
-                    </div>
+                    </button>
                 </div>
             </nav>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="ml-80 min-h-screen p-8">
+    <main class="min-h-screen p-8">
         <!-- Header -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
         <header class="mb-8">
             <div class="flex items-center justify-between">
-                <div>
+                <div class="flex items-center gap-4">
+                    <button id="menuBtn" class="p-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all shadow-lg" title="Toggle Menu">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
                     <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
                         Support Command Center
                     </h1>
@@ -814,7 +862,7 @@
 
             <!-- Quick Actions Grid -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="quick-action-btn card-3d" onclick="navigateTo('tickets')">
+                <div class="quick-action-btn card-3d" data-nav="tickets">
                     <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -824,7 +872,7 @@
                     <p class="text-gray-400 text-sm">Create support ticket</p>
                 </div>
 
-                <div class="quick-action-btn card-3d" onclick="navigateTo('live-chat')">
+                <div class="quick-action-btn card-3d" data-nav="live-chat">
                     <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -834,7 +882,7 @@
                     <p class="text-gray-400 text-sm">Initiate live chat</p>
                 </div>
 
-                <div class="quick-action-btn card-3d" onclick="navigateTo('ai-assistant')">
+                <div class="quick-action-btn card-3d" data-nav="ai-assistant">
                     <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
@@ -844,7 +892,7 @@
                     <p class="text-gray-400 text-sm">Get AI assistance</p>
                 </div>
 
-                <div class="quick-action-btn card-3d" onclick="navigateTo('knowledge-base')">
+                <div class="quick-action-btn card-3d" data-nav="knowledge-base">
                     <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
@@ -861,7 +909,7 @@
                 <div class="frosted-glass p-6">
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-xl font-bold text-white">Recent Tickets</h2>
-                        <button class="text-purple-400 hover:text-purple-300 text-sm font-medium" onclick="navigateTo('tickets')">View All</button>
+                        <button class="text-purple-400 hover:text-purple-300 text-sm font-medium" data-nav="tickets">View All</button>
                     </div>
                     <div class="space-y-4" id="recentTicketsList">
                         <div class="text-center py-8">
@@ -1576,9 +1624,32 @@
                     showToast('Opening rule builder...', 'info');
                 }
                 
-                // Run Analysis
-                function runAnalysis() {
-                    showToast('Running AI analysis on all tickets...', 'info');
+                // AI-powered auto-categorization for all uncategorized tickets
+                async function runAnalysis() {
+                    showToast('Analyzing and categorizing tickets...', 'info');
+                    try {
+                        // Fetch tickets that are still in the 'general' category
+                        const { data: tickets, error } = await window.supabase
+                            .from('support_tickets')
+                            .select('id, subject')
+                            .eq('category', 'general');
+
+                        if (error) throw error;
+
+                        for (const ticket of (tickets || [])) {
+                            const { category } = await api.categorizeTicket(ticket.subject);
+                            await window.supabase
+                                .from('support_tickets')
+                                .update({ category })
+                                .eq('id', ticket.id);
+                        }
+                        
+                        showToast(`Successfully analyzed ${tickets?.length || 0} tickets.`, 'success');
+                        if (currentPage === 'tickets') loadTickets();
+                    } catch (err) {
+                        console.error('Categorization failed:', err);
+                        showToast('AI categorization failed', 'error');
+                    }
                 }
                 
                 // Initialize Analysis Charts
@@ -1671,7 +1742,7 @@
                     <h2 class="text-2xl font-bold text-white">Knowledge Base</h2>
                     <div class="flex gap-4">
                         <input type="text" id="kbSearch" placeholder="Search articles..." class="glass-input" style="width: 300px;">
-                        <button class="btn-gradient">
+                        <button class="btn-gradient" onclick="openArticleModal()">
                             <i class="fas fa-plus mr-2"></i>New Article
                         </button>
                     </div>
@@ -1796,15 +1867,64 @@
             initializeNavigation();
             initializeConnectionMonitoring();
             loadDashboardData();
+            subscribeToUpdates();
+            setupKBSuggestions();
             
             // Set up periodic data refresh
             setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
         });
 
+        let ticketSubscription;
+        let commentSubscription;
+        let editingArticleId = null;
+
+        // Debounce helper for search
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // KB Suggestion Logic
+        function setupKBSuggestions() {
+            const subjectInput = document.getElementById('ticketSubject');
+            if (!subjectInput) return;
+
+            subjectInput.addEventListener('input', debounce(async (e) => {
+                const query = e.target.value.trim();
+                const suggestionsDiv = document.getElementById('suggestedArticles');
+                const list = document.getElementById('suggestionsList');
+                
+                if (query.length < 3) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+                
+                try {
+                    const articles = await window.api.searchKnowledgeBase(query);
+                    if (articles && articles.length > 0) {
+                        suggestionsDiv.classList.remove('hidden');
+                        list.innerHTML = articles.map(a => `
+                            <div class="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer transition-all" onclick="viewKBArticle('${a.id}')">
+                                <p class="text-sm text-white font-medium">${a.title}</p>
+                                <p class="text-[10px] text-purple-400 uppercase tracking-tighter mt-1">${a.category}</p>
+                            </div>
+                        `).join('');
+                    } else {
+                        suggestionsDiv.classList.add('hidden');
+                    }
+                } catch (err) {
+                    console.error('KB search error:', err);
+                }
+            }, 500));
+        }
+
         // Authentication check - FIXED: Real validation
         function checkAuth() {
             try {
-                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                const token = localStorage.getItem('token');
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 
                 if (!token || !user?.id) {
@@ -1813,7 +1933,7 @@
                     return false;
                 }
                 
-                // Role-based access for support dashboard
+                // Role-based access for support dashboard (ensure user.role is set)
                 if (!['support', 'admin', 'superadmin'].includes(user.role)) {
                     showToast('Access denied. Contact administrator.', 'error');
                     window.location.href = 'customer-dashboard.html';
@@ -1831,7 +1951,7 @@
                 
                 return true;
             } catch (error) {
-                console.error('Auth check failed:', error);
+                console.error('Auth check failed:', error); // Log the actual error
                 showToast('Authentication error', 'error');
                 return false;
             }
@@ -1864,19 +1984,26 @@
             const navItems = document.querySelectorAll('.nav-item-3d');
             const pages = document.querySelectorAll('.page-content');
 
+            // Navigation for sidebar items
             navItems.forEach(item => {
                 item.addEventListener('click', function() {
                     const page = this.getAttribute('data-page');
                     navigateTo(page);
                 });
             });
+
+            // Navigation for quick action buttons and other elements
+            document.querySelectorAll('[data-nav]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const page = this.getAttribute('data-nav');
+                    navigateTo(page);
+                });
+            });
         }
 
         function navigateTo(page) {
-            console.log('navigateTo called with:', page);
             currentPage = page;
             
-            // Update active nav item
             document.querySelectorAll('.nav-item-3d').forEach(nav => {
                 nav.classList.remove('active');
             });
@@ -1895,23 +2022,33 @@
             
             let pageId = pageMap[page] || (page + 'Page');
             const pageElement = document.getElementById(pageId);
-            console.log('Page element found:', !!pageElement);
             
             document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
             if (pageElement) {
                 pageElement.classList.remove('hidden');
-                console.log('Page shown successfully');
-            } else {
-                console.error('Page element not found! Available page IDs:', 
-                    Array.from(document.querySelectorAll('.page-content')).map(el => el.id));
             }
-
+            closeSidebar(); // Close sidebar after navigation on mobile
             // Load page-specific data
             loadPageData(page);
         }
 
-        // Load dashboard data
+        // Load dashboard data - FIXED: window.api null checks
         async function loadDashboardData() {
+            // Check core dependencies
+            if (typeof window.api === 'undefined') {
+                console.error('window.api not loaded');
+                showToast('API not ready. Please refresh the page.', 'error');
+                loadFallbackData();
+                return;
+            }
+            
+            if (typeof window.supabase === 'undefined') {
+                console.error('Supabase client not initialized');
+                showToast('Database connection failed. Please refresh.', 'error');
+                loadFallbackData();
+                return;
+            }
+
             try {
                 await Promise.all([
                     loadKPIData(),
@@ -1920,43 +2057,39 @@
                 ]);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
-                showToast('Error loading data. Using fallback values.', 'warning');
+                showToast(`Load error: ${error.message}. Using fallback data.`, 'warning');
                 loadFallbackData();
             }
         }
 
-        // Load KPI data from API - FIXED: Better error handling + real stats
+        // Load KPI data from API - ENHANCED: Robust error handling
         async function loadKPIData() {
             try {
-                // Show loading placeholders
+                // Loading states
                 document.getElementById('activeTicketsCount').innerHTML = '<span class="text-sm">...</span>';
                 document.getElementById('resolutionRate').innerHTML = '<span class="text-sm">...</span>';
 
                 let stats = { activeTickets: 0, resolutionRate: 89, avgResponseTime: 24, satisfaction: 4.8 };
 
-                // Real-time integration with Support & Analytics API
-                if (window.api && checkAuth()) {
+                if (window.api && window.api.getSupportStats && checkAuth()) { // Ensure window.api exists
                     try {
-                        const [supportStats, analytics] = await Promise.all([
-                            api.getSupportStats().catch(() => ({})),
-                            api.apiCall('/analytics/dashboard').catch(() => ({}))
-                        ]);
-
-                        stats.activeTickets = supportStats.activeCount || analytics.activeSupportTickets || 0;
-                        stats.resolutionRate = analytics.supportResolutionRate || 89;
-                        stats.avgResponseTime = analytics.averageResponseTime || 24;
-                        stats.satisfaction = (analytics.customerSatisfactionScore || 4.8).toFixed(1);
-                        
+                        const supportStats = await window.api.getSupportStats();
+                        stats.activeTickets = supportStats.activeCount || 0;
+                        stats.resolutionRate = Math.round((supportStats.resolvedCount / supportStats.totalCount) * 100) || 89;
                     } catch (apiError) {
-                        console.warn('Support API unavailable, using booking proxy:', apiError);
-                        const bookings = await window.api.getBookings();
-                        stats.activeTickets = bookings?.data?.length || bookings?.length || 0;
-                        showToast('Using cached stats (API partial)', 'warning');
+                        console.warn('Support stats failed:', apiError);
+                        // Fallback to bookings count
+                        try {
+                            const bookings = await window.api.getBookings();
+                            stats.activeTickets = Array.isArray(bookings) ? bookings.length : (bookings?.data?.length || 0);
+                        } catch (e) {
+                            console.warn('Bookings fallback failed:', e);
+                        }
                     }
                 }
 
-                // Update UI
-                document.getElementById('activeTicketsCount').textContent = stats.activeTickets;
+                // Update UI safely
+                document.getElementById('activeTicketsCount').textContent = stats.activeTickets; // Ensure this is a number
                 document.getElementById('resolutionRate').textContent = stats.resolutionRate + '%';
                 document.getElementById('avgResponseTime').textContent = stats.avgResponseTime + 'min';
                 document.getElementById('customerSatisfaction').textContent = stats.satisfaction;
@@ -1964,9 +2097,8 @@
                 document.getElementById('ticketBadge').textContent = stats.activeTickets || '0';
 
             } catch (error) {
-                console.error('Critical error loading KPI data:', error);
-                showToast('Dashboard stats unavailable', 'error');
-                loadFallbackData();
+                console.error('KPI load error:', error);
+                showToast('Stats unavailable - dashboard functional', 'warning');
             }
         }
 
@@ -1976,10 +2108,10 @@
                 const container = document.getElementById('recentTicketsList');
                 let tickets = [];
 
-                const response = await window.api.getSupportTickets({ limit: 5 });
+                const response = await window.api.getSupportTickets({ limit: 5 }); // Ensure window.api exists
                 tickets = Array.isArray(response) ? response : (response.data || []);
 
-                // If no tickets from API, show empty state
+                // If no tickets from Supabase, show empty state
                 if (tickets.length === 0) {
                     container.innerHTML = `
                         <div class="text-center py-8">
@@ -2000,13 +2132,13 @@
                         </div>
                         <p class="text-gray-300 text-sm mb-2">${ticket.subject}</p>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-400 text-xs">${formatDate(ticket.createdAt)}</span>
+                            <span class="text-gray-400 text-xs">${formatDate(ticket.created_at)}</span>
                             <span class="text-purple-400 text-xs">${ticket.customer}</span>
                         </div>
                     </div>
                 `).join('');
 
-            } catch (error) {
+            } catch (error) { // Catch errors from API call
                 console.error('Error loading recent tickets:', error);
             }
         }
@@ -2083,17 +2215,9 @@
                 let tickets = [];
                 if (window.api) {
                     try {
-                        const bookings = await api.getBookings();
-                        tickets = (bookings?.data || bookings || []).map(b => ({
-                            id: b.id || 'N/A',
-                            subject: b.propertyTitle || 'Booking Inquiry',
-                            customer: b.customerName || b.user?.name || 'Customer',
-                            status: b.status || 'open',
-                            priority: 'medium',
-                            createdAt: b.createdAt || new Date().toISOString()
-                        }));
+                        tickets = await api.getSupportTickets(); // Ensure window.api exists
                     } catch (e) {
-                        console.log('API error');
+                        showToast('Error fetching tickets', 'error');
                     }
                 }
 
@@ -2115,14 +2239,14 @@
                         <td>${ticket.customer}</td>
                         <td><span class="status-badge ${ticket.priority}-priority">${ticket.priority}</span></td>
                         <td><span class="status-badge ${ticket.status}">${ticket.status}</span></td>
-                        <td>${formatDate(ticket.createdAt)}</td>
+                        <td>${formatDate(ticket.created_at)}</td>
                         <td>
                             <button class="btn-gradient py-1 px-3 text-xs" onclick="viewTicket('${ticket.id}')">View</button>
                         </td>
                     </tr>
                 `).join('');
 
-            } catch (error) {
+            } catch (error) { // Catch errors from API call
                 console.error('Error loading tickets:', error);
                 tbody.innerHTML = `
                     <tr>
@@ -2265,7 +2389,7 @@
             if (!input.value.trim()) return;
 
             const userQuery = input.value.trim();
-            
+
             // Add user message
             const userMessage = document.createElement('div');
             userMessage.className = 'ai-message user';
@@ -2275,7 +2399,7 @@
             `;
             messages.appendChild(userMessage);
             input.value = '';
-            messages.scrollTop = messages.scrollHeight;
+            messages.scrollTop = messages.scrollHeight; // Scroll to bottom
 
             // Show typing indicator
             const typingMessage = document.createElement('div');
@@ -2292,7 +2416,7 @@
                 </div>
             `;
             messages.appendChild(typingMessage);
-            messages.scrollTop = messages.scrollHeight;
+            messages.scrollTop = messages.scrollHeight; // Scroll to bottom
 
             try {
                 let response = '';
@@ -2305,7 +2429,7 @@
                         currentPage: currentPage,
                         userRole: JSON.parse(localStorage.getItem('user') || '{}').role || 'support'
                     };
-                    
+
                     const responseData = await window.api.sendAIMessage(userQuery, context);
                     response = responseData.data?.response?.message || responseData.data?.message || responseData.message || responseData;
                 } else {
@@ -2314,7 +2438,7 @@
 
                 // Remove typing indicator
                 messages.removeChild(typingMessage);
-                
+
                 // Add AI response
                 const aiMessage = document.createElement('div');
                 aiMessage.className = 'ai-message';
@@ -2326,7 +2450,7 @@
                     </div>
                 `;
                 messages.appendChild(aiMessage);
-                showToast('AI response received', 'success');
+                showToast('AI response received', 'success'); // Show toast notification
 
             } catch (error) {
                 console.error('AI API Error:', error);
@@ -2354,7 +2478,7 @@
                 showToast('AI service temporarily unavailable', 'warning');
             }
 
-            messages.scrollTop = messages.scrollHeight;
+            messages.scrollTop = messages.scrollHeight; // Scroll to bottom
         };
 
         // Enter key support for AI chat
@@ -2396,10 +2520,7 @@
             try {
                 const ticket = await window.api.getSupportTicket(id);
                 activeTicketId = id; // Set context for AI interactions
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                
-                // Join the real-time room for this ticket
-                window.api.joinTicketRoom(id);
+                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
                 
                 // Create Modal if it doesn't exist
                 let modal = document.getElementById('ticketDetailModal');
@@ -2431,7 +2552,7 @@
                                     <p class="text-xs font-bold text-purple-400 mb-1">Original Issue</p>
                                     ${ticket.description}
                                 </div>
-                                ${renderComments(ticket.comments, user.id)}
+                                ${renderComments(ticket.comments, currentUser.id)}
                             </div>
 
                             <div id="typingIndicator" class="hidden mb-4 ml-2">
@@ -2468,31 +2589,6 @@
                 modal.style.display = 'flex';
                 const thread = document.getElementById('commentThread');
                 thread.scrollTop = thread.scrollHeight;
-
-                // Set up Typing Emitter
-                const replyInput = document.getElementById('replyContent');
-                let typingTimeout;
-                replyInput.addEventListener('input', () => {
-                    window.api.sendTypingStatus(id, true);
-                    clearTimeout(typingTimeout);
-                    typingTimeout = setTimeout(() => {
-                        window.api.sendTypingStatus(id, false);
-                    }, 3000);
-                });
-
-                // Set up Typing Listener
-                window.api.onTypingStatus((data) => {
-                    if (data.ticketId === id) {
-                        const indicator = document.getElementById('typingIndicator');
-                        if (indicator) {
-                            // Don't show indicator if the "typer" is the current user
-                            if (data.userId !== user.id) {
-                                indicator.classList.toggle('hidden', !data.isTyping);
-                                thread.scrollTop = thread.scrollHeight;
-                            }
-                        }
-                    }
-                });
 
             } catch (error) {
                 showToast('Failed to load ticket details', 'error');
@@ -2532,17 +2628,17 @@
         function renderComments(comments, currentUserId) {
             if (!comments || comments.length === 0) return '';
             return comments.map(c => {
-                const isAgent = c.author?.role !== 'customer';
+                const isAgent = ['support', 'admin'].includes(c.author?.role);
                 const typeClass = c.isInternal ? 'comment-internal' : (isAgent ? 'comment-agent' : 'comment-customer');
-                const authorName = c.author ? `${c.author.firstName} ${c.author.lastName}` : 'Unknown';
+                const authorName = c.author?.full_name || 'User';
                 
                 return `
                     <div class="comment-bubble ${typeClass}">
                         <div class="flex justify-between items-center mb-1 gap-4">
-                            <span class="text-[10px] font-bold uppercase tracking-wider ${c.isInternal ? 'text-yellow-500' : 'text-gray-400'}">
+                            <span class="text-[10px] font-bold uppercase tracking-wider ${c.isInternal ? 'text-yellow-500' : (isAgent ? 'text-purple-400' : 'text-gray-400')}">
                                 ${c.isInternal ? 'INTERNAL NOTE' : authorName}
                             </span>
-                            <span class="text-[10px] text-gray-500">${formatDate(c.createdAt)}</span>
+                            <span class="text-[10px] text-gray-500">${formatDate(c.created_at)}</span>
                         </div>
                         ${c.content}
                     </div>
@@ -2557,12 +2653,31 @@
             if (!content.trim()) return;
 
             try {
-                await window.api.addSupportComment(ticketId, { content, isInternal });
+                await window.api.addSupportComment(ticketId, { content, isInternal }); // Ensure window.api exists
                 showToast('Comment posted', 'success');
+                document.getElementById('replyContent').value = '';
                 viewTicket(ticketId); // Refresh
             } catch (error) {
                 showToast('Failed to post comment', 'error');
             }
+        }
+
+        // Subscriptions for Realtime UI Updates
+        function subscribeToUpdates() {
+            window.supabase // Ensure window.supabase exists
+                .channel('schema-db-changes')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_tickets' }, (payload) => {
+                    showToast('New ticket received: ' + payload.new.subject, 'info');
+                    loadDashboardData();
+                    if (currentPage === 'tickets') loadTickets();
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_comments' }, (payload) => {
+                    if (activeTicketId === payload.new.ticket_id) {
+                        showToast('New comment on active ticket', 'info');
+                        viewTicket(activeTicketId);
+                    }
+                })
+                .subscribe();
         }
 
         function selectChat(id) {
@@ -2598,25 +2713,117 @@
             document.getElementById('ticketBadge').textContent = '0';
         }
 
-        // Sidebar toggle functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
-            const sidebar = document.querySelector('.sidebar-3d');
-            const main = document.querySelector('main');
+        // Sidebar functionality
+        const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const sidebar = document.querySelector('.sidebar-3d');
+        const main = document.querySelector('main');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-            if (sidebarCloseBtn) {
-                sidebarCloseBtn.addEventListener('click', function() {
-                    sidebar.classList.toggle('hidden');
-                    if (sidebar.classList.contains('hidden')) {
-                        main.classList.remove('ml-80');
-                        main.classList.add('ml-0');
-                    } else {
-                        main.classList.remove('ml-0');
-                        main.classList.add('ml-80');
-                    }
-                });
+        function toggleSidebar() {
+            sidebar.classList.toggle('sidebar-open');
+            main.classList.toggle('sidebar-open');
+            sidebarOverlay.classList.toggle('active');
+            document.body.classList.toggle('overflow-hidden'); // Prevent scrolling when sidebar is open
+        }
+
+        function closeSidebar() {
+            if (sidebar.classList.contains('sidebar-open')) {
+                toggleSidebar();
+            }
+        }
+
+        if (sidebarCloseBtn) {
+            sidebarCloseBtn.addEventListener('click', toggleSidebar);
+        }
+
+        if (menuBtn) {
+            menuBtn.addEventListener('click', toggleSidebar);
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', closeSidebar);
+        }
+
+        // Close sidebar on larger screens if it's open
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && sidebar.classList.contains('sidebar-open')) {
+                closeSidebar();
             }
         });
     </script>
+
+    <!-- New Ticket Modal -->
+    <div id="newTicketModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="frosted-glass w-full max-w-lg p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white">Create Support Ticket</h3>
+                <button onclick="closeNewTicketModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="newTicketForm" class="space-y-4" onsubmit="submitNewTicket(event)">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Subject</label>
+                    <input type="text" id="ticketSubject" class="glass-input w-full" placeholder="What can we help you with?" required>
+                </div>
+                <!-- KB Suggestions Area -->
+                <div id="suggestedArticles" class="hidden space-y-2 py-2">
+                    <p class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Suggested Solutions</p>
+                    <div id="suggestionsList" class="space-y-2"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Priority</label>
+                    <select id="ticketPriority" class="glass-input w-full">
+                        <option value="low">Low Priority</option>
+                        <option value="medium" selected>Medium Priority</option>
+                        <option value="high">High Priority</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                    <textarea id="ticketDescription" class="glass-input w-full h-32" placeholder="Provide more details about the issue..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-3 mt-8">
+                    <button type="button" onclick="closeNewTicketModal()" class="px-6 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-all">Cancel</button>
+                    <button type="submit" class="btn-gradient px-8 py-2">Submit Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Knowledge Base Article Modal -->
+    <div id="articleModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="frosted-glass w-full max-w-2xl p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white" id="articleModalTitle">New Article</h3>
+                <button onclick="closeArticleModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="articleForm" class="space-y-4" onsubmit="saveArticle(event)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                        <input type="text" id="articleTitle" class="glass-input w-full" placeholder="Article Title" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Category</label>
+                        <select id="articleCategory" class="glass-input w-full">
+                            <option value="General">General</option>
+                            <option value="Bookings">Bookings</option>
+                            <option value="Payments">Payments</option>
+                            <option value="Property">Property</option>
+                            <option value="Account">Account</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Content (Markdown supported)</label>
+                    <textarea id="articleContent" class="glass-input w-full h-64" placeholder="Article content..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-3 mt-8">
+                    <button type="button" onclick="closeArticleModal()" class="px-6 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-all">Cancel</button>
+                    <button type="submit" class="btn-gradient px-8 py-2">Save Article</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

@@ -40,9 +40,17 @@ const pageRoutes = {
     '/dashboard': 'admin-dashboard.html',
     '/login': 'login.html',
     '/signup': 'signup.html',
+    '/platform-master-hub': 'platform-master-hub-fixed.html',
+    '/platform-master/login': 'platform-master-login.html',
     '/host-dashboard': 'host-dashboard.html',
     '/customer-dashboard': 'customer-dashboard.html',
-    '/support-dashboard': 'support-dashboard.html'
+    '/support-dashboard': 'support-dashboard.html',
+    '/host/login': 'host-login.html',
+    '/host/signup': 'host-signup.html',
+    '/admin/login': 'admin-login.html',
+    '/admin/signup': 'admin-signup.html',
+    '/support/login': 'support-login.html',
+    '/support/signup': 'support-signup.html'
 };
 
 Object.keys(pageRoutes).forEach(route => {

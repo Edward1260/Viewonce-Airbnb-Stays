@@ -6,7 +6,14 @@ let currentPayout = null;
 async function initializePayoutsManagement() {
     try {
         const response = await api.getPayouts();
-        payouts = response.data || response || [];
+        
+        // Enhanced data validation
+        if (response && response.data) {
+            payouts = response.data;
+        } else {
+            payouts = Array.isArray(response) ? response : [];
+        }
+
         filteredPayouts = [...payouts];
         renderPayoutsTable();
         setupPayoutEventListeners();
@@ -115,6 +122,11 @@ async function viewPayoutDetails(payoutId) {
     try {
         const response = await api.getPayout(payoutId);
         const payout = response.data || response;
+        
+        if (!payout) {
+            throw new Error('Payout data is empty or invalid');
+        }
+
         if (!payout) return;
 
         currentPayout = payout;
@@ -186,7 +198,11 @@ async function viewPayoutDetails(payoutId) {
         switchPayoutTab('details');
     } catch (error) {
         console.error('Failed to load payout details:', error);
-        alert('Failed to load payout details');
+        if (typeof toast !== 'undefined') {
+            toast.error('Could not retrieve payout information.');
+        } else {
+            alert('Failed to load payout details: ' + error.message);
+        }
     }
 }
 

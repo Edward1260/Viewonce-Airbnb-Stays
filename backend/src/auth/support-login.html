@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ViewOnce - Support Login</title>
+    <style>
+        body { background: #e0f7f9; font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .login-card h2 { color: #008b8b; text-align: center; }
+        .form-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #b2ebf2; border-radius: 4px; box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 12px; background: #00CED1; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Support Agent Login</h2>
+        <form id="support-login-form">
+            <input type="email" id="login-email" class="form-input" placeholder="Work Email" required>
+            <input type="password" id="login-password" class="form-input" placeholder="Password" required>
+            <div id="login-error" class="error-message" style="color: red; margin-bottom: 10px;"></div>
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+    </div>
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('support-login-form').onsubmit = (e) => {
+            e.preventDefault();
+            window.handleLogin();
+        };
+    </script>
+</body>
+</html>

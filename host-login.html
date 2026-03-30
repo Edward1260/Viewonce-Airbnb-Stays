@@ -1,4 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF
+    <meta charset="UTF-8">
+    <title>ViewOnce - Host Login</title>
+    <style>
+        body { background: linear-gradient(135deg, #fdfcf0 0%, #fff8dc 100%); font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: #fff; padding: 40px; border-radius: 30px; box-shadow: 20px 20px 60px #d9d9d9, -20px -20px 60px #ffffff; width: 100%; max-width: 400px; text-align: center; }
+        .login-card h2 { color: #D4AF37; }
+        .form-input { width: 100%; padding: 15px; margin-bottom: 15px; border: none; background: #f0f0f0; border-radius: 15px; box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 15px; background: #D4AF37; color: #000; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+            <img src="images/icon-192.png" width="40" alt="App Logo" style="margin-right: 10px;">
+            <h2 style="margin: 0;">Host Portal</h2>
+        </div>
+        <form id="host-login-form">
+            <input type="email" id="login-email" class="form-input" placeholder="Host Email" required>
+            <input type="password" id="login-password" class="form-input" placeholder="Password" required>
+            <div id="login-error" class="error-message" style="color: red; margin-bottom: 10px;"></div>
+            <button type="submit" class="login-btn">Login to Dashboard</button>
+        </form>
+        <p>Start hosting? <a href="/host/signup" style="color: #D4AF37;">Sign up here</a></p>
+    </div>
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('host-login-form').onsubmit = (e) => {
+            e.preventDefault();
+            window.handleLogin();
+        };
+    </script>
+</body>
+</html>

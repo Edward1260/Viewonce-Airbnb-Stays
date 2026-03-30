@@ -158,7 +158,8 @@ function setupNavigation() {
 }
 
     // Navigate to page function - Enhanced with better state management (compatible with both navigateToPage and navigateTo)
-    window.navigateToPage = window.navigateTo = function(element, pageId) {
+    // Removed or commented out to prevent conflict with admin-dashboard.html's internal navigation
+    /* window.navigateToPage = window.navigateTo = function(element, pageId) {
         // Validate element and pageId
         if (!element || !pageId) {
             return;
@@ -201,7 +202,7 @@ function setupNavigation() {
     } catch (error) {
         console.error('Error initializing page:', error);
     }
-
+    }; */
     // Close the sidebar after navigation (optional, only on mobile)
     if (window.innerWidth < 768) {
         closeSidebar();

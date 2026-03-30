@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViewOnce - Admin Login</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { background: #1a1a1a; font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: #fff; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px; border-top: 10px solid #8B0000; }
+        .login-card h2 { color: #8B0000; margin-bottom: 20px; text-align: center; }
+        .form-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 12px; background: #8B0000; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .login-btn:hover { background: #B22222; }
+        .footer-text { text-align: center; margin-top: 20px; font-size: 0.9em; }
+        .footer-text a { color: #8B0000; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+            <img src="images/icon-192.png" width="40" alt="App Logo" style="margin-right: 10px;">
+            <h2 style="margin: 0;">Admin Access</h2>
+        </div>
+        <form id="admin-login-form">
+            <input type="email" id="login-email" class="form-input" placeholder="Admin Email" required>
+            <input type="password" id="login-password" class="form-input" placeholder="Password" required>
+            <div id="login-error" class="error-message" style="color: red; margin-bottom: 10px; font-size: 0.8em;"></div>
+            <button type="submit" class="login-btn">Secure Login</button>
+        </form>
+        <p class="footer-text">Need an account? <a href="/admin/signup">Register as Admin</a></p>
+    </div>
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('admin-login-form').onsubmit = (e) => {
+            e.preventDefault();
+            window.handleLogin();
+        };
+    </script>
+</body>
+</html>

@@ -276,7 +276,10 @@
                 <div class="card-bubble card-bubble-2"></div>
                 
                 <div class="card-content">
-                    <h2 class="card-title">Host Registration</h2>
+                    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 25px;">
+                        <img src="images/icon-192.png" width="40" alt="App Logo" style="margin-right: 10px;">
+                        <h2 class="card-title" style="margin: 0;">Host Registration</h2>
+                    </div>
                     <div class="invitation-badge">🎉 You're invited to become a Host!</div>
                     
                     <form onsubmit="handleHostSignup(event)">
@@ -295,6 +298,27 @@
                         <div class="form-group">
                             <input type="password" class="form-input" placeholder="Confirm Password" id="confirmPassword" required>
                         </div>
+                        <!-- Custom PWA Install Prompt for Hosts -->
+                        <div id="hostPwaPrompt" style="display: none; background: rgba(212,175,55,0.1); border: 1px dashed #D4AF37; border-radius: 15px; padding: 15px; margin-bottom: 18px; text-align: left;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <span style="font-size: 20px;">📲</span>
+                                <p style="font-size: 12px; font-weight: 600; color: #2D3436; margin: 0;">For the best hosting experience, install our dashboard app.</p>
+                            </div>
+                            <button type="button" onclick="handleHostInstall()" style="width: 100%; background: #D4AF37; color: black; border: none; padding: 8px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">Install App Now</button>
+                        </div>
+
+                        <!-- OTP Verification Form -->
+                        <div class="otp-verification-form hidden" id="otpVerificationForm">
+                            <div id="otp-error" class="message"></div>
+                            <p class="text-sm text-gray-600 mb-4">A verification code has been sent to <span id="otpEmailDisplay" class="font-bold"></span>. Please enter it below.</p>
+                            <input type="text" id="otpInput" class="form-input" placeholder="Enter 6-digit OTP" required maxlength="6">
+                            <button type="submit" class="login-btn" id="verifyOtpBtn">Verify OTP</button>
+                            <p class="switch-text">Didn't receive code? <a onclick="resendOtp()">Resend OTP</a></p>
+                        </div>
+                        <div class="form-group" style="text-align: left;">
+                            <input type="checkbox" id="agreeTerms" required style="margin-right: 8px;">
+                            <label for="agreeTerms" class="text-sm text-gray-600">I agree to the <a href="terms-and-conditions.html" target="_blank" class="text-yellow-700 hover:underline">Terms & Conditions</a></label>
+                        </div>
                         <button type="submit" class="login-btn">Create Host Account</button>
                     </form>
                     
@@ -307,6 +331,10 @@
     </div>
 
     <script>
+        // PWA Installation Prompt
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => { deferredInstallPrompt = e; });
+
         // Role to Dashboard Mapping
         const roleDashboardMap = {
             'customer': 'customer-dashboard.html',
@@ -340,6 +368,11 @@
             const role = urlParams.get('role') || 'host';
             const emailParam = urlParams.get('email');
             const nameParam = urlParams.get('name');
+
+            // If an invitation is present, try to prompt PWA installation
+            if (token && deferredInstallPrompt) {
+                showPWAInstallPrompt();
+            }
             
             if (token) {
                 localStorage.setItem('invitationToken', token);
@@ -373,6 +406,15 @@
                 }
             }
         })();
+
+        async function showPWAInstallPrompt() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.preventDefault();
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+            }
+        })();
         
         // Handle Host Signup
         async function handleHostSignup(event) {
@@ -384,9 +426,18 @@
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const invitationToken = localStorage.getItem('invitationToken');
+            const signupForm = document.querySelector('form[onsubmit="handleHostSignup(event)"]');
+            const otpForm = document.getElementById('otpVerificationForm');
+            const agreeTerms = document.getElementById('agreeTerms');
+            const btn = document.querySelector('.login-btn');
             
             if (password !== confirmPassword) {
                 alert('Passwords do not match!');
+                return;
+            }
+
+            if (!agreeTerms.checked) {
+                alert('You must agree to the Terms & Conditions.');
                 return;
             }
             
@@ -399,45 +450,30 @@
             
             try {
                 // Call the API for signup
-                const response = await api.signup({
+                const response = await api.requestOtpSignup({ // Changed to requestOtpSignup
                     email,
                     password,
                     firstName,
                     lastName,
                     phone,
-                    role: 'host',
+                    role: 'host', // Role is always 'host' for this page
+                    agreeTerms: agreeTerms.checked,
                     invitationToken: invitationToken
                 });
                 
-                console.log('Signup response:', response);
-                
-                // Store auth data
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('token', response.token || response.accessToken);
-                localStorage.setItem('refreshToken', response.refreshToken);
-                
-                // Create user object
-                const user = {
-                    id: response.userId || response.id,
-                    email: email,
-                    name: name,
-                    role: 'host',
-                    profile: response
-                };
-                
-                localStorage.setItem('user', JSON.stringify(user));
-                
-                // Clear invitation data
-                localStorage.removeItem('invitationToken');
-                localStorage.removeItem('invitationRole');
-                
-                // Check onboarding status and redirect
-                try {
-                    const status = await api.getOnboardingStatus();
-                    window.location.href = status.complete ? 'host-dashboard-upgraded.html' : 'host-onboarding.html';
-                } catch (error) {
-                    console.warn('Onboarding check failed:', error);
-                    window.location.href = 'host-dashboard-upgraded.html';
+                if (response.otpRequired && response.sessionId) {
+                    localStorage.setItem('otpSessionId', response.sessionId);
+                    localStorage.setItem('signupEmailForOtp', email);
+                    document.getElementById('otpEmailDisplay').textContent = email;
+                    
+                    signupForm.classList.add('hidden');
+                    otpForm.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Create Host Account';
+                    alert('OTP sent to your email. Please verify.');
+                } else {
+                    // Direct signup (no OTP or already verified)
+                    handleSuccessfulSignup(response, name, email, 'host');
                 }
                 
             } catch (error) {
@@ -446,20 +482,79 @@
                 // Fallback to demo mode
                 console.log('Using demo mode');
                 
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('user', JSON.stringify({ name, email, phone, role: 'host' }));
-                localStorage.setItem('token', 'demo-host-token');
-                localStorage.removeItem('invitationToken');
-                localStorage.removeItem('invitationRole');
-                
-                // Check onboarding status and redirect
-                try {
-                    const status = await api.getOnboardingStatus();
-                    window.location.href = status.complete ? 'host-dashboard-upgraded.html' : 'host-onboarding.html';
-                } catch (error) {
-                    console.warn('Onboarding check failed:', error);
-                    window.location.href = 'host-dashboard-upgraded.html';
+                handleSuccessfulSignup(null, name, email, 'host', true); // Pass true for demo
+            }
+        }
+
+        async function handleOtpVerification(event) {
+            event.preventDefault();
+            const otp = document.getElementById('otpInput').value.trim();
+            const btn = document.getElementById('verifyOtpBtn');
+            const otpErrorDiv = document.getElementById('otp-error');
+            const sessionId = localStorage.getItem('otpSessionId');
+            const email = localStorage.getItem('signupEmailForOtp');
+
+            otpErrorDiv.textContent = '';
+            if (!otp || otp.length !== 6) {
+                otpErrorDiv.textContent = 'Please enter a valid 6-digit OTP.';
+                return;
+            }
+            if (!sessionId || !email) {
+                otpErrorDiv.textContent = 'Session expired. Please restart signup.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await api.verifyOtpSignup(email, otp, sessionId);
+                handleSuccessfulSignup(response, response.user.firstName + ' ' + response.user.lastName, response.user.email, response.user.role);
+            } catch (error) {
+                console.error('OTP verification error:', error);
+                otpErrorDiv.textContent = error.message;
+                btn.disabled = false;
+                btn.textContent = 'Verify OTP';
+            }
+        }
+
+        async function resendOtp() {
+            const email = localStorage.getItem('signupEmailForOtp');
+            const sessionId = localStorage.getItem('otpSessionId');
+            const otpErrorDiv = document.getElementById('otp-error');
+
+            otpErrorDiv.textContent = '';
+            if (!email || !sessionId) {
+                otpErrorDiv.textContent = 'Cannot resend OTP. Please restart signup.';
+                return;
+            }
+
+            try {
+                otpErrorDiv.textContent = 'Resending OTP...';
+                const response = await api.resendOtp(email, sessionId);
+                if (response.success) {
+                    otpErrorDiv.textContent = 'New OTP sent. Please check your email.';
+                } else {
+                    throw new Error(response.message || 'Failed to resend OTP.');
                 }
+            } catch (error) {
+                console.error('Resend OTP error:', error);
+                otpErrorDiv.textContent = error.message;
+            }
+        }
+
+        async function handleSuccessfulSignup(response, name, email, role, isDemo = false) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('user', JSON.stringify({ name, email, role, id: response?.user?.id || 'demo-id' }));
+            localStorage.setItem('token', response?.token || 'demo-token');
+            localStorage.removeItem('invitationToken');
+            localStorage.removeItem('invitationRole');
+            try {
+                const status = await api.getOnboardingStatus();
+                window.location.href = status.complete ? 'host-dashboard-upgraded.html' : 'host-onboarding.html';
+            } catch (error) {
+                console.warn('Onboarding check failed:', error);
+                window.location.href = 'host-dashboard-upgraded.html';
             }
         }
     </script>

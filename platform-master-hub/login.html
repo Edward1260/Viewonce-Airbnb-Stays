@@ -6,7 +6,8 @@
     <title>Login - Platform Master Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="api.js"></script>
+    <script src="../config.js"></script>
+    <script src="../api.js"></script>
     <style>
         :root {
             --bg: #0a0a1a;
@@ -400,9 +401,8 @@
         if (token && user) {
             try {
                 const userData = JSON.parse(user);
-                if (userData.role === 'super_admin') {
-                    // Already logged in as super admin, redirect to dashboard
-                    window.location.href = 'dashboard.html';
+                if (['super_admin', 'platform_master', 'platform_master_hub'].includes(userData.role)) {
+                    window.location.href = '/platform-master-hub';
                 }
             } catch (e) {
                 // Invalid user data, clear and continue
@@ -441,47 +441,32 @@
             loading.style.display = 'block';
             
             try {
-                const response = await fetch('/api/v1/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
+                const data = await api.login({ email, password });
                 
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Login successful
-                    
-                    // Check if user is super_admin
-                    if (data.user.role !== 'super_admin') {
-                        errorAlert.textContent = 'Access denied. Only super admins can access this dashboard.';
-                        errorAlert.style.display = 'block';
-                        loginBtn.disabled = false;
-                        loginBtn.textContent = 'Login';
-                        loading.style.display = 'none';
-                        return;
-                    }
-                    
-                    // Store tokens
+                if (data && data.user) {
                     if (rememberMe) {
-                        localStorage.setItem('token', data.token);
-                        localStorage.setItem('refreshToken', data.refreshToken);
+                        localStorage.setItem('token', data.session.access_token);
+                        localStorage.setItem('refreshToken', data.session.refresh_token);
                         localStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('isLoggedIn', 'true');
                     } else {
-                        sessionStorage.setItem('token', data.token);
-                        sessionStorage.setItem('refreshToken', data.refreshToken);
+                        sessionStorage.setItem('token', data.session.access_token);
+                        sessionStorage.setItem('refreshToken', data.session.refresh_token);
                         sessionStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('isLoggedIn', 'true');
                     }
                     
-                    // Redirect to dashboard
-                    window.location.href = 'dashboard.html';
+                    // Secure Backend Verification
+                    const verify = await api.verifyMasterRole();
+                    if (!verify || !verify.isMaster) {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        throw new Error("Access Denied: You do not have Platform Master privileges.");
+                    }
+
+                    window.location.href = '/platform-master-hub';
                 } else {
-                    // Login failed
-                    errorAlert.textContent = data.message || 'Invalid email or password';
-                    errorAlert.style.display = 'block';
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Login';
-                    loading.style.display = 'none';
+                    throw new Error('Invalid email or password');
                 }
             } catch (error) {
                 console.error('Login error:', error);

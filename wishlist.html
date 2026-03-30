@@ -111,12 +111,26 @@
             const isLoggedIn = localStorage.getItem('isLoggedIn');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (!isLoggedIn || user.role !== 'customer') {
-                window.location.href = 'login-signup.html';
+                window.location.href = 'auth.html';
+                return;
             }
             document.getElementById('wishlistPaymentModal').addEventListener('click', function(e) {
                 if (e.target === this) this.style.display = 'none';
             });
+            loadWishlist();
         });
+
+        async function loadWishlist() {
+            try {
+                const items = await api.getWishlist();
+                if (items && items.length > 0) {
+                    const container = document.getElementById('wishlistContainer');
+                    // Dynamically render items from API instead of hardcoded ones
+                }
+            } catch (error) {
+                console.error('Failed to load wishlist:', error);
+            }
+        }
 
         function updateSelection() {
             const checkboxes = document.querySelectorAll('#wishlistContainer input[type="checkbox"]');

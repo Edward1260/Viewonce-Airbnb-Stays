@@ -36,7 +36,8 @@ function getSignupFormData() {
 const dashboardMap = {
     'customer': 'customer-dashboard.html',
     'host': 'host-dashboard.html',
-    'admin': 'admin-dashboard.html'
+    'admin': 'admin-dashboard.html',
+    'support': 'support-dashboard-upgraded.html'
 };
 
 window.handleLogin = async function() {
@@ -185,33 +186,63 @@ window.handleSignup = async function() {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
 
-        const signupData = { email, password, firstName, lastName, phone, role };
-
+        const signupData = { email, password, firstName, lastName, phone, role, inviteToken: formData.inviteToken }; // Include inviteToken
+        
         // Console log removed
-
-        const data = await api.signup(signupData);
-
-        // Validate the response data
-        if (!data || !data.user || !data.user.role) {
-            throw new Error("Signup failed: Invalid response from server.");
+        
+        let data;
+        try {
+            data = await api.signup(signupData);
+        } catch (apiError) {
+            // Handle specific API errors like "User already exists"
+            const msg = apiError.message || 'Registration failed on server.';
+            throw new Error(msg);
         }
 
-        // --- Success ---
-        if (errorDiv) {
-            errorDiv.className = 'success-message';
-            errorDiv.innerHTML = 'Sign up successful! Redirecting...';
+        // If OTP is required, switch to OTP verification form
+        if (data.otpRequired && data.sessionId) {
+            localStorage.setItem('otpSessionId', data.sessionId);
+            localStorage.setItem('signupEmailForOtp', email); // Store email for OTP step
+            document.getElementById('otpEmailDisplay').textContent = email;
+            
+            // Assuming you have a way to switch forms in script.js
+            // This part needs to be adapted based on your actual form switching logic
+            const signupFormEl = document.getElementById('signup-form');
+            const otpFormEl = document.getElementById('otpVerificationForm');
+            if (signupFormEl && otpFormEl) {
+                signupFormEl.classList.add('hidden');
+                otpFormEl.classList.remove('hidden');
+            }
+            
+            if (errorDiv) {
+                errorDiv.className = 'success-message';
+                errorDiv.innerHTML = 'OTP sent to your email. Please verify.';
+            }
+            restoreButton(); // Restore button on initial signup form
+        } else {
+            // Direct signup (no OTP or already verified)
+            // Validate the response data
+            if (!data || !data.user || !data.user.role) {
+                throw new Error("Signup failed: Invalid response from server.");
+            }
+
+            // --- Success ---
+            if (errorDiv) {
+                errorDiv.className = 'success-message';
+                errorDiv.innerHTML = 'Sign up successful! Redirecting...';
+            }
+
+            // Store tokens and user
+            localStorage.setItem('token', data.session.access_token);
+            localStorage.setItem('refreshToken', data.session.refresh_token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('isLoggedIn', 'true');
+
+            // Redirect to appropriate dashboard based on role
+            setTimeout(() => {
+                window.location.href = dashboardMap[data.user.role] || 'welcome.html';
+            }, 1500);
         }
-
-        // Store tokens and user
-        localStorage.setItem('token', data.session.access_token);
-        localStorage.setItem('refreshToken', data.session.refresh_token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('isLoggedIn', 'true');
-
-        // Redirect to appropriate dashboard based on role
-        setTimeout(() => {
-            window.location.href = dashboardMap[data.user.role] || 'welcome.html';
-        }, 1500);
 
     } catch (error) {
         let errorMessage = error.message;
@@ -226,9 +257,100 @@ window.handleSignup = async function() {
     }
 };
 
+window.handleOtpVerification = async function() {
+    const otp = document.getElementById('otpInput').value.trim();
+    const btn = document.getElementById('verifyOtpBtn');
+    const otpErrorDiv = document.getElementById('otp-error');
+    const sessionId = localStorage.getItem('otpSessionId');
+    const email = localStorage.getItem('signupEmailForOtp');
+
+    otpErrorDiv.textContent = '';
+    if (!otp || otp.length !== 6) {
+        otpErrorDiv.textContent = 'Please enter a valid 6-digit OTP.';
+        return;
+    }
+    if (!sessionId || !email) {
+        otpErrorDiv.textContent = 'Session expired. Please restart signup.';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+
+    try {
+        const response = await api.verifyOtpSignup(email, otp, sessionId);
+        // Handle successful signup after OTP verification
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('token', response.token || response.accessToken);
+        localStorage.setItem('refreshToken', response.refreshToken);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        setTimeout(() => {
+            window.location.href = dashboardMap[response.user.role] || 'welcome.html';
+        }, 1500);
+
+    } catch (error) {
+        let errorMessage = error.message;
+        if (errorMessage.includes('Network error') || errorMessage.includes('Failed to fetch')) {
+            errorMessage += '<br><small><b>Hint:</b> Is the backend server running on port 3001?</small>';
+        }
+        if (errorDiv) errorDiv.innerHTML = errorMessage;
+        if (!errorDiv || errorDiv.style.display === 'none') {
+             alert('Signup Error: ' + error.message);
+        }
+        btn.disabled = false;
+        btn.textContent = 'Verify OTP';
+    }
+};
+
+window.resendOtp = async function() {
+    const email = localStorage.getItem('signupEmailForOtp');
+    const sessionId = localStorage.getItem('otpSessionId');
+    const otpErrorDiv = document.getElementById('otp-error');
+
+    otpErrorDiv.textContent = '';
+    if (!email || !sessionId) {
+        otpErrorDiv.textContent = 'Cannot resend OTP. Please restart signup.';
+        return;
+    }
+
+    try {
+        otpErrorDiv.textContent = 'Resending OTP...';
+        const response = await api.resendOtp(email, sessionId);
+        if (response.success) {
+            otpErrorDiv.textContent = 'New OTP sent. Please check your email.';
+            otpErrorDiv.classList.remove('error');
+            otpErrorDiv.classList.add('success');
+        } else {
+            throw new Error(response.message || 'Failed to resend OTP.');
+        }
+    } catch (error) {
+        console.error('Resend OTP error:', error);
+        otpErrorDiv.textContent = error.message;
+        otpErrorDiv.classList.remove('success');
+        otpErrorDiv.classList.add('error');
+    }
+};
+
 // Function to initialize login/signup functionality
 function initializeAuth(initialForm) {
     // Console log removed
+
+    // Detect role based on URL path for specialized pages
+    const path = window.location.pathname;
+    let autoRole = '';
+    if (path.includes('/host/')) autoRole = 'host';
+    else if (path.includes('/admin/')) autoRole = 'admin';
+    else if (path.includes('/support/')) autoRole = 'support';
+
+    if (autoRole) {
+        document.body.classList.add(`role-theme-${autoRole}`);
+        const signupRoleSelect = document.getElementById('signup-role');
+        if (signupRoleSelect) {
+            signupRoleSelect.value = autoRole;
+            updateSignupState('role', autoRole);
+            signupRoleSelect.dispatchEvent(new Event('change'));
+        }
+    }
 
     // Form elements
     const loginFormElement = document.getElementById('login-form');
@@ -244,6 +366,40 @@ function initializeAuth(initialForm) {
         // Skip the tab logic and proceed to attach event listeners
     } else {
         // Tab switching functionality
+
+        // Parse invitation parameters if present in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteRoleFromUrl = urlParams.get('role'); // Renamed to avoid conflict
+        const inviteTokenFromUrl = urlParams.get('token'); // Renamed to avoid conflict
+
+        // Store inviteToken in signupFormState if present
+        if (inviteTokenFromUrl) {
+            updateSignupState('inviteToken', inviteTokenFromUrl);
+            // Optionally, validate the token immediately on page load
+            validateInvitationToken(inviteTokenFromUrl);
+        }
+
+        if (inviteRoleFromUrl) {
+            const signupRoleSelect = document.getElementById('signup-role');
+            if (signupRoleSelect) {
+                signupRoleSelect.value = inviteRoleFromUrl;
+                signupRoleSelect.disabled = true; // Prevent user from changing role if invited
+                updateSignupState('role', inviteRoleFromUrl); // Update state with the invited role
+                // Trigger change event to update UI elements dependent on role (e.g., phone group)
+                signupRoleSelect.dispatchEvent(new Event('change'));
+            }
+        }
+        // If an email is also part of the invitation link (e.g., ?email=...), pre-fill it
+        const inviteEmailFromUrl = urlParams.get('email');
+        if (inviteEmailFromUrl) {
+            const signupEmailInput = document.getElementById('signup-email');
+            if (signupEmailInput) {
+                signupEmailInput.value = inviteEmailFromUrl;
+                signupEmailInput.disabled = true; // Prevent user from changing email if invited
+                updateSignupState('email', inviteEmailFromUrl);
+            }
+        }
+
         const loginTab = document.getElementById('login-tab');
         const signupTab = document.getElementById('signup-tab');
         const loginForm = document.getElementById('login-form');
@@ -567,6 +723,34 @@ function initializeAuth(initialForm) {
             this.parentElement.style.transform = 'scale(1)';
         });
     });
+}
+
+// New function to validate invitation token on frontend load
+async function validateInvitationToken(token) {
+    try {
+        // Assuming api.validateInviteToken exists and calls the backend endpoint
+        const response = await api.validateInviteToken(token);
+        
+        const signupEmailInput = document.getElementById('signup-email');
+        const signupRoleSelect = document.getElementById('signup-role');
+
+        if (response.email && signupEmailInput) {
+            signupEmailInput.value = response.email;
+            signupEmailInput.disabled = true;
+            updateSignupState('email', response.email);
+        }
+        if (response.role && signupRoleSelect) {
+            signupRoleSelect.value = response.role;
+            signupRoleSelect.disabled = true;
+            updateSignupState('role', response.role);
+            signupRoleSelect.dispatchEvent(new Event('change')); // Trigger UI update
+        }
+        // Show a success message to the user
+        // uiComponents.toast.info('Invitation token validated. Please complete your signup.');
+    } catch (error) {
+        // uiComponents.toast.error('Invalid or expired invitation link. Please contact support.');
+        console.error('Invitation token validation failed:', error);
+    }
 }
 
 // Initialize on DOMContentLoaded for initial page

@@ -54,13 +54,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 1. Fallback for navigateTo if it's missing or broken in admin-functions.js
   // This fixes Step 3 & 4 in TODO.md (Selector mismatch & Page ID handling)
-  if (typeof window.navigateTo !== 'function') {
-    console.log('ℹ️ Navigation Engine: Initializing fallback...');
+  // We wrap this to ensure it doesn't conflict with global routers
+  const initNavigation = () => {
+    console.log('ℹ️ Navigation Engine: Initializing Admin SPA Navigation...');
     
-    window.navigateTo = function(pageId, element) {
+    window.switchAdminPage = function(pageId, element) {
       console.log(`Navigate to: ${pageId}`);
       
-      // Update UI - Active State
+      // Update UI - Sidebar Active State
       document.querySelectorAll('.sidebar-item').forEach(el => {
         // Remove active classes (Tailwind utility patterns)
         el.classList.remove('bg-white/10', 'border-l-4', 'border-white', 'font-semibold');
@@ -109,7 +110,11 @@ document.addEventListener('DOMContentLoaded', function() {
         headerTitle.textContent = pageId.charAt(0).toUpperCase() + pageId.slice(1).replace('-', ' ');
       }
     };
-  }
+
+    // If router.js exists, we still want our local buttons to work. 
+    // We map navigateTo to our internal switcher if we are on the admin dashboard.
+    window.navigateTo = window.switchAdminPage;
+  };
 
   // Safe Initializer with Catch Blocks (Fixing Step 1 in TODO_admin_dashboard_fix.md)
   async function safeInit(fnName) {
@@ -124,6 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Run Cleanup and Feature Updates
+  initNavigation();
   cleanupDuplicates();
   safeInit('initializePayoutsManagement');
   safeInit('loadAdminStats');
@@ -165,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const page = this.getAttribute('data-page');
       
       if (page) {
-        window.navigateTo(page, this);
+        window.switchAdminPage(page, this);
         
         // Close sidebar on mobile after navigation (better UX)
         if (window.innerWidth <= 1024) {

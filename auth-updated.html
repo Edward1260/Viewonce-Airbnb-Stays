@@ -973,6 +973,21 @@
                                 <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
                             </form>
                             
+                            <!-- OTP Verification Form -->
+                            <div class="otp-verification-form hidden" id="otpVerificationForm">
+                                <div id="otp-error" class="message"></div>
+                                <p class="text-sm text-gray-600 mb-4">A verification code has been sent to <span id="otpEmailDisplay" class="font-bold"></span>. Please enter it below.</p>
+                                <form onsubmit="handleOtpVerification(event)">
+                                    <div class="form-group">
+                                        <input type="text" id="otpInput" class="form-input" placeholder="Enter 6-digit OTP" required maxlength="6">
+                                    </div>
+                                    <button type="submit" class="login-btn" id="verifyOtpBtn">Verify OTP</button>
+                                    <p class="switch-text">
+                                        Didn't receive code? <a onclick="resendOtp()">Resend OTP</a>
+                                    </p>
+                                </form>
+                            </div>
+
                             <!-- Social Login Buttons -->
                             <div class="social-divider">
                                 <span>or continue with</span>
@@ -1252,6 +1267,9 @@
             const password = document.getElementById('signupPassword').value;
             const confirmPassword = document.getElementById('signupConfirmPassword').value;
             const signupBtn = document.getElementById('signupBtn');
+            const signupForm = document.getElementById('signupForm');
+            const otpForm = document.getElementById('otpVerificationForm');
+
             
             // Clear previous messages
             clearMessage('signupMessage');
@@ -1279,7 +1297,7 @@
             signupBtn.textContent = 'Creating account...';
             
             try {
-                const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+                const response = await fetch(`${API_BASE_URL}/auth/signup/request-otp`, { // Changed to request-otp
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1295,29 +1313,101 @@
                 
                 const data = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(data.message || 'Signup failed. Please try again.');
+                if (data.otpRequired && data.sessionId) {
+                    localStorage.setItem('otpSessionId', data.sessionId);
+                    localStorage.setItem('signupEmailForOtp', email);
+                    document.getElementById('otpEmailDisplay').textContent = email;
+                    
+                    signupForm.classList.add('hidden');
+                    otpForm.classList.remove('hidden');
+                    signupBtn.disabled = false;
+                    signupBtn.textContent = 'Create Account';
+                    showSuccess('signupMessage', 'OTP sent to your email. Please verify.');
+                } else {
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Signup failed. Please try again.');
+                    }
+                    
+                    showSuccess('signupMessage', 'Account created successfully! Redirecting...');
+                    
+                    localStorage.setItem('token', data.accessToken || data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('isLoggedIn', 'true');
+                    
+                    triggerLiquidWave();
+                    
+                    setTimeout(() => {
+                        redirectBasedOnRole(data.user.role);
+                    }, 800);
                 }
-                
-                // Show success
-                showSuccess('signupMessage', 'Account created successfully! Redirecting...');
-                
-                // Store token and user data
-                localStorage.setItem('token', data.accessToken || data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                localStorage.setItem('isLoggedIn', 'true');
-                
-                triggerLiquidWave();
-                
-                // Wait for animation, then redirect
-                setTimeout(() => {
-                    redirectBasedOnRole(data.user.role);
-                }, 800);
                 
             } catch (error) {
                 showError('signupMessage', error.message);
                 signupBtn.disabled = false;
                 signupBtn.textContent = 'Create Account';
+            }
+        }
+
+        async function handleOtpVerification(event) {
+            event.preventDefault();
+            const otp = document.getElementById('otpInput').value.trim();
+            const btn = document.getElementById('verifyOtpBtn');
+            const otpErrorDiv = document.getElementById('otp-error');
+            const sessionId = localStorage.getItem('otpSessionId');
+            const email = localStorage.getItem('signupEmailForOtp');
+
+            otpErrorDiv.textContent = '';
+            if (!otp || otp.length !== 6) {
+                otpErrorDiv.textContent = 'Please enter a valid 6-digit OTP.';
+                return;
+            }
+            if (!sessionId || !email) {
+                otpErrorDiv.textContent = 'Session expired. Please restart signup.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/signup/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp, sessionId })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'OTP verification failed.');
+
+                localStorage.setItem('token', data.accessToken || data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('isLoggedIn', 'true');
+                triggerLiquidWave();
+                setTimeout(() => redirectBasedOnRole(data.user.role), 800);
+            } catch (error) {
+                showError('otp-error', error.message);
+                btn.disabled = false;
+                btn.textContent = 'Verify OTP';
+            }
+        }
+
+        async function resendOtp() {
+            const email = localStorage.getItem('signupEmailForOtp');
+            const sessionId = localStorage.getItem('otpSessionId');
+            const otpErrorDiv = document.getElementById('otp-error');
+            otpErrorDiv.textContent = 'Resending OTP...';
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/signup/resend-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, sessionId })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Failed to resend OTP.');
+                otpErrorDiv.className = 'message success';
+                otpErrorDiv.textContent = 'New OTP sent. Please check your email.';
+            } catch (error) {
+                otpErrorDiv.className = 'message error';
+                otpErrorDiv.textContent = error.message;
             }
         }
         

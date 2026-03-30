@@ -942,6 +942,16 @@
         <div class="bubble"></div>
     </div>
     
+    <!-- Custom PWA Install Banner -->
+    <div id="pwaInstallBanner" style="display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; background: white; padding: 15px 25px; border-radius: 50px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); align-items: center; gap: 15px; width: 90%; max-width: 400px; animation: slideInDown 0.5s ease-out;">
+        <div style="background: #6C5CE7; color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🏠</div>
+        <div style="flex: 1;">
+            <p style="font-size: 13px; font-weight: 600; color: #2D3436; margin: 0;">Install ViewOnce Stays</p>
+            <p style="font-size: 11px; color: #636E72; margin: 0;">Experience the app on your home screen</p>
+        </div>
+        <button onclick="handleInstallClick()" style="background: #6C5CE7; color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">Install</button>
+    </div>
+
     <div class="auth-container">
         <!-- Left Section - Auth Image with Welcoming Messages -->
         <div class="left-section">
@@ -1044,11 +1054,28 @@
                                 <div class="form-group">
                                     <input type="password" id="signupConfirmPassword" class="form-input" placeholder="Confirm Password" required>
                                 </div>
+                                <div class="form-group" style="text-align: left;">
+                                    <input type="checkbox" id="agreeTerms" required style="margin-right: 8px;">
+                                    <label for="agreeTerms" class="text-sm text-gray-600">I agree to the <a href="terms-and-conditions.html" target="_blank" class="text-indigo-600 hover:underline">Terms & Conditions</a></label>
+                                </div>
                                 <button type="submit" class="login-btn" id="signupSubmit">
                                     <div class="btn-spinner"></div>
                                     <span class="btn-text">Create Account</span>
                                 </button>
                             </form>
+
+                            <!-- OTP Verification Form -->
+                            <div class="otp-verification-form hidden" id="otpVerificationForm">
+                                <div id="otp-error" class="message error" style="display:none"></div>
+                                <p class="text-sm text-gray-600 mb-4">A verification code has been sent to <span id="otpEmailDisplay" class="font-bold"></span>. Please enter it below.</p>
+                                <form onsubmit="handleOtpVerification(event)">
+                                    <div class="form-group">
+                                        <input type="text" id="otpInput" class="form-input" placeholder="Enter 6-digit OTP" required maxlength="6">
+                                    </div>
+                                    <button type="submit" class="login-btn" id="verifyOtpBtn">Verify OTP</button>
+                                    <p class="switch-text">Didn't receive code? <a onclick="resendOtp()">Resend OTP</a></p>
+                                </form>
+                            </div>
                             
                             <!-- Social Login Buttons -->
                             <div class="social-divider">
@@ -1103,6 +1130,81 @@
             return roleDashboardMap[role] || 'customer-dashboard.html';
         }
         
+        // Custom PWA Installation Logic
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredInstallPrompt = e;
+            
+            // Check if we should show the install button (e.g., user has a token)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('token')) {
+                toggleInstallBanner(true);
+            }
+        });
+
+        function toggleInstallBanner(show) {
+            const banner = document.getElementById('pwaInstallBanner');
+            if (banner) banner.style.display = show ? 'flex' : 'none';
+        }
+
+        async function handleInstallClick() {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            console.log(`User response to install: ${outcome}`);
+            deferredInstallPrompt = null;
+            toggleInstallBanner(false);
+        }
+
+        /**
+         * Validates the invitation token before showing the signup form
+         */
+        async function validateInvitation() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            
+            if (!token) return;
+
+            const signupError = document.getElementById('signup-error');
+            const signupSubmit = document.getElementById('signupSubmit');
+            const btnText = signupSubmit.querySelector('.btn-text');
+            
+            // UI Feedback: Switch to signup and disable until validated
+            switchToSignup();
+            signupSubmit.disabled = true;
+            btnText.textContent = 'Validating Invitation...';
+
+            try {
+                // Call the API method defined in api.js
+                const validation = await window.api.validateInviteToken(token);
+                
+                // Pre-fill and lock the form fields
+                const emailInput = document.getElementById('signupEmail');
+                const roleSelect = document.getElementById('signupRole');
+                const nameInput = document.getElementById('signupName');
+
+                if (validation.email) {
+                    emailInput.value = validation.email;
+                    emailInput.readOnly = true;
+                    emailInput.style.opacity = '0.7';
+                }
+                if (validation.role) {
+                    roleSelect.value = validation.role;
+                    roleSelect.disabled = true;
+                    roleSelect.style.opacity = '0.7';
+                }
+                
+                signupSubmit.disabled = false;
+                btnText.textContent = 'Complete Registration';
+            } catch (error) {
+                signupError.innerHTML = `<div class="message error">⚠️ Invalid or expired invitation link. Please contact the administrator.</div>`;
+                signupSubmit.style.display = 'none';
+            }
+        }
+
         // Handle invitation link parameters
         function handleInvitationParams() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -1133,6 +1235,9 @@
                 return; // Redirecting to signup page
             }
             
+            // Check for invitation token validation
+            validateInvitation();
+
             // Check if already logged in and redirect to appropriate dashboard
             const token = localStorage.getItem('token');
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -1153,6 +1258,7 @@
             if (urlParams.get('form') === 'signup') {
                 switchToSignup();
             }
+        })();
         })();
         
         // Welcoming Messages Animation
@@ -1369,6 +1475,11 @@
             const password = document.getElementById('signupPassword').value;
             const confirmPassword = document.getElementById('signupConfirmPassword').value;
             const btn = document.getElementById('signupSubmit');
+            const agreeTerms = document.getElementById('agreeTerms');
+
+            if (!agreeTerms.checked) {
+                throw new Error('You must agree to the Terms & Conditions.');
+            }
             const errorDiv = document.getElementById('signup-error');
             
             errorDiv.textContent = '';
@@ -1388,37 +1499,30 @@
                 const lastName = nameParts.slice(1).join(' ') || '';
 
                 // Call the actual API for signup
-                const response = await api.signup({
+                const response = await api.requestOtpSignup({
                     email,
                     password,
                     firstName,
                     lastName,
-                    phone,
-                    role: role
+                    phone: '', // Customer role usually doesn't have phone in auth.html
+                    role: role,
+                    agreeTerms: agreeTerms.checked // Pass T&C acceptance to backend
                 });
                 
                 console.log('Signup response:', response);
                 
-                // Store auth data
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('token', response.token || response.accessToken);
-                localStorage.setItem('refreshToken', response.refreshToken);
-                
-                // Create user object
-                const user = {
-                    id: response.userId || response.id,
-                    email: email,
-                    name: name,
-                    role: role,
-                    profile: response
-                };
-                
-                localStorage.setItem('user', JSON.stringify(user));
-                
-                // Redirect to customer dashboard
-                setTimeout(() => {
-                    window.location.href = 'customer-dashboard.html';
-                }, 500);
+                if (response.otpRequired && response.sessionId) {
+                    localStorage.setItem('otpSessionId', response.sessionId);
+                    localStorage.setItem('signupEmailForOtp', email);
+                    document.getElementById('otpEmailDisplay').textContent = email;
+                    
+                    document.getElementById('signup-form-el').classList.add('hidden');
+                    document.getElementById('otpVerificationForm').classList.remove('hidden');
+                    document.getElementById('formTitle').textContent = 'Verify Email';
+                    startResendTimer();
+                } else {
+                    handleSuccessfulSignup(response, name, email, role);
+                }
                 
             } catch (error) {
                 console.error('Signup error:', error);
@@ -1434,6 +1538,86 @@
             }
         }
         
+        async function handleOtpVerification(event) {
+            event.preventDefault();
+            const otp = document.getElementById('otpInput').value.trim();
+            const btn = document.getElementById('verifyOtpBtn');
+            const otpErrorDiv = document.getElementById('otp-error');
+            const sessionId = localStorage.getItem('otpSessionId');
+            const email = localStorage.getItem('signupEmailForOtp');
+
+            if (!otp || otp.length !== 6) {
+                showError('signup-error', 'Please enter a valid 6-digit OTP.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await api.verifyOtpSignup(email, otp, sessionId);
+                handleSuccessfulSignup(response, response.user.firstName + ' ' + response.user.lastName, email, response.user.role);
+            } catch (error) {
+                showError('signup-error', error.message);
+                btn.disabled = false;
+                btn.textContent = 'Verify OTP';
+            }
+        }
+
+        let resendCooldown = 0;
+        function startResendTimer() {
+            resendCooldown = 60;
+            const resendLink = document.querySelector('#otpVerificationForm .switch-text a');
+            if (!resendLink) return;
+            
+            resendLink.style.pointerEvents = 'none';
+            resendLink.style.opacity = '0.5';
+            
+            const timer = setInterval(() => {
+                resendCooldown--;
+                resendLink.textContent = `Resend OTP (${resendCooldown}s)`;
+                
+                if (resendCooldown <= 0) {
+                    clearInterval(timer);
+                    resendLink.textContent = 'Resend OTP';
+                    resendLink.style.pointerEvents = 'auto';
+                    resendLink.style.opacity = '1';
+                }
+            }, 1000);
+        }
+
+        async function resendOtp() {
+            if (resendCooldown > 0) return;
+            const email = localStorage.getItem('signupEmailForOtp');
+            const sessionId = localStorage.getItem('otpSessionId');
+            try {
+                await api.resendOtp(email, sessionId);
+                showSuccess('signup-error', 'A new OTP has been sent to your email.');
+                startResendTimer();
+            } catch (error) {
+                showError('signup-error', error.message);
+            }
+        }
+
+        function handleSuccessfulSignup(response, name, email, role) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('token', response.token || response.accessToken);
+            localStorage.setItem('refreshToken', response.refreshToken);
+            
+            const user = {
+                id: response.userId || response.id,
+                email: email,
+                name: name,
+                role: role
+            };
+            
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            setTimeout(() => {
+                window.location.href = getDashboardByRole(role);
+            }, 500);
+        }
+
         // Handle Social Login
         function handleSocialLogin(provider) {
             console.log('Social login with:', provider);

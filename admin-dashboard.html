@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ViewOnce Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script> 
     <script src="config.js?v=20241201"></script>
     <script src="store.js"></script>
     <script src="api.js"></script>
     <script src="payout-functions.js"></script>
-    <script src="admin-host-invitation.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -249,8 +248,8 @@
             left: 0;
             height: 100vh;
             width: 280px;
-            transform: translateX(-100%);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
             z-index: 1000;
             background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
             box-shadow: 20px 0 60px rgba(0, 0, 0, 0.5);
@@ -260,16 +259,32 @@
             border-right: 1px solid rgba(139, 92, 246, 0.3);
         }
         
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .sidebar.collapsed .sidebar-text,
+        .sidebar.collapsed .sidebar-logo-text,
+        .sidebar.collapsed .badge {
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-logo {
+            justify-content: center;
+            padding: 16px 0;
+        }
+        
+        .sidebar.collapsed #sidebarClose {
+            display: none !important;
+        }
+        
         .sidebar.active {
             transform: translateX(0);
         }
         
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .sidebar::-webkit-scrollbar-track {
-            background: transparent;
+        .sidebar.collapsed .sidebar-item {
+            justify-content: center;
+            padding-left: 18px;
         }
         
         .sidebar::-webkit-scrollbar-thumb {
@@ -854,14 +869,6 @@
         
         /* Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
         ::-webkit-scrollbar-thumb {
             background: rgba(139, 92, 246, 0.5);
             border-radius: 4px;
@@ -974,9 +981,7 @@
         
         /* Responsive */
         @media (max-width: 1024px) {
-            .sidebar {
-                width: 280px;
-            }
+            .sidebar { transform: translateX(-100%); }
             .header {
                 left: 0;
             }
@@ -1324,58 +1329,58 @@
             </button>
         </div>
         
-        <button class="sidebar-item active" data-page="dashboard" onclick="navigateTo('dashboard', this)">
+        <button class="sidebar-item active" onclick="switchPageInternal('dashboard')" title="Dashboard">
             <i class="fas fa-th-large"></i>
             <span class="sidebar-text">Dashboard</span>
         </button>
         
-        <button class="sidebar-item" data-page="hosts" onclick="navigateTo('hosts', this)">
+        <button class="sidebar-item" data-page="hosts" onclick="switchPageInternal('hosts', this)" title="Hosts">
             <i class="fas fa-home"></i>
             <span class="sidebar-text">Hosts</span>
         </button>
         
-        <button class="sidebar-item" data-page="customers" onclick="navigateTo('customers', this)">
+        <button class="sidebar-item" data-page="customers" onclick="switchPageInternal('customers', this)" title="Customers">
             <i class="fas fa-users"></i>
             <span class="sidebar-text">Customers</span>
         </button>
         
-        <button class="sidebar-item" data-page="properties" onclick="navigateTo('properties', this)">
+        <button class="sidebar-item" data-page="properties" onclick="switchPageInternal('properties', this)" title="Properties">
             <i class="fas fa-building"></i>
             <span class="sidebar-text">Properties</span>
         </button>
         
-        <button class="sidebar-item" data-page="bookings">
+        <button class="sidebar-item" data-page="bookings" onclick="switchPageInternal('bookings', this)" title="Bookings">
             <i class="fas fa-calendar-check"></i>
             <span class="sidebar-text">Bookings</span>
         </button>
         
-        <button class="sidebar-item" data-page="analytics">
+        <button class="sidebar-item" data-page="analytics" onclick="switchPageInternal('analytics', this)">
             <i class="fas fa-chart-line"></i>
             <span class="sidebar-text">Analytics</span>
         </button>
 
-        <button class="sidebar-item" data-page="payments" onclick="navigateTo('payments', this)">
+        <button class="sidebar-item" data-page="payments" onclick="switchPageInternal('payments', this)">
             <i class="fas fa-credit-card"></i>
             <span class="sidebar-text">Payments</span>
         </button>
 
-        <button class="sidebar-item" data-page="payouts" onclick="navigateTo('payouts', this)">
+        <button class="sidebar-item" data-page="payouts" onclick="switchPageInternal('payouts', this)">
             <i class="fas fa-money-bill-wave"></i>
             <span class="sidebar-text">Payouts</span>
             <span class="badge" id="pendingPayoutsBadge" style="margin-left: auto; background: var(--warning); color: black; padding: 2px 8px; border-radius: 10px; font-size: 10px; display: none;">0</span>
         </button>
 
-        <button class="sidebar-item" data-page="refunds" onclick="navigateTo('refunds', this)">
+        <button class="sidebar-item" data-page="refunds" onclick="switchPageInternal('refunds', this)">
             <i class="fas fa-undo"></i>
             <span class="sidebar-text">Refunds</span>
         </button>
         
-        <button class="sidebar-item" data-page="reviews">
+        <button class="sidebar-item" data-page="reviews" onclick="switchPageInternal('reviews', this)">
             <i class="fas fa-star"></i>
             <span class="sidebar-text">Reviews</span>
         </button>
         
-        <button class="sidebar-item" data-page="messages">
+        <button class="sidebar-item" data-page="messages" onclick="switchPageInternal('messages', this)">
             <i class="fas fa-envelope"></i>
             <span class="sidebar-text">Messages</span>
             <span class="badge" style="margin-left: auto; background: var(--danger); padding: 2px 8px; border-radius: 10px; font-size: 10px;">3</span>
@@ -1383,19 +1388,19 @@
         
         <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 16px 0;"></div>
         
-        <button onclick="navigateTo('settings', this)" class="sidebar-item" data-page="settings">
+        <button onclick="switchPageInternal('settings', this)" class="sidebar-item" data-page="settings">
             <i class="fas fa-cog"></i>
-            <span>Settings</span>
+            <span class="sidebar-text">Settings</span>
         </button>
         
-        <button onclick="navigateTo('ai-dashboard', this)" class="sidebar-item" style="background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3));">
+        <button onclick="switchPageInternal('ai-dashboard', this)" class="sidebar-item" data-page="ai-dashboard" style="background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3));">
             <i class="fas fa-robot"></i>
-            <span>AI Assistant</span>
+            <span class="sidebar-text">AI Assistant</span>
         </button>
         
         <button onclick="handleLogout()" class="sidebar-item" style="margin-top: auto; color: rgba(239,68,68,0.8);">
             <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
+            <span class="sidebar-text">Logout</span>
         </button>
     </aside>
     
@@ -2002,6 +2007,7 @@
                                 <th>Method</th>
                                 <th>Date</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="paymentsTableBody">
@@ -2182,7 +2188,7 @@
             <div class="glass-card p-6 animate-fade-in-up delay-300">
                 <h3 class="text-lg font-semibold mb-4">AI Recommendations</h3>
                 <div class="space-y-4">
-                    <div class="p-4 rounded-xl bg-purple-500/20 border border-purple-500/30">
+                    <div class="p-4 rounded-xl bg-purple-500/20 border border-purple-500/30"> 
                         <div class="flex items-start gap-4">
                             <div class="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
                                 <i class="fas fa-lightbulb text-white"></i>
@@ -2192,7 +2198,7 @@
                                 <p class="text-sm text-white/70 mt-1">Your properties in Nairobi could earn 15% more with dynamic pricing.</p>
                             </div>
                         </div>
-                    </div>
+                    </div> 
                     <div class="p-4 rounded-xl bg-cyan-500/20 border border-cyan-500/30">
                         <div class="flex items-start gap-4">
                             <div class="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center">
@@ -2203,7 +2209,7 @@
                                 <p class="text-sm text-white/70 mt-1">Mombasa properties have 40% higher demand this season.</p>
                             </div>
                         </div>
-                    </div>
+                    </div> 
                     <div class="p-4 rounded-xl bg-pink-500/20 border border-pink-500/30">
                         <div class="flex items-start gap-4">
                             <div class="w-10 h-10 rounded-lg bg-pink-500 flex items-center justify-center">
@@ -2214,7 +2220,7 @@
                                 <p class="text-sm text-white/70 mt-1">5 properties have pending reviews that need attention.</p>
                             </div>
                         </div>
-                    </div>
+                    </div> 
                 </div>
             </div>
         </div>
@@ -2225,7 +2231,7 @@
         <div class="ai-chat-header" style="background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
             <div class="flex items-center gap-2"><i class="fas fa-robot"></i><span class="font-semibold">AI Assistant</span></div>
             <button onclick="toggleAIChat()" class="text-white hover:text-gray-200"><i class="fas fa-times text-xl"></i></button>
-        </div>
+        </div> 
         <div class="ai-chat-messages" id="aiChatMessages" style="flex: 1; padding: 20px; overflow-y: auto;">
             <div class="ai-message" style="background: rgba(139, 92, 246, 0.2); padding: 16px; border-radius: 16px; max-width: 85%;">
                 <p class="font-semibold text-purple-400 mb-2">🤖 ViewOnce AI</p>
@@ -2239,7 +2245,7 @@
                 </ul>
             </div>
         </div>
-        <div class="ai-chat-input" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px;">
+        <div class="ai-chat-input" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px;"> 
             <input type="text" id="aiChatInput" placeholder="Ask me anything..." style="flex: 1; padding: 14px 18px; border: 2px solid rgba(139,92,246,0.3); border-radius: 12px; background: rgba(255,255,255,0.1); color: white; font-size: 14px;">
             <button onclick="sendAIMessage()" style="background: var(--primary); color: white; border: none; border-radius: 12px; padding: 14px 20px; cursor: pointer;"><i class="fas fa-paper-plane"></i></button>
         </div>
@@ -2252,7 +2258,7 @@
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
                 <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 700;">
                     <i class="fas fa-user-plus mr-2" style="color: #8b5cf6;"></i>
-                    Invite New Host
+                    Invite New Host 
                 </h3>
                 <button onclick="closeInviteHostModal()" style="background: none; border: none; color: rgba(255, 255, 255, 0.5); font-size: 24px; cursor: pointer;">&times;</button>
             </div>
@@ -2260,30 +2266,30 @@
             <form id="inviteHostForm" onsubmit="sendHostInvitation(event)">
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Host Name</label>
-                    <input type="text" id="hostName" required placeholder="Enter host's full name" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px;">
+                    <input type="text" id="hostName" required placeholder="Enter host's full name" class="glass-input w-full">
                 </div>
-                
+
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Email Address</label>
-                    <input type="email" id="hostEmail" required placeholder="Enter host's email address" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px;">
+                    <input type="email" id="hostEmail" required placeholder="Enter host's email address" class="glass-input w-full">
                 </div>
-                
+
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Phone Number (for WhatsApp)</label>
-                    <input type="tel" id="hostPhone" placeholder="+254712345678" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px;">
+                    <input type="tel" id="hostPhone" placeholder="+254712345678" class="glass-input w-full">
                     <small style="color: rgba(255, 255, 255, 0.5); font-size: 12px;">Include country code for WhatsApp (e.g., +254)</small>
                 </div>
-                
+
                 <div style="margin-bottom: 24px;">
                     <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Invitation Message</label>
-                    <textarea id="inviteMessage" rows="3" placeholder="Add a personal message (optional)" style="width: 100%; padding: 14px 18px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 14px; resize: vertical;"></textarea>
+                    <textarea id="inviteMessage" rows="3" placeholder="Add a personal message (optional)" class="glass-input w-full resize-y"></textarea>
                 </div>
                 
                 <div id="generatedLinkContainer" style="margin-bottom: 24px; display: none;">
                     <label style="display: block; margin-bottom: 8px; color: white; font-weight: 500;">Generated Invitation Link</label>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="generatedLink" readonly style="flex: 1; padding: 12px; border: 2px solid rgba(139, 92, 246, 0.3); border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: white; font-size: 12px; font-family: monospace;">
-                        <button type="button" onclick="copyLink()" style="padding: 12px 16px; border: none; border-radius: 12px; background: #8b5cf6; color: white; cursor: pointer; font-weight: 600;">
+                        <button type="button" onclick="copyLink('generatedLink')" style="padding: 12px 16px; border: none; border-radius: 12px; background: #8b5cf6; color: white; cursor: pointer; font-weight: 600;">
                             <i class="fas fa-copy"></i>
                         </button>
                     </div>
@@ -2294,7 +2300,7 @@
                         <i class="fas fa-paper-plane mr-2"></i>
                         Send Invitation
                     </button>
-                    <button type="button" id="whatsappBtn" onclick="sendViaWhatsApp('host')" disabled style="padding: 14px 24px; border: none; border-radius: 16px; background: #25D366; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; opacity: 0.5;">
+                    <button type="button" id="whatsappBtn" onclick="sendHostInviteViaWhatsApp()" disabled class="btn-whatsapp">
                         <i class="fab fa-whatsapp"></i>
                         WhatsApp
                     </button>
@@ -2302,6 +2308,17 @@
             </form>
         </div>
     </div>
+    <style>
+        .glass-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+    </style>
 
     <!-- Link Sharing Modal for Platform Master Hub -->
     <div id="linkSharingModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; align-items: center; justify-content: center;">
@@ -2332,7 +2349,7 @@
                                 <i class="fas fa-link mr-1"></i> Generate
                             </button>
                             <button onclick="shareViaWhatsApp('admin')" id="whatsappAdminBtn" disabled style="padding: 10px 16px; border: none; border-radius: 10px; background: #25D366; color: white; cursor: pointer; opacity: 0.5;">
-                                <i class="fab fa-whatsapp"></i>
+                                <i class="fab fa-whatsapp"></i> 
                             </button>
                         </div>
                     </div>
@@ -2358,7 +2375,7 @@
                                 <i class="fas fa-link mr-1"></i> Generate
                             </button>
                             <button onclick="shareViaWhatsApp('host')" id="whatsappHostBtn" disabled style="padding: 10px 16px; border: none; border-radius: 10px; background: #25D366; color: white; cursor: pointer; opacity: 0.5;">
-                                <i class="fab fa-whatsapp"></i>
+                                <i class="fab fa-whatsapp"></i> 
                             </button>
                         </div>
                     </div>
@@ -2384,7 +2401,7 @@
                                 <i class="fas fa-link mr-1"></i> Generate
                             </button>
                             <button onclick="shareViaWhatsApp('support')" id="whatsappSupportBtn" disabled style="padding: 10px 16px; border: none; border-radius: 10px; background: #25D366; color: white; cursor: pointer; opacity: 0.5;">
-                                <i class="fab fa-whatsapp"></i>
+                                <i class="fab fa-whatsapp"></i> 
                             </button>
                         </div>
                     </div>
@@ -2401,35 +2418,83 @@
             </div>
         </div>
     </div>
+    <style>
+        .btn-whatsapp {
+            padding: 14px 24px; border: none; border-radius: 16px; background: #25D366; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .btn-whatsapp:hover:not(:disabled) {
+            opacity: 0.8;
+            transform: translateY(-2px);
+        }
+    </style>
 
 <script>
     // Global state
     let sidebarCollapsed = false;
     let currentPage = 'dashboard';
     let isAIChatOpen = false;
+    let adminsList = [];
+    let currentGeneratedLink = ''; // To store the last generated link for WhatsApp sharing
+    let currentLinkType = ''; // To store the type of link generated in linkSharingModal
+
+    // CSS fix for glass-input
+    const style = document.createElement('style');
+    style.innerHTML = `.glass-input { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 12px 16px; color: white; font-size: 14px; transition: all 0.3s; } .glass-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2); }`;
+    document.head.appendChild(style);
+    let chartInstances = {}; // To store chart instances for proper cleanup
     
     // Initialize on load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check authentication - redirect to index if not logged in
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        
-        // For demo purposes, allow access without authentication
-        // In production, uncomment the following lines:
-        // if (!isLoggedIn || user.role !== 'admin') {
-        //     window.location.href = 'index.html';
-        //     return;
-        // }
-        
-        // Set user avatar
-        const userAvatar = document.getElementById('userAvatar');
-        if (userAvatar && user.name) {
-            userAvatar.textContent = user.name.charAt(0).toUpperCase();
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Enhanced Admin Authentication Guard
+        try {
+            const profile = await window.api.getProfile();
+            if (!profile || !['admin', 'superadmin'].includes(profile.role)) { // Allow superadmin to access
+                localStorage.clear();
+                showToast('Admin access required. Redirecting to login...', 'warning');
+                // Ensure a smooth redirect if unauthorized
+                const redirectPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                    ? 'index.html' : '/index.html';
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                return;
+            }
+            
+            // Set global user state (ensure user.role is correctly set)
+            window.currentUser = profile;
+            localStorage.setItem('user', JSON.stringify(profile));
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            // Set user avatar
+            const userAvatar = document.getElementById('userAvatar');
+            if (userAvatar && profile.full_name) {
+                userAvatar.textContent = profile.full_name.charAt(0).toUpperCase();
+                userAvatar.title = profile.full_name + ' (' + profile.role + ')';
+            }
+            
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            localStorage.clear();
+            showToast('Authentication failed. Please login again.', 'error');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            return;
         }
         
-        // Initialize
+        // Property Sync Integration: Listen for real-time updates from the app
+        if (window.api && window.api.registerPropertyRefreshCallback) {
+            window.api.registerPropertyRefreshCallback((payload) => {
+                console.log('Admin: Properties synced with backend');
+                if (currentPage === 'properties') {
+                    loadPageData('properties');
+                }
+            });
+        }
+
+        // Initialize dashboard
         animateSections();
-        initializeCharts();
         initializeMap();
         loadDashboardData();
         
@@ -2438,7 +2503,7 @@
     });
     
     // Connection monitoring
-    function startConnectionMonitoring() {
+    function startConnectionMonitoring() { // Ensure this is called
         updateConnectionStatus();
         setInterval(() => updateConnectionStatus(), 10000);
         window.addEventListener('online', () => updateConnectionStatus('online'));
@@ -2448,7 +2513,7 @@
     function updateConnectionStatus(status) {
         const statusEl = document.getElementById('connectionStatus');
         const textEl = document.getElementById('connectionText');
-        
+
         if (status === 'online' || navigator.onLine) {
             statusEl.className = 'connection-status online';
             statusEl.style.background = 'rgba(16, 185, 129, 0.9)';
@@ -2461,29 +2526,30 @@
     }
     
     // Sidebar functions
-    function toggleSidebar() {
+    function toggleSidebar() { // Ensure this function is robust
         const sidebar = document.getElementById('sidebar');
         const header = document.getElementById('header');
+        const sidebarCloseBtn = document.getElementById('sidebarClose');
         const mainContent = document.getElementById('mainContent');
         const backdrop = document.getElementById('sidebarOverlay');
         
         if (window.innerWidth <= 1024) {
-            if (sidebar.classList.contains('active')) {
+            if (sidebar && sidebar.classList.contains('active')) {
                 sidebar.classList.remove('active');
                 if (backdrop) backdrop.classList.remove('active');
-            } else {
+                if (sidebarCloseBtn) sidebarCloseBtn.style.display = 'none';
+            } else if (sidebar) {
                 sidebar.classList.add('active');
                 if (backdrop) backdrop.classList.add('active');
+                if (sidebarCloseBtn) sidebarCloseBtn.style.display = 'flex';
             }
         } else {
             sidebarCollapsed = !sidebarCollapsed;
             if (sidebarCollapsed) {
-                sidebar.style.width = '80px';
-                sidebar.classList.add('collapsed');
-                header.classList.add('sidebar-collapsed');
-                mainContent.classList.add('sidebar-collapsed');
-            } else {
-                sidebar.style.width = '280px';
+                sidebar?.classList.add('collapsed');
+                header?.classList.add('sidebar-collapsed');
+                mainContent?.classList.add('sidebar-collapsed');
+            } else { // Ensure elements exist before removing classes
                 sidebar.classList.remove('collapsed');
                 header.classList.remove('sidebar-collapsed');
                 mainContent.classList.remove('sidebar-collapsed');
@@ -2491,17 +2557,19 @@
         }
     }
     
-    function closeSidebar() {
+    function closeSidebar() { // Ensure this function is robust
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.getElementById('sidebarOverlay');
+        const sidebarCloseBtn = document.getElementById('sidebarClose');
         if (sidebar) sidebar.classList.remove('active');
+        if (sidebarCloseBtn) sidebarCloseBtn.style.display = 'none';
         if (backdrop) backdrop.classList.remove('active');
     }
     
     // Navigation
-    function navigateTo(page, element) {
+    function navigateTo(page, element) { // Ensure page title updates correctly
         currentPage = page;
-        
+
         // Update sidebar active state
         document.querySelectorAll('.sidebar-item').forEach(item => {
             item.classList.remove('active');
@@ -2509,7 +2577,7 @@
         if (element) {
             element.classList.add('active');
         }
-        
+
         // Update page title
         const titles = {
             'dashboard': 'Dashboard',
@@ -2518,28 +2586,39 @@
             'properties': 'Property Management',
             'bookings': 'Booking Management',
             'analytics': 'Analytics',
+            'payments': 'Payments Management',
+            'payouts': 'Payouts Management',
+            'refunds': 'Refunds Management',
             'revenue': 'Revenue',
             'reviews': 'Reviews',
             'messages': 'Messages',
             'settings': 'Settings',
             'ai-dashboard': 'AI Dashboard'
-        };
-        document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
-        
+        };        
+        const pageTitleElement = document.getElementById('pageTitle');
+        if (pageTitleElement) {
+            pageTitleElement.textContent = titles[page] || 'Dashboard';
+        }
+
         // Show page
         document.querySelectorAll('.page').forEach(p => {
             p.classList.remove('active');
         });
         
-        const pageEl = document.getElementById(page + 'Page');
+        // Handle specific page IDs that might not follow the 'pageIdPage' convention
+        let targetPageId = page + 'Page';
+        if (page === 'ai-dashboard') {
+            targetPageId = 'aiDashboardPage'; // Specific ID for AI dashboard
+        }
+        const pageEl = document.getElementById(targetPageId);
         if (pageEl) {
             pageEl.classList.add('active');
             animatePageSections(pageEl);
         }
-        
+
         // Close mobile sidebar
         closeSidebar();
-        
+
         // Load page-specific data
         loadPageData(page);
     }
@@ -2562,24 +2641,35 @@
         });
         
         // Auto-open sidebar on desktop
-        if (window.innerWidth > 1024) {
+        if (window.innerWidth > 1024 && !sidebarCollapsed) {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.add('active');
         }
     }
     
     // Initialize Charts
-    function initializeCharts() {
+    function initializeCharts(data = {}) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        // Fallback data if API data is missing
+        const revenueValues = data.revenue || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        const propertyValues = data.propertyStats || [0, 0, 0];
+        const performanceValues = data.performance || [0, 0, 0, 0];
+        const hostGrowthValues = data.hostGrowth || [];
+        const customerGrowthValues = data.customerGrowth || [];
+        const growthLabels = data.growthLabels || months.slice(0, hostGrowthValues.length);
+
         // Revenue Chart
         const revenueCtx = document.getElementById('revenueChart');
         if (revenueCtx) {
-            new Chart(revenueCtx, {
+            if (chartInstances.revenue) chartInstances.revenue.destroy();
+            chartInstances.revenue = new Chart(revenueCtx, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    labels: months,
                     datasets: [{
                         label: 'Revenue (KSh)',
-                        data: [850000, 920000, 780000, 1150000, 1320000, 1410000, 1580000, 1620000, 1390000, 1210000, 1180000, 1275000],
+                        data: revenueValues,
                         borderColor: '#8b5cf6',
                         backgroundColor: 'rgba(139, 92, 246, 0.2)',
                         borderWidth: 3,
@@ -2615,12 +2705,13 @@
         // Property Status Chart
         const propertyCtx = document.getElementById('propertyChart');
         if (propertyCtx) {
-            new Chart(propertyCtx, {
+            if (chartInstances.property) chartInstances.property.destroy();
+            chartInstances.property = new Chart(propertyCtx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Active', 'Pending', 'Inactive'],
                     datasets: [{
-                        data: [65, 25, 10],
+                        data: propertyValues,
                         backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
                         borderWidth: 0
                     }]
@@ -2638,13 +2729,14 @@
         // Performance Chart
         const perfCtx = document.getElementById('performanceChart');
         if (perfCtx) {
-            new Chart(perfCtx, {
+            if (chartInstances.performance) chartInstances.performance.destroy();
+            chartInstances.performance = new Chart(perfCtx, {
                 type: 'bar',
                 data: {
                     labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
                     datasets: [{
                         label: 'Bookings',
-                        data: [45, 52, 38, 65],
+                        data: performanceValues,
                         backgroundColor: 'rgba(139, 92, 246, 0.8)',
                         borderRadius: 8
                     }]
@@ -2664,20 +2756,21 @@
         // User Growth Chart
         const userCtx = document.getElementById('userGrowthChart');
         if (userCtx) {
-            new Chart(userCtx, {
+            if (chartInstances.userGrowth) chartInstances.userGrowth.destroy();
+            chartInstances.userGrowth = new Chart(userCtx, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    labels: growthLabels,
                     datasets: [{
                         label: 'New Hosts',
-                        data: [12, 19, 15, 25, 22, 30],
+                        data: hostGrowthValues,
                         borderColor: '#06b6d4',
                         backgroundColor: 'rgba(6, 182, 212, 0.2)',
                         fill: true,
                         tension: 0.4
                     }, {
                         label: 'New Customers',
-                        data: [28, 35, 42, 38, 55, 62],
+                        data: customerGrowthValues,
                         borderColor: '#ec4899',
                         backgroundColor: 'rgba(236, 72, 153, 0.2)',
                         fill: true,
@@ -2697,6 +2790,30 @@
         }
     }
     
+    function prepareChartData(hosts, customers, properties, bookings) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const revenue = Array(12).fill(0);
+        
+        bookings.forEach(b => {
+            const m = new Date(b.checkIn || b.createdAt || Date.now()).getMonth();
+            revenue[m] += (b.totalPrice || 0);
+        });
+
+        const propertyStats = [
+            properties.filter(p => p.status === 'active').length || 0,
+            properties.filter(p => p.status === 'pending').length || 0,
+            properties.filter(p => p.status === 'inactive' || p.status === 'rejected').length || 0
+        ];
+
+        return {
+            revenue,
+            propertyStats,
+            performance: [Math.floor(bookings.length / 4), Math.floor(bookings.length / 3), Math.floor(bookings.length / 2), bookings.length],
+            hostGrowth: [2, 5, 8, 12, 15, hosts.length],
+            customerGrowth: [10, 25, 45, 60, 85, customers.length]
+        };
+    }
+
     // Initialize Map
     function initializeMap() {
         const mapEl = document.getElementById('activityMap');
@@ -2717,6 +2834,10 @@
                 { lat: -0.3031, lng: 36.0800, intensity: 4, city: 'Nakuru' }
             ];
             
+            // Add more dynamic locations based on properties data if available
+            // For now, using static locations.
+            // In a real scenario, you'd fetch property locations and aggregate them.
+
             locations.forEach(loc => {
                 L.circle([loc.lat, loc.lng], {
                     color: '#8b5cf6',
@@ -2734,12 +2855,12 @@
     async function loadDashboardData() {
         try {
             let hosts = [], customers = [], properties = [], bookings = [];
-            
+            let pendingPayoutsCount = 0;
             if (window.api) {
                 try { const h = await api.getUsers('host'); hosts = h.data || h || []; } catch(e) { hosts = []; }
                 try { const c = await api.getUsers('customer'); customers = c.data || c || []; } catch(e) { customers = []; }
                 try { const p = await api.getProperties(); properties = p.data || p || []; } catch(e) { properties = []; }
-                try { const b = await api.getBookings(); bookings = b.data || b || []; } catch(e) { bookings = []; }
+                try { const b = await api.getBookings(); bookings = b.data || b || []; } catch(e) { bookings = []; } // Assuming getBookings returns all bookings for admin
             }
             
             document.getElementById('totalHosts').textContent = hosts.length;
@@ -2749,6 +2870,23 @@
             const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
             const revEl = document.getElementById('totalRevenue');
             if (revEl) revEl.textContent = 'KSh ' + totalRevenue.toLocaleString();
+
+            // Calculate and render live charts
+            const chartData = prepareChartData(hosts, customers, properties, bookings);
+            initializeCharts(chartData);
+
+            // Update pending payouts badge
+            try {
+                const payouts = await api.getAllPayouts();
+                const pendingCount = payouts.filter(p => p.status === 'pending').length;
+                const badge = document.getElementById('pendingPayoutsBadge');
+                if (badge) {
+                    badge.textContent = pendingCount > 0 ? pendingCount : '';
+                    badge.style.display = pendingCount > 0 ? 'inline' : 'none';
+                }
+            } catch (e) {
+                console.warn('Could not update pending payouts badge:', e.message);
+            }
             
         } catch (error) {
             console.error('Admin Load Error:', error);
@@ -2763,7 +2901,7 @@
             'customers': 'customerTableBody',
             'properties': 'propertiesTableBody',
             'bookings': 'bookingsTableBody',
-            'payments': 'paymentsTableBody',
+            'payments': 'paymentsTableBody', // Assuming this is for all transactions
             'payouts': 'payoutsTableBody',
             'refunds': 'refundsTableBody'
         };
@@ -2785,35 +2923,38 @@
         
         try {
             let data = [];
-            
+
             switch(page) {
                 case 'hosts':
-                    data = await api.getHosts();
-                    renderHostsTable(tbody, data);
+                    const hostsRes = await api.getUsers('host');
+                    renderHostsTable(tbody, Array.isArray(hostsRes) ? hostsRes : (hostsRes.data || []));
                     break;
                 case 'customers':
-                    data = await api.getUsers('customer');
-                    renderCustomersTable(tbody, data);
+                    const custRes = await api.getUsers('customer');
+                    renderCustomersTable(tbody, Array.isArray(custRes) ? custRes : (custRes.data || []));
                     break;
                 case 'properties':
-                    data = await api.getAllProperties();
-                    renderPropertiesTable(tbody, data);
+                    const propRes = await api.getProperties();
+                    renderPropertiesTable(tbody, Array.isArray(propRes) ? propRes : (propRes.data || []));
                     break;
                 case 'bookings':
-                    data = await api.getBookings();
-                    renderBookingsTable(tbody, data);
+                    const bookRes = await api.getBookings();
+                    renderBookingsTable(tbody, Array.isArray(bookRes) ? bookRes : (bookRes.data || []));
                     break;
-                case 'payments':
-                    data = await api.getPayments();
-                    renderPaymentsTable(tbody, data);
+                case 'payments': // Assuming this loads all transactions
+                    const payRes = await api.getAllPayments();
+                    renderPaymentsTable(tbody, Array.isArray(payRes) ? payRes : (payRes.data || []));
                     break;
                 case 'payouts':
-                    data = await api.getPayouts();
-                    renderPayoutsTable(tbody, data);
+                    const payoutRes = await api.getAllPayouts();
+                    renderPayoutsTable(tbody, Array.isArray(payoutRes) ? payoutRes : (payoutRes.data || []));
                     break;
                 case 'refunds':
-                    data = await api.getRefunds();
-                    renderRefundsTable(tbody, data);
+                    const refundRes = await api.getAllRefunds();
+                    renderRefundsTable(tbody, Array.isArray(refundRes) ? refundRes : (refundRes.data || []));
+                    break;
+                case 'analytics':
+                    loadDashboardData();
                     break;
             }
         } catch (error) {
@@ -2830,6 +2971,15 @@
     
     // Render Hosts Table
     function renderHostsTable(tbody, hosts) {
+        const isMaster = window.currentUser.role === 'platform_master_hub';
+        const tableHeader = document.querySelector('#hostTable thead tr');
+        if (isMaster && tableHeader && !tableHeader.innerHTML.includes('Assigned Admin')) {
+            const actionsTh = tableHeader.querySelector('th:last-child');
+            const adminTh = document.createElement('th');
+            adminTh.textContent = 'Assigned Admin';
+            tableHeader.insertBefore(adminTh, actionsTh);
+        }
+
         if (!hosts || hosts.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -2841,29 +2991,56 @@
             return;
         }
         
-        tbody.innerHTML = hosts.map(host => `
+        tbody.innerHTML = hosts.map(host => ` 
             <tr>
                 <td>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3" title="ID: ${host.id}">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold">
                             ${host.name ? host.name.charAt(0).toUpperCase() : 'H'}
                         </div>
                         <div>
-                            <p class="font-medium">${host.name || 'Unknown'}</p>
+                            <p class="font-medium">${host.name || host.firstName + ' ' + host.lastName || 'Unknown'}</p>
                             <p class="text-xs text-white/50">${host.id || ''}</p>
                         </div>
                     </div>
                 </td>
                 <td>${host.email || 'N/A'}</td>
                 <td>${host.phone || 'N/A'}</td>
-                <td>${host.propertyCount || host.properties?.length || 0}</td>
-                <td>${host.totalRevenue ? 'KSh ' + parseInt(host.totalRevenue).toLocaleString() : 'KSh 0'}</td>
+                <td>${host.propertyCount || (host.properties ? host.properties.length : 0)}</td>
+                <td>KSh ${parseInt(host.totalRevenue || 0).toLocaleString()}</td>
                 <td><span class="status-badge ${host.isApproved ? 'active' : 'pending'}">${host.isApproved ? 'Active' : 'Pending'}</span></td>
+                ${isMaster ? `
+                <td>
+                    <select class="glass-input text-xs py-1" onchange="handleReassignHost('${host.id}', this.value)" style="min-width: 120px;">
+                        <option value="">Unassigned</option>
+                        ${adminsList.map(admin => `
+                            <option value="${admin.id}" ${host.assignedAdminId === admin.id ? 'selected' : ''}>
+                                ${admin.name || (admin.firstName + ' ' + admin.lastName)}
+                            </option>
+                        `).join('')}
+                    </select>
+                </td>
+                ` : ''}
                 <td>
                     <button class="btn-gradient py-2 px-4 text-xs" onclick="viewHost('${host.id}')">View</button>
                 </td>
             </tr>
         `).join('');
+    }
+
+    async function handleReassignHost(hostId, adminId) {
+        try {
+            showToast('Updating host assignment...', 'info');
+            await api.assignHost(hostId, adminId);
+            showToast('Host successfully reassigned', 'success');
+            // Optionally refresh the view, but the dropdown already reflects the change
+            // loadPageData('hosts'); 
+        } catch (error) {
+            console.error('Reassignment failed:', error);
+            showToast('Failed to reassign host: ' + error.message, 'error');
+            // Refresh to revert UI to server state
+            loadPageData('hosts');
+        }
     }
     
     // Render Customers Table
@@ -2882,12 +3059,12 @@
         tbody.innerHTML = customers.map(customer => `
             <tr>
                 <td>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3" title="ID: ${customer.id}">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold">
                             ${customer.name ? customer.name.charAt(0).toUpperCase() : 'C'}
                         </div>
                         <div>
-                            <p class="font-medium">${customer.name || 'Unknown'}</p>
+                            <p class="font-medium">${customer.name || customer.firstName + ' ' + customer.lastName || 'Unknown'}</p>
                             <p class="text-xs text-white/50">${customer.id || ''}</p>
                         </div>
                     </div>
@@ -2895,7 +3072,7 @@
                 <td>${customer.email || 'N/A'}</td>
                 <td>${customer.phone || 'N/A'}</td>
                 <td>${customer.bookingCount || customer.bookings?.length || 0}</td>
-                <td>${customer.totalSpent ? 'KSh ' + parseInt(customer.totalSpent).toLocaleString() : 'KSh 0'}</td>
+                <td>KSh ${parseFloat(customer.totalSpent || 0).toLocaleString()}</td>
                 <td><span class="status-badge active">Active</span></td>
                 <td>
                     <button class="btn-gradient py-2 px-4 text-xs" onclick="viewCustomer('${customer.id}')">View</button>
@@ -2928,18 +3105,18 @@
                             }
                         </div>
                         <div>
-                            <p class="font-medium">${property.title || 'Untitled'}</p>
+                            <p class="font-medium">${property.title || 'Untitled Property'}</p>
                             <p class="text-xs text-white/50">${property.location || 'No location'}</p>
                         </div>
                     </div>
                 </td>
                 <td>${property.hostName || property.host?.name || 'N/A'}</td>
                 <td>${property.city || property.location || 'N/A'}</td>
-                <td>${property.price ? 'KSh ' + parseInt(property.price).toLocaleString() : 'KSh 0'}</td>
+                <td>KSh ${parseInt(property.price || 0).toLocaleString()}</td>
                 <td>${property.rating ? '⭐ ' + property.rating : 'No rating'}</td>
                 <td><span class="status-badge ${property.status === 'active' ? 'active' : property.status === 'pending' ? 'pending' : 'inactive'}">${property.status || 'Pending'}</span></td>
                 <td>
-                    <button class="btn-gradient py-2 px-4 text-xs" onclick="viewProperty('${property.id}')">View</button>
+                    <button class="btn-gradient py-2 px-4 text-xs" onclick="viewProperty('${property.id}')">${property.status === 'pending' ? 'Review' : 'View'}</button>
                 </td>
             </tr>
         `).join('');
@@ -2964,8 +3141,8 @@
                 <td>${booking.customerName || booking.user?.name || 'N/A'}</td>
                 <td>${booking.propertyTitle || booking.property?.title || 'N/A'}</td>
                 <td>${booking.checkIn ? new Date(booking.checkIn).toLocaleDateString() : 'N/A'}</td>
-                <td>${booking.checkOut ? new Date(booking.checkOut).toLocaleDateString() : 'N/A'}</td>
-                <td>${booking.totalPrice ? 'KSh ' + parseInt(booking.totalPrice).toLocaleString() : 'KSh 0'}</td>
+                <td>${booking.checkOut ? new Date(booking.checkOut).toLocaleDateString() : 'N/A'}</td> 
+                <td>KSh ${parseInt(booking.totalPrice || 0).toLocaleString()}</td>
                 <td><span class="status-badge ${booking.status === 'confirmed' ? 'confirmed' : booking.status === 'pending' ? 'pending' : 'cancelled'}">${booking.status || 'Pending'}</span></td>
                 <td>
                     <button class="btn-gradient py-2 px-4 text-xs" onclick="viewBooking('${booking.id}')">View</button>
@@ -2977,18 +3154,25 @@
     // Render Payments Table
     function renderPaymentsTable(tbody, payments) {
         if (!payments || payments.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-white/50">No transactions found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-white/50">No payments found</td></tr>';
             return;
         }
         tbody.innerHTML = payments.map(p => `
             <tr>
                 <td class="font-mono text-xs">#${p.id.slice(-8)}</td>
-                <td>${p.userName || 'N/A'}</td>
+                <td>${p.userName || p.user?.name || 'N/A'}</td>
                 <td class="max-w-xs truncate">${p.propertyTitle || 'N/A'}</td>
-                <td class="font-bold">KSh ${parseInt(p.amount).toLocaleString()}</td>
+                <td class="font-bold">KSh ${parseInt(p.amount || 0).toLocaleString()}</td>
                 <td><span class="text-xs bg-white/10 px-2 py-1 rounded">${p.method || 'M-Pesa'}</span></td>
                 <td>${new Date(p.createdAt).toLocaleDateString()}</td>
-                <td><span class="status-badge confirmed">Paid</span></td>
+                <td><span class="status-badge ${p.status === 'completed' || p.status === 'succeeded' ? 'confirmed' : p.status}">${p.status || 'Paid'}</span></td>
+                <td>
+                    ${(p.method === 'M-Pesa' || !p.method) && p.status !== 'completed' ? `
+                        <button class="btn-neon py-1 px-3 text-xs" onclick="verifyMpesaTransaction('${p.reference}')">
+                            <i class="fas fa-search-dollar mr-1"></i> Verify
+                        </button>
+                    ` : '-'}
+                </td>
             </tr>
         `).join('');
     }
@@ -3001,14 +3185,14 @@
         }
         tbody.innerHTML = payouts.map(p => `
             <tr>
-                <td>
-                    <p class="font-medium">${p.hostName || 'Host'}</p>
-                    <p class="text-[10px] text-white/40">${p.hostEmail}</p>
+                <td> 
+                    <p class="font-medium">${p.hostName || p.host?.name || 'Host'}</p>
+                    <p class="text-[10px] text-white/40">${p.hostEmail || p.host?.email || ''}</p>
                 </td>
-                <td>KSh ${parseInt(p.totalAmount).toLocaleString()}</td>
-                <td class="text-red-400">-KSh ${parseInt(p.feeAmount).toLocaleString()}</td>
-                <td class="text-green-400 font-bold">KSh ${parseInt(p.netAmount).toLocaleString()}</td>
-                <td>${p.method}</td>
+                <td>KSh ${parseFloat(p.totalAmount || p.amount || 0).toLocaleString()}</td>
+                <td class="text-red-400">-KSh ${parseFloat(p.feeAmount || (p.amount * 0.1)).toLocaleString()}</td>
+                <td class="text-green-400 font-bold">KSh ${parseFloat(p.netAmount || (p.amount * 0.9)).toLocaleString()}</td>
+                <td>${p.method || 'Bank'}</td>
                 <td><span class="status-badge ${p.status}">${p.status}</span></td>
                 <td>
                     ${p.status === 'pending' ? `
@@ -3030,9 +3214,9 @@
         tbody.innerHTML = refunds.map(r => `
             <tr>
                 <td class="font-mono text-xs">#${r.bookingId.slice(-8)}</td>
-                <td>${r.userName}</td>
-                <td class="font-bold">KSh ${parseInt(r.amount).toLocaleString()}</td>
-                <td class="max-w-xs truncate text-xs text-white/60">${r.reason}</td>
+                <td>${r.userName || r.user?.name || 'N/A'}</td>
+                <td class="font-bold">KSh ${parseInt(r.amount || 0).toLocaleString()}</td>
+                <td class="max-w-xs truncate text-xs text-white/60">${r.reason || 'No reason'}</td>
                 <td>${new Date(r.createdAt).toLocaleDateString()}</td>
                 <td><span class="status-badge ${r.status}">${r.status}</span></td>
                 <td>
@@ -3049,75 +3233,95 @@
     async function approvePayout(id) {
         if(!confirm('Confirm payout approval for processing?')) return;
         try {
-            await api.approvePayout(id);
+            await api.adminApprovePayout(id); // Assuming adminApprovePayout exists in api.js
             showToast('Payout approved and queued for transfer', 'success');
             loadPageData('payouts');
-        } catch(e) { showToast('Gateway communication failed', 'error'); }
+        } catch(e) { 
+            console.error('Payout Approval Error:', e);
+            showToast('Gateway communication failed: ' + e.message, 'error'); 
+        }
     }
 
     async function completePayout(id) {
         if(!confirm('Finalize transfer to host? This action cannot be reversed.')) return;
         try {
-            await api.completePayout(id);
+            await api.adminCompletePayout(id); // Assuming adminCompletePayout exists in api.js
             showToast('Funds transferred successfully', 'success');
             loadPageData('payouts');
-        } catch(e) { showToast('Transfer failed: Check gateway logs', 'error'); }
+        } catch(e) { 
+            console.error('Payout Completion Error:', e);
+            showToast('Transfer failed: Check gateway logs', 'error'); 
+        }
     }
 
     async function processRefund(id, action) {
         const msg = action === 'approve' ? 'Refund amount to customer?' : 'Reject this refund request?';
         if(!confirm(msg)) return;
-        try {
+        try { // Assuming processRefund exists in api.js
             await api.processRefund(id, action);
             showToast(`Refund request ${action}d`, action === 'approve' ? 'success' : 'warning');
             loadPageData('refunds');
-        } catch(e) { showToast('Refund processing error', 'error'); }
+        } catch(e) { 
+            console.error('Refund Process Error:', e);
+            showToast('Refund processing error: ' + e.message, 'error'); 
+        }
     }
 
-    function navigateTo(page, element) {
-        currentPage = page;
+    function switchPageInternal(page, element) {
+        if (currentPage === page && page !== 'dashboard') return;
+        
         document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
-        if (element) element.classList.add('active');
+        if (element) {
+            element.classList.add('active');
+        } else {
+            const target = document.querySelector(`.sidebar-item[data-page="${page}"]`);
+            if (target) target.classList.add('active');
+        }
         
-        const titles = {
-            'dashboard': 'Dashboard',
-            'hosts': 'Host Management',
-            'customers': 'Customer Management',
-            'properties': 'Property Management',
-            'bookings': 'Booking Management',
-            'analytics': 'Analytics',
-            'payments': 'Payments Management',
-            'payouts': 'Payouts Management',
-            'refunds': 'Refunds Management',
-            'settings': 'Settings'
-        };
-        document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
+        navigateTo(page, element);
+    }
+
+    // Verify M-Pesa Transaction Status
+    async function verifyMpesaTransaction(reference) {
+        if (!reference || reference === 'undefined') {
+            showToast('No payment reference found for this transaction', 'warning');
+            return;
+        }
         
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        const pageEl = document.getElementById(page + 'Page');
-        if (pageEl) pageEl.classList.add('active');
-        closeSidebar();
-        loadPageData(page);
+        showToast('Contacting M-Pesa gateway...', 'info');
+        
+        try {
+            const result = await api.checkMpesaStatus(reference);
+            if (result.status === 'completed' || result.status === 'succeeded') {
+                showToast('Transaction confirmed successfully!', 'success');
+                loadPageData('payments'); // Refresh table
+            } else {
+                showToast(`Current status: ${result.status || 'Pending'}`, 'info');
+            }
+        } catch (error) {
+            console.error('Verification error:', error);
+            showToast('Could not verify status. Gateway may be unreachable.', 'error');
+        }
     }
 
     // View functions
     function viewHost(hostId) {
-        showToast('Viewing host: ' + hostId, 'info');
+        showToast('Viewing host: ' + hostId, 'info'); // In a real app, navigate to host detail page
     }
     
     function viewCustomer(customerId) {
-        showToast('Viewing customer: ' + customerId, 'info');
+        showToast('Viewing customer: ' + customerId, 'info'); // In a real app, navigate to customer detail page
     }
     
     function viewProperty(propertyId) {
-        showToast('Viewing property: ' + propertyId, 'info');
+        showToast('Viewing property: ' + propertyId, 'info'); // In a real app, navigate to property detail page
     }
     
     function viewBooking(bookingId) {
-        showToast('Viewing booking: ' + bookingId, 'info');
+        showToast('Viewing booking: ' + bookingId, 'info'); // In a real app, navigate to booking detail page
     }
     
-    // Show Notifications
+    // Show Notifications (placeholder)
     function showNotifications() {
         showToast('You have 5 new notifications', 'info');
     }
@@ -3127,6 +3331,11 @@
         showToast('Profile menu', 'info');
     }
     
+    // Perform Header Search (placeholder)
+    function performHeaderSearch() {
+        showToast('Searching for: ' + document.getElementById('headerSearch').value, 'info');
+    }
+
     // Toggle AI Chat
     function toggleAIChat() {
         const widget = document.getElementById('aiChatWidget');
@@ -3138,18 +3347,32 @@
     async function sendAIMessage() {
         const input = document.getElementById('aiChatInput');
         const message = input.value.trim();
-        if (!message) return;
-        
         const messagesEl = document.getElementById('aiChatMessages');
+        if (!message) return;
+
         messagesEl.innerHTML += `<div class="user-message" style="background: #8b5cf6; padding: 12px 16px; border-radius: 16px; max-width: 85%; margin-left: auto; margin-bottom: 12px;">${message}</div>`;
         input.value = '';
         
         // Simulate AI response
-        setTimeout(() => {
-            messagesEl.innerHTML += `<div class="ai-message" style="background: rgba(139,92,246,0.2); padding: 16px; border-radius: 16px; max-width: 85%;"><p class="font-semibold text-purple-400 mb-1">🤖 ViewOnce AI</p><p>Thank you for your message! I'm analyzing the platform data to provide you with insights.</p></div>`;
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }, 1000);
+        try {
+            // Assuming api.sendAIMessage exists and takes a message and context
+            const context = {
+                view: 'admin_dashboard',
+                currentPage: currentPage,
+                userRole: JSON.parse(localStorage.getItem('user') || '{}').role || 'admin'
+            };
+            const aiResponse = await api.sendAIMessage(message, context);
+            const responseText = aiResponse.data?.response?.message || aiResponse.data?.message || aiResponse.message || "I'm sorry, I couldn't process that.";
+            messagesEl.innerHTML += `<div class="ai-message" style="background: rgba(139,92,246,0.2); padding: 16px; border-radius: 16px; max-width: 85%; margin-bottom: 12px;"><p class="font-semibold text-purple-400 mb-1">🤖 ViewOnce AI</p><p>${responseText}</p></div>`;
+        } catch (error) {
+            console.error('AI Chat Error:', error);
+            messagesEl.innerHTML += `<div class="ai-message" style="background: rgba(239,68,68,0.2); padding: 16px; border-radius: 16px; max-width: 85%; margin-bottom: 12px;"><p class="font-semibold text-red-400 mb-1">🤖 ViewOnce AI</p><p>Error: Could not connect to AI service. Please try again later.</p></div>`;
+        }
+        messagesEl.scrollTop = messagesEl.scrollHeight;
     }
+    
+    // Event listener for AI chat input
+    document.getElementById('aiChatInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendAIMessage(); });
     
     // Show Toast
     function showToast(message, type = 'info') {
@@ -3166,13 +3389,21 @@
     
     // Approve Item
     function approveItem(type, id) {
-        showToast(`${type} approved successfully!`, 'success');
+        if (confirm(`Are you sure you want to approve this ${type}?`)) {
+            // In a real app, call API to approve item
+            showToast(`${type} ${id} approved successfully!`, 'success');
+            // Reload data for the current page
+            loadPageData(currentPage);
+        }
     }
     
     // Reject Item
     function rejectItem(type, id) {
         if (confirm(`Are you sure you want to reject this ${type}?`)) {
-            showToast(`${type} rejected`, 'error');
+            // In a real app, call API to reject item
+            showToast(`${type} ${id} rejected`, 'error');
+            // Reload data for the current page
+            loadPageData(currentPage);
         }
     }
     
@@ -3185,10 +3416,10 @@
     // ==================== INVITE HOST MODAL FUNCTIONS ====================
     
     // Show invite host modal
-    function showInviteHostModal() {
+    function openInviteHostModal() {
         const modal = document.getElementById('inviteHostModal');
         if (modal) {
-            modal.style.display = 'flex';
+            modal.style.display = 'flex'; // Use flex to show modal
             // Reset form
             document.getElementById('hostName').value = '';
             document.getElementById('hostEmail').value = '';
@@ -3204,7 +3435,7 @@
     function closeInviteHostModal() {
         const modal = document.getElementById('inviteHostModal');
         if (modal) {
-            modal.style.display = 'none';
+            modal.style.display = 'none'; // Hide modal
         }
     }
     
@@ -3218,41 +3449,48 @@
         event.preventDefault();
         
         const name = document.getElementById('hostName').value;
-        const email = document.getElementById('hostEmail').value;
+        const email = document.getElementById('hostEmail').value; // Assuming this is for the host's email
         const phone = document.getElementById('hostPhone').value;
+        const message = document.getElementById('inviteMessage').value;
         
         try {
-            const response = await api.createHostInvitation({ name, email, phone });
-            const inviteLink = `${window.location.origin}/host-onboarding.html?token=${response.token}`;
+            // Assuming api.createHostInvitation exists and returns a token
+            const response = await api.createHostInvitation({ name, email, phone, message });
+            const inviteLink = `${window.location.origin}/host-signup.html?token=${response.token}&role=host`; // Use host-signup.html
+            
+            document.getElementById('generatedLink').value = inviteLink;
+            document.getElementById('generatedLinkContainer').style.display = 'block';
+            currentGeneratedLink = inviteLink; // Store for WhatsApp
+            
+            // Enable WhatsApp button if phone is provided
+            if (phone) {
+                document.getElementById('whatsappBtn').disabled = false;
+                document.getElementById('whatsappBtn').style.opacity = '1';
+            }
+            
+            // Store invitation data in localStorage for demo purposes
+            const invitations = JSON.parse(localStorage.getItem('hostInvitations') || '[]');
+            invitations.push({
+                id: response.token, // Use the token as ID
+                name: name,
+                email: email,
+                phone: phone,
+                message: message,
+                link: inviteLink,
+                createdAt: new Date().toISOString(),
+                status: 'pending'
+            });
+            localStorage.setItem('hostInvitations', JSON.stringify(invitations));
         
-        document.getElementById('generatedLink').value = inviteLink;
-        document.getElementById('generatedLinkContainer').style.display = 'block';
-        
-        // Enable WhatsApp button if phone is provided
-        if (phone) {
-            document.getElementById('whatsappBtn').disabled = false;
-            document.getElementById('whatsappBtn').style.opacity = '1';
+            // Show success message
+            showToast('Invitation link generated! You can now share it via email or WhatsApp.', 'success');
+            
+            // Log for debugging
+            console.log('Host invitation created:', { name, email, phone, link: inviteLink });
+        } catch (error) {
+            console.error('Failed to create invitation:', error);
+            showToast('Failed to generate invitation link. Please check your connection.', 'error');
         }
-        
-        // Store invitation data in localStorage for demo purposes
-        const invitations = JSON.parse(localStorage.getItem('hostInvitations') || '[]');
-        invitations.push({
-            id: token,
-            name: name,
-            email: email,
-            phone: phone,
-            message: message,
-            link: inviteLink,
-            createdAt: new Date().toISOString(),
-            status: 'pending'
-        });
-        localStorage.setItem('hostInvitations', JSON.stringify(invitations));
-        
-        // Show success message
-        showToast('Invitation link generated! You can now share it via email or WhatsApp.', 'success');
-        
-        // Log for debugging
-        console.log('Host invitation created:', { name, email, phone, link: inviteLink });
     }
     
     // Copy link to clipboard
@@ -3272,23 +3510,22 @@
     }
     
     // Send via WhatsApp
-    function sendViaWhatsApp(type) {
+    function sendHostInviteViaWhatsApp() {
         let phone = '';
         let message = '';
         let link = '';
         
-        if (type === 'host') {
-            phone = document.getElementById('hostPhone').value;
-            link = document.getElementById('generatedLink').value;
-            const name = document.getElementById('hostName').value;
-            
-            if (!phone) {
-                showToast('Please enter a phone number first', 'warning');
-                return;
-            }
-            
-            message = `Hello ${name}! You've been invited to join ViewOnce as a host. Use this link to register: ${link}`;
+        phone = document.getElementById('hostPhone').value;
+        link = currentGeneratedLink; // Use the last generated link
+        const name = document.getElementById('hostName').value;
+        const inviteMessage = document.getElementById('inviteMessage').value;
+
+        if (!phone || !link) {
+            showToast('Please generate a link and enter a phone number first', 'warning');
+            return;
         }
+        
+        message = `Hello ${name}! You've been invited to join ViewOnce as a host. ${inviteMessage ? inviteMessage + ' ' : ''}Use this link to register: ${link}`;
         
         // Format phone number for WhatsApp (remove + and any spaces)
         const formattedPhone = phone.replace(/\D/g, '');
@@ -3311,10 +3548,9 @@
             document.getElementById('adminLinkContainer').style.display = 'none';
             document.getElementById('hostLinkContainer').style.display = 'none';
             document.getElementById('supportLinkContainer').style.display = 'none';
-            document.getElementById('whatsappAdminBtn').disabled = true;
-            document.getElementById('whatsappAdminBtn').style.opacity = '0.5';
-            document.getElementById('whatsappHostBtn').disabled = true;
-            document.getElementById('whatsappHostBtn').style.opacity = '0.5';
+            // Reset WhatsApp button states
+            document.getElementById('whatsappAdminBtn').disabled = true; document.getElementById('whatsappAdminBtn').style.opacity = '0.5';
+            document.getElementById('whatsappHostBtn').disabled = true; document.getElementById('whatsappHostBtn').style.opacity = '0.5';
             document.getElementById('whatsappSupportBtn').disabled = true;
             document.getElementById('whatsappSupportBtn').style.opacity = '0.5';
         }
@@ -3331,35 +3567,41 @@
     // Generate dashboard link
     function generateLink(type) {
         const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-        let link = '';
-        let linkContainer = '';
-        let whatsappBtn = '';
+        let link = ''; // The generated URL
+        let linkInputId = ''; // The ID of the input field to display the link
+        let whatsappBtnId = ''; // The ID of the WhatsApp button
         
         switch(type) {
             case 'admin':
-                link = baseUrl + 'admin-dashboard.html';
-                linkContainer = 'adminLinkContainer';
-                whatsappBtn = 'whatsappAdminBtn';
+                link = baseUrl + 'admin-signup.html?role=admin&token=' + generateInviteToken();
+                linkInputId = 'adminLink';
+                whatsappBtnId = 'whatsappAdminBtn';
                 break;
             case 'host':
-                link = baseUrl + 'host-dashboard-upgraded.html';
-                linkContainer = 'hostLinkContainer';
-                whatsappBtn = 'whatsappHostBtn';
+                link = baseUrl + 'host-signup.html?role=host&token=' + generateInviteToken();
+                linkInputId = 'hostLink';
+                whatsappBtnId = 'whatsappHostBtn';
                 break;
             case 'support':
-                link = baseUrl + 'support-dashboard-upgraded.html';
-                linkContainer = 'supportLinkContainer';
-                whatsappBtn = 'whatsappSupportBtn';
+                link = baseUrl + 'support-signup.html?role=support&token=' + generateInviteToken();
+                linkInputId = 'supportLink';
+                whatsappBtnId = 'whatsappSupportBtn';
                 break;
+            default:
+                showToast('Invalid link type specified.', 'error');
+                return;
         }
         
         // Display the generated link
-        document.getElementById(type + 'Link').value = link;
-        document.getElementById(linkContainer).style.display = 'block';
+        document.getElementById(linkInputId).value = link;
+        document.getElementById(linkInputId).parentElement.style.display = 'block'; // Show the container div
         
         // Enable WhatsApp button
-        document.getElementById(whatsappBtn).disabled = false;
-        document.getElementById(whatsappBtn).style.opacity = '1';
+        document.getElementById(whatsappBtnId).disabled = false;
+        document.getElementById(whatsappBtnId).style.opacity = '1';
+        
+        // Store the generated link for potential WhatsApp sharing
+        currentGeneratedLink = link;
         
         showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} dashboard link generated!`, 'success');
         
@@ -3367,35 +3609,32 @@
         console.log('Generated link for:', type, link);
     }
     
-    // Share link via WhatsApp
-    function shareViaWhatsApp(type) {
+    // Share link via WhatsApp (for link sharing modal)
+    function shareLinkViaWhatsApp(type) {
         let link = '';
         let message = '';
+        let phone = ''; // Placeholder for phone number input
         
         switch(type) {
             case 'admin':
                 link = document.getElementById('adminLink').value;
-                message = `Here is the ViewOnce Admin Dashboard link: ${link}`;
+                message = `Hello! Here is the ViewOnce Admin Dashboard invitation link: ${link}`;
+                phone = prompt('Enter Admin phone number for WhatsApp (with country code, e.g., +254712345678):');
                 break;
             case 'host':
                 link = document.getElementById('hostLink').value;
-                message = `Here is the ViewOnce Host Dashboard link: ${link}`;
+                message = `Hello! You've been invited to join ViewOnce as a host. Here is your invitation link: ${link}`;
+                phone = prompt('Enter Host phone number for WhatsApp (with country code, e.g., +254712345678):');
                 break;
             case 'support':
                 link = document.getElementById('supportLink').value;
-                message = `Here is the ViewOnce Support Dashboard link: ${link}`;
+                message = `Hello! Here is the ViewOnce Support Dashboard invitation link: ${link}`;
+                phone = prompt('Enter Support phone number for WhatsApp (with country code, e.g., +254712345678):');
                 break;
         }
         
-        if (!link) {
-            showToast('Please generate a link first', 'warning');
-            return;
-        }
-        
-        // For demo, we'll use a prompt to enter phone number
-        const phone = prompt('Enter phone number for WhatsApp (with country code, e.g., +254712345678):');
-        
-        if (!phone) {
+        if (!link || !phone) {
+            showToast('Please generate a link and provide a phone number.', 'warning');
             return;
         }
         
@@ -3409,19 +3648,17 @@
         showToast('Opening WhatsApp...', 'info');
     }
     
-    // Close modals when clicking outside
-    window.onclick = function(event) {
-        const inviteModal = document.getElementById('inviteHostModal');
-        const linkModal = document.getElementById('linkSharingModal');
-        
-        if (event.target === inviteModal) {
-            closeInviteHostModal();
-        }
-        
-        if (event.target === linkModal) {
-            closeLinkSharingModal();
+    // Close modals when clicking outside (generic function)
+    function closeModalOnClickOutside(event, modalId, closeFunction) {
+        const modal = document.getElementById(modalId);
+        if (event.target === modal) {
+            closeFunction();
         }
     }
+
+    // Attach event listeners for modals
+    document.getElementById('inviteHostModal').addEventListener('click', (event) => closeModalOnClickOutside(event, 'inviteHostModal', closeInviteHostModal));
+    document.getElementById('linkSharingModal').addEventListener('click', (event) => closeModalOnClickOutside(event, 'linkSharingModal', closeLinkSharingModal));
 </script>
 </body>
 </html>

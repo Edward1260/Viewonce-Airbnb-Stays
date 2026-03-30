@@ -803,14 +803,14 @@ var SessionManager = {
   init: function() {
     this.sessionId = 'session_' + Math.random().toString(36).substr(2);
     this.updateActivity();
-    setInterval(function() { this.checkSession(); }.bind(this), 60000);
+    setInterval(function() { this.checkSession(); }.bind(this), 30 * 60 * 1000); // Check every 30 minutes
   },
   updateActivity: function() { this.lastActivity = Date.now(); },
   checkSession: function() { if(Date.now() - this.lastActivity > 30*60*1000) { this.expireSession(); } },
   expireSession: function() { 
     console.warn('Session expired'); 
     alert('Your session has expired. Please log in again.'); 
-    window.location.href = 'auth.html'; 
+    window.location.href = '/platform-master-hub/login.html'; // Redirect to super admin specific login
   }
 };
 SessionManager.init();
@@ -1869,7 +1869,30 @@ async function performRestore() {
 }
 
 // ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  // Initial authentication and role check for Platform Master Hub
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isMaster = ['platform_master', 'platform_master_hub', 'super_admin'].includes(user.role);
+
+  if (!isLoggedIn || !isMaster) {
+    console.warn('Unauthorized access. Redirecting to login.');
+    localStorage.clear();
+    window.location.href = '/platform-master/login';
+    return;
+  }
+
+  // Secure backend verification
+  try {
+    const verify = await api.verifyMasterRole();
+    if (!verify || !verify.isMaster) throw new Error('Unauthorized role');
+  } catch (e) {
+    localStorage.clear();
+    window.location.href = '/platform-master/login';
+    return;
+  }
+
+  console.log('Platform Master Hub verified and initialized.');
   loadAnalyticsData();
   loadUsersData();
   renderNotifications();

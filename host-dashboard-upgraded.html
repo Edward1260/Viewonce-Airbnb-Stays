@@ -620,11 +620,12 @@
     let isListening = false;
     let recognition = null;
     let connectionCheckInterval = null;
+    let currentPage = 'Dashboard';
 
     document.addEventListener('DOMContentLoaded', function() {
         const isLoggedIn = localStorage.getItem('isLoggedIn');
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (!isLoggedIn) { window.location.href = 'login-signup.html'; return; }
+        if (!isLoggedIn) { window.location.href = 'auth.html'; return; }
         if (user.role === 'customer') { window.location.href = 'customer-dashboard.html'; return; }
         if (user.role === 'admin') { window.location.href = 'admin-dashboard.html'; return; }
         if (user.role !== 'host') { window.location.href = 'login-signup.html'; return; }
@@ -635,7 +636,32 @@
         initializeHostDashboard().catch(console.error);
         checkTheme();
         startConnectionMonitoring();
+
+        // Property Sync: Register for real-time updates (e.g. status changes by Admin)
+        if (window.api && window.api.registerPropertyRefreshCallback) {
+            window.api.registerPropertyRefreshCallback((payload) => {
+                console.log('Host Dashboard: Real-time update received', payload);
+                if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+                    showToast('Property status updated!', 'info');
+                    loadHostProperties();
+                    loadStats();
+                }
+            });
+        }
+        
+        startPropertyPolling();
     });
+
+    let propertyPollingInterval;
+    function startPropertyPolling() {
+        if (propertyPollingInterval) clearInterval(propertyPollingInterval);
+        propertyPollingInterval = setInterval(async () => {
+            if (!document.hidden && currentPage === 'Dashboard') {
+                loadHostProperties();
+                loadStats();
+            }
+        }, 30000); // Poll every 30 seconds
+    }
 
     function startConnectionMonitoring() {
         updateConnectionStatus();
@@ -709,8 +735,6 @@
         if (!grid) return;
         grid.innerHTML = '<div class="col-span-full text-center py-8"><div class="loading-spinner mx-auto mb-4"></div></div>';
         try {
-            let user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!user.id) { user = { id: '2', name: 'Jane Smith', role: 'host' }; localStorage.setItem('user', JSON.stringify(user)); }
             const response = await api.getMyProperties();
             let properties = response || [];
             if (!Array.isArray(properties)) properties = [];
@@ -734,11 +758,12 @@
         return card;
     }
 
-    function handleSidebarAction(action) {
+    async function handleSidebarAction(action) {
         closeSidebar();
         document.getElementById('profileMenu').classList.add('hidden');
         const dashView = document.getElementById('dashboard-view');
         const dynView = document.getElementById('dynamic-view');
+        currentPage = action;
         const showDash = () => { dashView.classList.remove('hidden'); dynView.classList.add('hidden'); };
         const showDyn = () => { dashView.classList.add('hidden'); dynView.classList.remove('hidden'); dynView.innerHTML = ''; };
         switch (action) {
@@ -748,8 +773,8 @@
             case 'Calendar': showDyn(); renderCalendarView(dynView); break;
             case 'Bookings': showDyn(); renderBookingsView(dynView); break;
             case 'Pricing Tools': showDyn(); renderPricingView(dynView); break;
-            case 'Payments': showDyn(); renderPaymentsView(dynView); break;
-            case 'Reviews': showDyn(); renderReviewsView(dynView); break;
+            case 'Payments': showDyn(); await renderPaymentsView(dynView); break;
+            case 'Reviews': showDyn(); await renderReviewsView(dynView); break;
             case 'Analytics': showDyn(); renderAnalyticsView(dynView); break;
             case 'AI Dashboard': showDyn(); renderAIDashboardView(dynView); break;
             case 'Messages': showDyn(); renderMessagesView(dynView); break;
@@ -791,10 +816,17 @@
         location: { lat: -1.286389, lng: 36.817223, address: '', city: '' },
         buildingData: {
             name: '',
+            title: '',
             description: '',
             amenities: [],
+            services: [],
             rules: '',
-            type: 'Apartment'
+            type: 'Apartment',
+            price: 0,
+            maxGuests: 1,
+            bedrooms: 1,
+            bathrooms: 1,
+            rating: 0
         },
         units: [], // Array of unit objects
         buildingImages: [],
@@ -839,6 +871,8 @@
         });
         wizardState.currentStep = stepNum;
         updateWizardProgress();
+        if (stepNum === 2) setTimeout(initWizardMap, 100);
+        if (stepNum === 4) setTimeout(renderUnitsTable, 50);
     }
 
     function nextStep() {
@@ -846,7 +880,6 @@
             // Basic validation
             if (!validateCurrentStep()) return;
             
-            if (wizardState.currentStep === 7) calculateAIScore();
             showStep(wizardState.currentStep + 1);
         } else {
             // Final step - submit
@@ -872,8 +905,32 @@
         }
     }
 
+    function initWizardMap() {
+        if (wizardMap) return;
+        const mapContainer = document.getElementById('mapContainer');
+        if (!mapContainer) return;
+        mapContainer.innerHTML = '';
+        wizardMap = L.map('mapContainer').setView([wizardState.location.lat, wizardState.location.lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(wizardMap);
+        wizardMarker = L.marker([wizardState.location.lat, wizardState.location.lng], {draggable: true}).addTo(wizardMap);
+        
+        wizardMarker.on('dragend', function(e) {
+            const pos = e.target.getLatLng();
+            wizardState.location.lat = pos.lat;
+            wizardState.location.lng = pos.lng;
+            document.getElementById('selectedLat').textContent = pos.lat.toFixed(4);
+            document.getElementById('selectedLng').textContent = pos.lng.toFixed(4);
+        });
+    }
+
+    function selectBuildingType(type) {
+        wizardState.buildingType = type;
+        showToast(`Selected ${type === 'single' ? 'Single Unit' : 'Multi-Unit Building'}`, 'success');
+        nextStep();
+    }
+
     // Global map variables
-    let wizardMap, wizardMarker, autocomplete;
+    let wizardMarker, autocomplete;
 
     // Legacy for backward compatibility with 3D preview functions
     let propertyBuilderData = {
@@ -936,7 +993,7 @@
     function renderAddPropertyView(container) {
         container.innerHTML = `
                     <!-- Multi-Step Wizard -->
-                    <div class="property-builder">
+                    <div class="property-builder animate-fade-in-up">
                         <div class="glass p-6 mb-6">
                             <h2 class="text-2xl font-bold"><i class="fas fa-plus-circle mr-2"></i>Add Property</h2>
                             <p class="text-gray-600 mt-2">Modern 8-step wizard for single or multi-unit buildings</p>
@@ -997,19 +1054,13 @@
                                         Location
                                     </h3>
                                     <div id="mapContainer" class="w-full h-96 bg-gray-200 rounded-2xl mb-6 relative overflow-hidden">
-                                        <div class="absolute inset-0 flex items-center justify-center">
-                                            <div class="text-center">
-                                                <i class="fas fa-map text-6xl text-gray-400 mb-4"></i>
-                                                <p class="text-gray-500 font-semibold">Click "Search Location" or drag map</p>
-                                            </div>
-                                        </div>
                                     </div>
                                     <div class="grid md:grid-cols-2 gap-6">
                                         <div>
                                             <label class="block text-sm font-medium mb-3">Search Address</label>
                                             <div class="relative">
                                                 <input type="text" id="locationSearch" class="builder-input pr-12" placeholder="Start typing address...">
-                                                <button onclick="searchLocation()" class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-500 hover:text-indigo-700">
+                                                <button class="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-500 hover:text-indigo-700">
                                                     <i class="fas fa-search"></i>
                                                 </button>
                                             </div>
@@ -1028,39 +1079,36 @@
 
                             <!-- STEP 3: Detailed Info (Unified Version) -->
                             <div class="wizard-step" data-step="3" style="display:none;">
-                                <div class="builder-section" id="section-details">
-                                    <div class="builder-section-header" onclick="toggleBuilderSection('details')">
-                                        <h3><span class="section-icon icon-details"><i class="fas fa-home"></i></span>Property Details</h3>
-                                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                                    </div>
-                                    <div class="builder-section-content active" id="content-details">
+                                <div class="glass p-8">
+                                    <h3 class="text-2xl font-bold mb-6">Property Details</h3>
+                                    <div class="space-y-4">
                                         <div class="grid md:grid-cols-2 gap-4">
                                             <div>
                                                 <label class="block text-sm font-medium mb-2">Property Title</label>
-                                                <input type="text" id="title" class="builder-input" placeholder="e.g., Cozy Downtown Apartment" oninput="updatePropertyData('title', this.value); updatePreview();">
+                                                <input type="text" id="wizardTitle" class="builder-input" placeholder="e.g., Cozy Downtown Apartment" oninput="wizardState.buildingData.title = this.value; updateWizardPreview();">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium mb-2">Location</label>
-                                                <input type="text" id="location" class="builder-input" placeholder="e.g., Nairobi, Kenya" oninput="updatePropertyData('location', this.value); updatePreview();">
+                                                <input type="text" id="wizardLocation" class="builder-input" placeholder="e.g., Nairobi, Kenya" oninput="wizardState.location.address = this.value; updateWizardPreview();">
                                             </div>
                                         </div>
                                         <div class="grid md:grid-cols-3 gap-4 mt-4">
                                             <div>
                                                 <label class="block text-sm font-medium mb-2">Price per Night (KSh)</label>
-                                                <input type="number" id="price" class="builder-input" placeholder="e.g., 5000" oninput="updatePropertyData('price', this.value); updatePreview();">
+                                                <input type="number" id="wizardPrice" class="builder-input" placeholder="e.g., 5000" oninput="wizardState.buildingData.price = this.value; updateWizardPreview();">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium mb-2">Max Guests</label>
-                                                <input type="number" id="maxGuests" class="builder-input" placeholder="e.g., 4" oninput="updatePropertyData('maxGuests', this.value); updatePreview();">
+                                                <input type="number" id="wizardMaxGuests" class="builder-input" placeholder="e.g., 4" oninput="wizardState.buildingData.maxGuests = this.value; updateWizardPreview();">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium mb-2">Rating (0-5)</label>
-                                                <input type="number" step="0.1" id="rating" class="builder-input" placeholder="e.g., 4.5" max="5" oninput="updatePropertyData('rating', this.value); updatePreview();">
+                                                <input type="number" step="0.1" id="wizardRating" class="builder-input" placeholder="e.g., 4.5" max="5" oninput="wizardState.buildingData.rating = this.value; updateWizardPreview();">
                                             </div>
                                         </div>
                                         <div class="mt-4">
                                             <label class="block text-sm font-medium mb-2">Description</label>
-                                            <textarea id="description" class="builder-textarea" placeholder="Describe your property..." rows="4" oninput="updatePropertyData('description', this.value);"></textarea>
+                                            <textarea id="wizardDescription" class="builder-textarea" placeholder="Describe your property..." rows="4" oninput="wizardState.buildingData.description = this.value;"></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -1115,6 +1163,7 @@
                                             <div class="drop-zone h-64 mb-4" id="galleryDropZone">
                                                 <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                                                 <div class="drop-zone-text">Upload up to 20 high-quality photos</div>
+                                                <input type="file" id="wizardMediaInput" multiple accept="image/*" class="hidden" onchange="handleWizardMediaUpload(this.files)">
                                             </div>
                                             <div class="media-preview-grid h-48 overflow-y-auto" id="galleryPreview"></div>
                                         </div>
@@ -1147,16 +1196,16 @@
                                             <div class="space-y-4">
                                                 <div>
                                                     <label class="block text-sm font-medium mb-2">Nightly Rate (KSh)</label>
-                                                    <input type="number" id="basePrice" class="builder-input" placeholder="5000">
+                                                    <input type="number" id="basePrice" class="builder-input" placeholder="5000" oninput="wizardState.buildingData.price = this.value; updateWizardPreview();">
                                                 </div>
                                                 <div class="grid grid-cols-2 gap-4">
                                                     <div>
                                                         <label class="block text-sm font-medium mb-2">Min Stay</label>
-                                                        <input type="number" id="minStay" class="builder-input" placeholder="1">
+                                                        <input type="number" id="minStay" class="builder-input" placeholder="1" oninput="wizardState.buildingData.minStay = this.value;">
                                                     </div>
                                                     <div>
                                                         <label class="block text-sm font-medium mb-2">Service Fee (%)</label>
-                                                        <input type="number" id="serviceFee" class="builder-input" placeholder="10">
+                                                        <input type="number" id="serviceFee" class="builder-input" placeholder="10" oninput="wizardState.pricingGlobal.serviceFee = this.value;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1171,7 +1220,7 @@
                                                     <div class="text-2xl font-bold text-emerald-600" id="optimalPrice">KSh 4,800</div>
                                                     <div class="text-sm text-purple-600">+12% above market (High demand)</div>
                                                 </div>
-                                                <button onclick="getAIPrice()" class="glass px-4 py-2 rounded-xl w-full">
+                                                <button class="glass px-4 py-2 rounded-xl w-full">
                                                     <i class="fas fa-magic mr-2"></i>Refresh AI Analysis
                                                 </button>
                                             </div>
@@ -1198,7 +1247,7 @@
                                                 <div class="flex gap-3 p-4 bg-gray-50 rounded-xl">
                                                     <input type="date" id="blockStart" class="flex-1 p-3 border rounded-xl">
                                                     <input type="date" id="blockEnd" class="flex-1 p-3 border rounded-xl">
-                                                    <button onclick="addBlock()" class="btn-gradient px-6 py-3 rounded-xl">
+                                                    <button class="btn-gradient px-6 py-3 rounded-xl">
                                                         <i class="fas fa-ban"></i>
                                                     </button>
                                                 </div>
@@ -1247,8 +1296,29 @@
                                             </div>
                                         </div>
                                         <div class="preview-3d-container">
-                                            <div class="preview-3d-card flipped">
-                                                <!-- Live preview from Step 3 -->
+                                            <div class="preview-3d-card" onclick="this.classList.toggle('flipped')">
+                                                <div class="preview-3d-front">
+                                                    <div class="preview-image-container">
+                                                        <img id="wizardPreviewMainImage" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800" alt="Property">
+                                                    </div>
+                                                    <div class="preview-content">
+                                                        <h3 class="preview-title" id="wizardPreviewTitle">Property Title</h3>
+                                                        <p class="preview-location" id="wizardPreviewLocation"><i class="fas fa-map-marker-alt"></i> <span>Location</span></p>
+                                                        <div class="preview-price-row">
+                                                            <div class="preview-price" id="wizardPreviewPrice">KSh 0<span>/night</span></div>
+                                                            <div class="preview-rating" id="wizardPreviewRating"><i class="fas fa-star"></i> <span>0.0</span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="preview-3d-back">
+                                                    <h3 class="preview-back-title">Overview</h3>
+                                                    <div class="preview-back-stats">
+                                                        <div class="preview-stat">
+                                                            <div class="preview-stat-value" id="wizardStatGuests">0</div>
+                                                            <div class="preview-stat-label">Max Guests</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1279,229 +1349,105 @@
                                 <i class="fas fa-arrow-right ml-2"></i>
                             </button>
                         </div>
-                    <div class="builder-section-header" onclick="toggleBuilderSection('details')">
-                        <h3><span class="section-icon icon-details"><i class="fas fa-home"></i></span>Property Details <span class="section-optional-badge">Optional</span></h3>
-                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                    </div>
-                    <div class="builder-section-content active" id="content-details">
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Property Title</label>
-                                <input type="text" id="title" class="builder-input" placeholder="e.g., Cozy Downtown Apartment" oninput="updatePropertyData('title', this.value); updatePreview();">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Location</label>
-                                <input type="text" id="location" class="builder-input" placeholder="e.g., Nairobi, Kenya" oninput="updatePropertyData('location', this.value); updatePreview();">
-                            </div>
-                        </div>
-                        <div class="grid md:grid-cols-3 gap-4 mt-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Price per Night (KSh)</label>
-                                <input type="number" id="price" class="builder-input" placeholder="e.g., 5000" oninput="updatePropertyData('price', this.value); updatePreview();">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Max Guests</label>
-                                <input type="number" id="maxGuests" class="builder-input" placeholder="e.g., 4" oninput="updatePropertyData('maxGuests', this.value); updatePreview();">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Rating (0-5)</label>
-                                <input type="number" step="0.1" id="rating" class="builder-input" placeholder="e.g., 4.5" max="5" oninput="updatePropertyData('rating', this.value); updatePreview();">
-                            </div>
-                        </div>
-                        <div class="grid md:grid-cols-2 gap-4 mt-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Bedrooms</label>
-                                <input type="number" id="bedrooms" class="builder-input" placeholder="e.g., 2" oninput="updatePropertyData('bedrooms', this.value); updatePreview();">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Bathrooms</label>
-                                <input type="number" id="bathrooms" class="builder-input" placeholder="e.g., 1" oninput="updatePropertyData('bathrooms', this.value); updatePreview();">
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <label class="block text-sm font-medium mb-2">Description</label>
-                            <textarea id="description" class="builder-textarea" placeholder="Describe your property..." rows="4" oninput="updatePropertyData('description', this.value);"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Property Type Section -->
-                <div class="builder-section" id="section-type">
-                    <div class="builder-section-header" onclick="toggleBuilderSection('type')">
-                        <h3><span class="section-icon icon-type"><i class="fas fa-building"></i></span>Property Type <span class="section-optional-badge">Optional</span></h3>
-                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                    </div>
-                    <div class="builder-section-content" id="content-type">
-                        <div class="property-type-grid">
-                            <div class="property-type-card selected" data-type="Apartment" onclick="selectPropertyType(this)">
-                                <i class="fas fa-building"></i>
-                                <span>Apartment</span>
-                            </div>
-                            <div class="property-type-card" data-type="Villa" onclick="selectPropertyType(this)">
-                                <i class="fas fa-villa"></i>
-                                <span>Villa</span>
-                            </div>
-                            <div class="property-type-card" data-type="House" onclick="selectPropertyType(this)">
-                                <i class="fas fa-home"></i>
-                                <span>House</span>
-                            </div>
-                            <div class="property-type-card" data-type="Studio" onclick="selectPropertyType(this)">
-                                <i class="fas fa-door-open"></i>
-                                <span>Studio</span>
-                            </div>
-                            <div class="property-type-card" data-type="Cottage" onclick="selectPropertyType(this)">
-                                <i class="fas fa-tree"></i>
-                                <span>Cottage</span>
-                            </div>
-                            <div class="property-type-card" data-type="Cabin" onclick="selectPropertyType(this)">
-                                <i class="fas fa-campground"></i>
-                                <span>Cabin</span>
-                            </div>
-                            <div class="property-type-card" data-type="Bungalow" onclick="selectPropertyType(this)">
-                                <i class="fas fa-house-user"></i>
-                                <span>Bungalow</span>
-                            </div>
-                            <div class="property-type-card" data-type="Penthouse" onclick="selectPropertyType(this)">
-                                <i class="fas fa-city"></i>
-                                <span>Penthouse</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Compound Images Section -->
-                <div class="builder-section" id="section-compound">
-                    <div class="builder-section-header" onclick="toggleBuilderSection('compound')">
-                        <h3><span class="section-icon icon-compound"><i class="fas fa-image"></i></span>Compound Images <span class="section-optional-badge">Optional</span></h3>
-                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                    </div>
-                    <div class="builder-section-content" id="content-compound">
-                        <div class="drop-zone" id="compoundDropZone" onclick="document.getElementById('compoundFileInput').click()">
-                            <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                            <div class="drop-zone-text">Drag & drop images/videos here<br>or <strong>click to browse</strong></div>
-                            <div class="drop-zone-hint">Supports: JPG, PNG, GIF, MP4, WebM</div>
-                        </div>
-                        <input type="file" id="compoundFileInput" multiple accept="image/*,video/*" style="display: none;" onchange="handleCompoundUpload(this.files)">
-                        <div class="media-preview-grid" id="compoundMediaPreview"></div>
-                    </div>
-                </div>
-
-                <!-- Room Images Section -->
-                <div class="builder-section" id="section-rooms">
-                    <div class="builder-section-header" onclick="toggleBuilderSection('rooms')">
-                        <h3><span class="section-icon icon-rooms"><i class="fas fa-bed"></i></span>Room Images <span class="section-optional-badge">Optional</span> <span class="auto-detect-badge"><i class="fas fa-magic"></i> Auto-detect</span></h3>
-                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                    </div>
-                    <div class="builder-section-content" id="content-rooms">
-                        <div class="drop-zone" id="roomDropZone" onclick="document.getElementById('roomFileInput').click()">
-                            <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                            <div class="drop-zone-text">Drag & drop room images here<br>or <strong>click to browse</strong></div>
-                            <div class="drop-zone-hint">We'll auto-detect: Bedroom, Bathroom, Kitchen, Balcony</div>
-                        </div>
-                        <input type="file" id="roomFileInput" multiple accept="image/*" style="display: none;" onchange="handleRoomUpload(this.files)">
-                        <div class="media-preview-grid" id="roomMediaPreview"></div>
-                    </div>
-                </div>
-
-                <!-- Amenities Section -->
-                <div class="builder-section" id="section-amenities">
-                    <div class="builder-section-header" onclick="toggleBuilderSection('amenities')">
-                        <h3><span class="section-icon icon-amenities"><i class="fas fa-list"></i></span>Amenities <span class="section-optional-badge">Optional</span></h3>
-                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                    </div>
-                    <div class="builder-section-content" id="content-amenities">
-                        <div class="amenity-grid">
-                            ${amenitiesList.map(a => `
-                                <div class="amenity-tag" data-id="${a.id}" onclick="toggleAmenity(this)">
-                                    <i class="fas ${a.icon}"></i>
-                                    <span>${a.name}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Services Section -->
-                <div class="builder-section" id="section-services">
-                    <div class="builder-section-header" onclick="toggleBuilderSection('services')">
-                        <h3><span class="section-icon icon-services"><i class="fas fa-concierge-bell"></i></span>Services <span class="section-optional-badge">Optional</span></h3>
-                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                    </div>
-                    <div class="builder-section-content" id="content-services">
-                        <div class="service-grid">
-                            ${servicesList.map(s => `
-                                <div class="service-tag" data-id="${s.id}" onclick="toggleService(this)">
-                                    <i class="fas ${s.icon}"></i>
-                                    <span>${s.name}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3D Preview Section -->
-                <div class="builder-section" id="section-preview">
-                    <div class="builder-section-header" onclick="toggleBuilderSection('preview')">
-                        <h3><span class="section-icon icon-preview"><i class="fas fa-eye"></i></span>Property Preview <span class="section-optional-badge">Live</span></h3>
-                        <button class="section-toggle"><i class="fas fa-chevron-down"></i></button>
-                    </div>
-                    <div class="builder-section-content" id="content-preview">
-                        <p class="text-gray-600 mb-4">See how your listing will appear to guests! Click the card to flip.</p>
-                        <div class="preview-3d-container">
-                            <div class="preview-3d-card" onclick="this.classList.toggle('flipped')">
-                                <div class="preview-3d-front">
-                                    <div class="preview-image-container">
-                                        <img id="previewMainImage" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800" alt="Property">
-                                        <div class="preview-image-nav" id="previewImageNav"></div>
-                                    </div>
-                                    <div class="preview-content">
-                                        <h3 class="preview-title" id="previewTitle">Your Property Title</h3>
-                                        <p class="preview-location" id="previewLocation"><i class="fas fa-map-marker-alt"></i> <span>Location</span></p>
-                                        <div class="preview-features" id="previewFeatures">
-                                            <span><i class="fas fa-user"></i> <span id="previewGuests">0</span> guests</span>
-                                            <span><i class="fas fa-bed"></i> <span id="previewBedrooms">0</span> beds</span>
-                                            <span><i class="fas fa-bath"></i> <span id="previewBathrooms">0</span> baths</span>
-                                        </div>
-                                        <div class="preview-price-row">
-                                            <div class="preview-price" id="previewPrice">KSh 0<span>/night</span></div>
-                                            <div class="preview-rating" id="previewRating"><i class="fas fa-star"></i> <span>0.0</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="preview-flip-hint"><i class="fas fa-hand-pointer"></i> Click to flip</div>
-                                </div>
-                                <div class="preview-3d-back">
-                                    <h3 class="preview-back-title">Property Stats</h3>
-                                    <div class="preview-back-stats">
-                                        <div class="preview-stat">
-                                            <div class="preview-stat-value" id="statGuests">0</div>
-                                            <div class="preview-stat-label">Max Guests</div>
-                                        </div>
-                                        <div class="preview-stat">
-                                            <div class="preview-stat-value" id="statRooms">0</div>
-                                            <div class="preview-stat-label">Rooms</div>
-                                        </div>
-                                        <div class="preview-stat">
-                                            <div class="preview-stat-value" id="statAmenities">0</div>
-                                            <div class="preview-stat-label">Amenities</div>
-                                        </div>
-                                        <div class="preview-stat">
-                                            <div class="preview-stat-value" id="statServices">0</div>
-                                            <div class="preview-stat-label">Services</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         `;
 
-        // Initialize drag and drop for compound images
-        initDragAndDrop('compoundDropZone', 'compoundFileInput', handleCompoundUpload);
-        // Initialize drag and drop for room images
-        initDragAndDrop('roomDropZone', 'roomFileInput', handleRoomUpload);
+        const dropZone = document.getElementById('galleryDropZone');
+        if (dropZone) dropZone.onclick = () => document.getElementById('wizardMediaInput').click();
+        updateWizardProgress();
+    }
+
+    function handleWizardMediaUpload(files) {
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                wizardState.buildingImages.push(e.target.result);
+                renderWizardGallery();
+                updateWizardPreview();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderWizardGallery() {
+        const preview = document.getElementById('galleryPreview');
+        if (!preview) return;
+        preview.innerHTML = wizardState.buildingImages.map((img, i) => `
+            <div class="media-preview-item">
+                <img src="${img}" class="w-full h-full object-cover">
+                <button onclick="wizardState.buildingImages.splice(${i}, 1); renderWizardGallery();" class="media-btn media-btn-delete"><i class="fas fa-trash"></i></button>
+            </div>
+        `).join('');
+    }
+
+    function addUnit() {
+        const name = prompt('Enter Unit Name (e.g., Suite 101):');
+        if (!name) return;
+        
+        const unit = {
+            id: 'unit_' + Date.now(),
+            name: name,
+            maxGuests: 2,
+            beds: 1,
+            price: wizardState.buildingData.price || 0,
+            status: 'available'
+        };
+        
+        wizardState.units.push(unit);
+        renderUnitsTable();
+        showToast(`Unit ${name} added`, 'success');
+    }
+
+    function removeUnit(index) {
+        if(confirm('Remove this unit?')) {
+            wizardState.units.splice(index, 1);
+            renderUnitsTable();
+        }
+    }
+
+    function renderUnitsTable() {
+        const tbody = document.getElementById('unitsTableBody');
+        if (!tbody) return;
+        
+        if (wizardState.units.length === 0) {
+            tbody.innerHTML = `
+                <tr class="border-b hover:bg-gray-50 text-gray-700">
+                    <td colspan="6" class="p-8 text-center text-gray-500">
+                        <button onclick="addUnit()" class="btn-gradient px-6 py-2 rounded-xl">
+                            <i class="fas fa-plus mr-2"></i>Add First Unit
+                        </button>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = wizardState.units.map((u, i) => `
+            <tr class="border-b hover:bg-gray-50 text-gray-700">
+                <td class="p-4 font-semibold">${u.name}</td>
+                <td class="p-4"><input type="number" value="${u.maxGuests}" onchange="wizardState.units[${i}].maxGuests = this.value" class="w-16 p-1 border rounded bg-white"></td>
+                <td class="p-4"><input type="number" value="${u.beds}" onchange="wizardState.units[${i}].beds = this.value" class="w-16 p-1 border rounded bg-white"></td>
+                <td class="p-4"><input type="number" value="${u.price}" onchange="wizardState.units[${i}].price = this.value" class="w-24 p-1 border rounded bg-white"></td>
+                <td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Available</span></td>
+                <td class="p-4 text-right">
+                    <button onclick="removeUnit(${i})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('') + `
+            <tr><td colspan="6" class="p-4"><button onclick="addUnit()" class="text-indigo-600 font-semibold hover:underline">+ Add Another Unit</button></td></tr>
+        `;
+    }
+
+    function updateWizardPreview() {
+        const title = document.getElementById('wizardPreviewTitle');
+        const loc = document.querySelector('#wizardPreviewLocation span');
+        const price = document.getElementById('wizardPreviewPrice');
+        const img = document.getElementById('wizardPreviewMainImage');
+        
+        if (title) title.textContent = wizardState.buildingData.title || 'Property Title';
+        if (loc) loc.textContent = wizardState.location.address || 'Location';
+        if (price) price.innerHTML = `KSh ${parseInt(wizardState.buildingData.price).toLocaleString()}<span>/night</span>`;
+        if (img && wizardState.buildingImages.length > 0) img.src = wizardState.buildingImages[0];
     }
 
     function toggleBuilderSection(sectionId) {
@@ -1509,16 +1455,6 @@
         const content = document.getElementById(`content-${sectionId}`);
         section.classList.toggle('expanded');
         content.classList.toggle('active');
-    }
-
-    function selectPropertyType(card) {
-        document.querySelectorAll('.property-type-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        propertyBuilderData.type = card.dataset.type;
-    }
-
-    function updatePropertyData(field, value) {
-        propertyBuilderData[field] = value;
     }
 
     function initDragAndDrop(dropZoneId, fileInputId, handler) {
@@ -1695,76 +1631,31 @@
         element.classList.toggle('selected');
         const amenityId = element.dataset.id;
         if (element.classList.contains('selected')) {
-            if (!propertyBuilderData.amenities.includes(amenityId)) {
-                propertyBuilderData.amenities.push(amenityId);
+            if (!wizardState.buildingData.amenities.includes(amenityId)) {
+                wizardState.buildingData.amenities.push(amenityId);
             }
         } else {
-            propertyBuilderData.amenities = propertyBuilderData.amenities.filter(a => a !== amenityId);
+            wizardState.buildingData.amenities = wizardState.buildingData.amenities.filter(a => a !== amenityId);
         }
-        updatePreview();
+        updateWizardPreview();
     }
 
     function toggleService(element) {
         element.classList.toggle('selected');
         const serviceId = element.dataset.id;
         if (element.classList.contains('selected')) {
-            if (!propertyBuilderData.services.includes(serviceId)) {
-                propertyBuilderData.services.push(serviceId);
+            if (!wizardState.buildingData.services.includes(serviceId)) {
+                wizardState.buildingData.services.push(serviceId);
             }
         } else {
-            propertyBuilderData.services = propertyBuilderData.services.filter(s => s !== serviceId);
+            wizardState.buildingData.services = wizardState.buildingData.services.filter(s => s !== serviceId);
         }
-        updatePreview();
+        updateWizardPreview();
     }
 
     function updatePreview() {
-        // Update title
-        document.getElementById('previewTitle').textContent = propertyBuilderData.title || 'Your Property Title';
-        
-        // Update location
-        const locationSpan = document.querySelector('#previewLocation span');
-        locationSpan.textContent = propertyBuilderData.location || 'Location';
-        
-        // Update guests
-        document.getElementById('previewGuests').textContent = propertyBuilderData.maxGuests || '0';
-        document.getElementById('statGuests').textContent = propertyBuilderData.maxGuests || '0';
-        
-        // Update bedrooms
-        document.getElementById('previewBedrooms').textContent = propertyBuilderData.bedrooms || '0';
-        
-        // Update bathrooms
-        document.getElementById('previewBathrooms').textContent = propertyBuilderData.bathrooms || '0';
-        
-        // Update rooms stat
-        const rooms = (parseInt(propertyBuilderData.bedrooms) || 0) + (parseInt(propertyBuilderData.bathrooms) || 0);
-        document.getElementById('statRooms').textContent = rooms;
-        
-        // Update price
-        document.getElementById('previewPrice').innerHTML = `KSh ${parseInt(propertyBuilderData.price).toLocaleString() || 0}<span>/night</span>`;
-        
-        // Update rating
-        document.getElementById('previewRating').innerHTML = `<i class="fas fa-star"></i> <span>${propertyBuilderData.rating || '0.0'}</span>`;
-        
-        // Update amenities and services stats
-        document.getElementById('statAmenities').textContent = propertyBuilderData.amenities.length;
-        document.getElementById('statServices').textContent = propertyBuilderData.services.length;
-        
-        // Update main preview image if available
-        const allImages = [...propertyBuilderData.compoundImages, ...propertyBuilderData.roomImages];
-        const firstImage = allImages.find(img => img.type === 'image');
-        if (firstImage) {
-            document.getElementById('previewMainImage').src = firstImage.url;
-        }
-        
-        // Update preview image navigation
-        const previewNav = document.getElementById('previewImageNav');
-        if (allImages.length > 1) {
-            previewNav.innerHTML = allImages.slice(0, 5).map((img, i) => 
-                `<div class="preview-image-dot ${i === 0 ? 'active' : ''}" onclick="changePreviewImage(${i})"></div>`
-            ).join('');
-        } else {
-            previewNav.innerHTML = '';
-        }
+        // Redirecting to unified wizard preview
+        updateWizardPreview();
     }
 
     function changePreviewImage(index) {
@@ -1789,64 +1680,43 @@
     }
 
     async function submitProperty() {
-        if (!propertyBuilderData.title) {
-            showToast('Please enter a property title', 'error');
-            return;
-        }
-        if (!propertyBuilderData.location) {
-            showToast('Please enter a location', 'error');
-            return;
-        }
-        if (!propertyBuilderData.price) {
-            showToast('Please enter a price', 'error');
+        if (!wizardState.buildingData.title) {
+            showToast('Please enter a title in Step 3', 'error');
+            showStep(3);
             return;
         }
 
-        const data = buildPropertyData();
-        
+        // Construct structured payload for NestJS
+        const payload = {
+            buildingData: {
+                ...wizardState.buildingData,
+                location: wizardState.location.address || 'Kenya',
+                latitude: wizardState.location.lat,
+                longitude: wizardState.location.lng,
+                images: wizardState.buildingImages,
+                buildingType: wizardState.buildingType,
+                isMultiUnit: wizardState.buildingType === 'multi'
+            },
+            units: wizardState.units,
+            hostId: currentHostId,
+            status: 'pending'
+        };
+
+        showToast('Publishing property...', 'info');
+
         try {
-            await api.createProperty(data);
-            showToast('Property published successfully!', 'success');
+            await api.createProperty(payload);
+            showToast('Property published successfully! Awaiting approval.', 'success');
             localStorage.removeItem('propertyDraft');
-            handleSidebarAction('Dashboard');
+            setTimeout(() => handleSidebarAction('Dashboard'), 1500);
         } catch (error) {
             showToast('Error publishing property: ' + error.message, 'error');
         }
     }
 
-    function buildPropertyData() {
-        // Collect all images
-        const allImages = [
-            ...propertyBuilderData.compoundImages.map(img => img.url),
-            ...propertyBuilderData.roomImages.map(img => img.url)
-        ];
-        
-        // Organize room images by category
-        const roomImagesByCategory = {};
-        propertyBuilderData.roomImages.forEach(img => {
-            if (!roomImagesByCategory[img.category]) {
-                roomImagesByCategory[img.category] = [];
-            }
-            roomImagesByCategory[img.category].push(img.url);
-        });
-
-        return {
-            title: propertyBuilderData.title,
-            location: propertyBuilderData.location,
-            price: parseInt(propertyBuilderData.price) || 0,
-            type: propertyBuilderData.type,
-            maxGuests: parseInt(propertyBuilderData.maxGuests) || 1,
-            bedrooms: parseInt(propertyBuilderData.bedrooms) || 0,
-            bathrooms: parseInt(propertyBuilderData.bathrooms) || 0,
-            rating: parseFloat(propertyBuilderData.rating) || 0,
-            description: propertyBuilderData.description,
-            amenities: propertyBuilderData.amenities,
-            services: propertyBuilderData.services,
-            images: allImages,
-            roomImages: roomImagesByCategory,
-            hostId: currentHostId,
-            status: 'pending' // Properties start as pending for admin approval
-        };
+    function saveDraft() {
+        localStorage.setItem('propertyDraft', JSON.stringify(wizardState));
+        showToast('Draft saved successfully', 'success');
     }
 
     function renderManageListingsView(container) { container.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Manage Listings</h2><button onclick="handleSidebarAction('Add Property')" class="btn-gradient">+ Add</button></div><div id="manage-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>`; loadHostProperties('manage-grid'); }
@@ -1857,7 +1727,32 @@
     async function renderBookingsView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} if (bookings.length === 0) { container.innerHTML = '<div class="text-center py-12"><div class="text-6xl mb-4">📋</div><h3 class="text-xl font-bold">No Bookings Yet</h3></div>'; return; } container.innerHTML = `<div class="space-y-4"><h2 class="text-2xl font-bold"><i class="fas fa-book mr-2"></i>All Bookings (${bookings.length})</h2>${bookings.map(b => { const prop = properties.find(p => p.id === b.propertyId); return `<div class="glass p-4 rounded-xl"><div class="flex justify-between items-start mb-2"><div><h4 class="font-bold">${prop?.title || 'Property'}</h4><p class="text-sm text-gray-600">${b.userName} • ${b.checkIn} to ${b.checkOut}</p></div><span class="px-3 py-1 rounded-full text-sm font-medium ${b.status==='confirmed'?'bg-green-100 text-green-800':b.status==='pending'?'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800'}">${b.status}</span></div><div class="flex justify-between"><span>${b.guests} guests</span><span class="font-bold">KSh ${(b.totalPrice||0).toLocaleString()}</span></div></div>`; }).join('')}</div>`; }
     function renderPricingView(container) { container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">💰</div><h2 class="text-2xl font-bold">Pricing Tools</h2></div><div class="grid md:grid-cols-2 gap-6"><div class="glass p-6 rounded-xl"><h4 class="font-bold mb-3">📊 Market Analysis</h4><ul class="text-sm space-y-2"><li>• Compare with similar properties</li><li>• Seasonal pricing</li><li>• Demand forecasting</li></ul></div><div class="glass p-6 rounded-xl"><h4 class="font-bold mb-3">🎯 Dynamic Pricing</h4><ul class="text-sm space-y-2"><li>• Weekend adjustments</li><li>• Length of stay</li><li>• Occupancy-based</li></ul></div></div></div>`; }
     async function renderPaymentsView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} const totalEarnings = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0); const pendingPayouts = bookings.filter(b => b.paymentStatus === 'pending').reduce((sum, b) => sum + (b.totalPrice||0), 0); const completedPayouts = bookings.filter(b => b.paymentStatus === 'paid').reduce((sum, b) => sum + (b.totalPrice||0), 0); container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">💳</div><h2 class="text-2xl font-bold">Payments & Payouts</h2></div><div class="grid md:grid-cols-3 gap-4"><div class="glass p-6 rounded-xl text-center"><div class="text-3xl font-bold text-green-600">KSh ${totalEarnings.toLocaleString()}</div><div class="text-gray-600">Total Earnings</div></div><div class="glass p-6 rounded-xl text-center"><div class="text-3xl font-bold text-yellow-600">KSh ${pendingPayouts.toLocaleString()}</div><div class="text-gray-600">Pending Payout</div></div><div class="glass p-6 rounded-xl text-center"><div class="text-3xl font-bold text-blue-600">KSh ${completedPayouts.toLocaleString()}</div><div class="text-gray-600">Completed Payouts</div></div></div></div>`; }
-    function renderReviewsView(container) { const mockReviews = [{ property: 'Cozy Apartment', rating: 5, text: 'Great stay!', date: '2024-01-15', guest: 'John D.' }, { property: 'Downtown Villa', rating: 4, text: 'Nice place.', date: '2024-01-10', guest: 'Sarah M.' }]; container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">⭐</div><h2 class="text-2xl font-bold"> Reviews</h2></div><div class="grid md:grid-cols-2 gap-4"><div class="glass p-6 rounded-xl text-center"><div class="text-4xl font-bold text-yellow-500">4.7 ⭐</div><div class="text-gray-600">Average Rating</div></div><div class="glass p-6 rounded-xl text-center"><div class="text-4xl font-bold">24</div><div class="text-gray-600">Total Reviews</div></div></div>${mockReviews.map(r => `<div class="glass p-4 rounded-xl"><div class="flex justify-between items-start mb-2"><div><h4 class="font-bold">${r.property}</h4><p class="text-sm text-gray-600">${r.guest} • ${r.date}</p></div><div class="text-yellow-500">${'⭐'.repeat(r.rating)}</div></div><p class="mb-3">"${r.text}"</p></div>`).join('')}</div>`; }
+    async function renderReviewsView(container) { 
+        container.innerHTML = '<div class="text-center py-12"><div class="loading-spinner mx-auto"></div><p class="mt-4">Fetching reviews...</p></div>';
+        try {
+            const reviews = await api.getReviews();
+            const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+            
+            container.innerHTML = `<div class="space-y-6">
+                <div class="text-center"><div class="text-5xl mb-4">⭐</div><h2 class="text-2xl font-bold">Reviews</h2></div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="glass p-6 rounded-xl text-center"><div class="text-4xl font-bold text-yellow-500">${avgRating.toFixed(1)} ⭐</div><div class="text-gray-600">Average Rating</div></div>
+                    <div class="glass p-6 rounded-xl text-center"><div class="text-4xl font-bold">${reviews.length}</div><div class="text-gray-600">Total Reviews</div></div>
+                </div>
+                ${reviews.length === 0 ? '<p class="text-center text-gray-500">No reviews found for your listings.</p>' : 
+                    reviews.map(r => `<div class="glass p-4 rounded-xl">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><h4 class="font-bold">${r.property?.title || 'Property'}</h4><p class="text-sm text-gray-600">${r.userName || 'Guest'} • ${new Date(r.created_at).toLocaleDateString()}</p></div>
+                            <div class="text-yellow-500">${'⭐'.repeat(r.rating)}</div>
+                        </div>
+                        <p class="mb-3">"${r.text}"</p>
+                    </div>`).join('')
+                }
+            </div>`;
+        } catch (e) {
+            container.innerHTML = '<div class="alert error">Failed to load reviews.</div>';
+        }
+    }
     async function renderAnalyticsView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0); const avgRating = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.rating||0), 0) / properties.length : 0; container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">📊</div><h2 class="text-2xl font-bold">Analytics Dashboard</h2></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><div class="analytics-card"><p class="text-white/80 text-sm">Properties</p><p class="stat-value">${properties.length}</p></div><div class="analytics-card green"><p class="text-white/80 text-sm">Bookings</p><p class="stat-value">${bookings.length}</p></div><div class="analytics-card orange"><p class="text-white/80 text-sm">Revenue</p><p class="stat-value">KSh ${totalRevenue.toLocaleString()}</p></div><div class="analytics-card red"><p class="text-white/80 text-sm">Rating</p><p class="stat-value">${avgRating.toFixed(1)}</p></div></div></div>`; }
     function renderMessagesView(container) { container.innerHTML = `<div class="h-[calc(100vh-140px)] flex gap-4"><div class="w-1/3 glass rounded-2xl overflow-hidden"><div class="p-4 border-b"><h3 class="font-bold">Messages</h3></div><div class="overflow-y-auto h-full p-2"><div class="text-center py-8 text-gray-500">No messages yet</div></div></div><div class="w-2/3 glass rounded-2xl flex items-center justify-center"><div class="text-center text-gray-500"><div class="text-6xl mb-4">💬</div><p>Select a conversation</p></div></div></div>`; }
     function renderContactAdminView(container) { container.innerHTML = `<div class="text-center py-12"><div class="text-6xl mb-4">📞</div><h2 class="text-2xl font-bold mb-4">Contact Admin</h2><div class="max-w-md mx-auto glass p-6 rounded-xl"><div class="space-y-4"><div class="flex justify-between"><span>📧 Email</span><a href="mailto:support@airbnb-stays.com" class="text-blue-600">support@airbnb-stays.com</a></div><div class="flex justify-between"><span>📱 Phone</span><span>+254 700 123 456</span></div><div class="flex justify-between"><span>💬 Live Chat</span><span class="text-green-600">Available 24/7</span></div></div></div></div>`; }
@@ -1958,7 +1853,6 @@
     
     // Run connection test on load
     setTimeout(testBackendConnection, 2000);
-    function showToast(message, type = 'info') { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<span>${message}</span>`; container.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 5000); }
 
     // Advertise Property Panel Functions
     function openAdvertisePanel() { document.getElementById('advertisePanel').classList.add('open'); document.getElementById('advertiseBackdrop').classList.add('show'); closeSidebar(); }

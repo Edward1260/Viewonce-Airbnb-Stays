@@ -276,7 +276,10 @@
                 <div class="card-bubble card-bubble-2"></div>
                 
                 <div class="card-content">
-                    <h2 class="card-title">Support Registration</h2>
+                    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 25px;">
+                        <img src="images/icon-192.png" width="40" alt="App Logo" style="margin-right: 10px;">
+                        <h2 class="card-title" style="margin: 0;">Support Registration</h2>
+                    </div>
                     <div class="invitation-badge">🎧 You've been invited to Support!</div>
                     
                     <form onsubmit="handleSupportSignup(event)">
@@ -295,8 +298,25 @@
                         <div class="form-group">
                             <input type="password" class="form-input" placeholder="Confirm Password" id="confirmPassword" required>
                         </div>
+                        <div class="form-group" style="text-align: left;">
+                            <input type="checkbox" id="agreeTerms" required style="margin-right: 8px;">
+                            <label for="agreeTerms" class="text-sm text-gray-600">I agree to the <a href="terms-and-conditions.html" target="_blank" class="text-cyan-700 hover:underline">Terms & Conditions</a></label>
+                        </div>
                         <button type="submit" class="login-btn">Create Support Account</button>
                     </form>
+
+                    <!-- OTP Verification Section -->
+                    <div class="otp-verification-form hidden" id="otpVerificationForm">
+                        <div id="otp-error" class="message"></div>
+                        <p class="text-sm text-gray-600 mb-4">A verification code has been sent to <span id="otpEmailDisplay" class="font-bold"></span>. Please enter it below.</p>
+                        <form onsubmit="handleOtpVerification(event)">
+                            <div class="form-group">
+                                <input type="text" id="otpInput" class="form-input" placeholder="Enter 6-digit OTP" required maxlength="6">
+                            </div>
+                            <button type="submit" class="login-btn" id="verifyOtpBtn">Verify OTP</button>
+                            <p class="switch-text">Didn't receive code? <a onclick="resendOtp()">Resend OTP</a></p>
+                        </form>
+                    </div>
                     
                     <p class="switch-text">
                         Already have an account? <a href="auth.html">Sign In</a>
@@ -307,6 +327,10 @@
     </div>
 
     <script>
+        // PWA Installation Prompt
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => { deferredInstallPrompt = e; });
+
         // Role to Dashboard Mapping
         const roleDashboardMap = {
             'customer': 'customer-dashboard.html',
@@ -338,6 +362,11 @@
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token');
             const role = urlParams.get('role');
+
+            // If an invitation is present, try to prompt PWA installation
+            if (token && deferredInstallPrompt) {
+                showPWAInstallPrompt();
+            }
             
             if (token) {
                 localStorage.setItem('invitationToken', token);
@@ -353,6 +382,15 @@
                 }
             }
         })();
+
+        async function showPWAInstallPrompt() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.preventDefault();
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+            }
+        })();
         
         // Handle Support Signup
         async function handleSupportSignup(event) {
@@ -364,9 +402,18 @@
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const invitationToken = localStorage.getItem('invitationToken');
+            const signupForm = document.querySelector('form[onsubmit="handleSupportSignup(event)"]');
+            const otpForm = document.getElementById('otpVerificationForm');
+            const agreeTerms = document.getElementById('agreeTerms');
+            const btn = document.querySelector('.login-btn');
             
             if (password !== confirmPassword) {
                 alert('Passwords do not match!');
+                return;
+            }
+
+            if (!agreeTerms.checked) {
+                alert('You must agree to the Terms & Conditions.');
                 return;
             }
             
@@ -378,37 +425,30 @@
             const lastName = nameParts.slice(1).join(' ') || '';
             
             try {
-                const response = await api.signup({
+                const response = await api.requestOtpSignup({
                     email,
                     password,
                     firstName,
                     lastName,
                     phone,
-                    role: 'support',
+                    role: 'support', // Role is always 'support' for this page
+                    agreeTerms: agreeTerms.checked,
                     invitationToken: invitationToken
                 });
                 
-                console.log('Signup response:', response);
-                
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('token', response.token || response.accessToken);
-                localStorage.setItem('refreshToken', response.refreshToken);
-                
-                const user = {
-                    id: response.userId || response.id,
-                    email: email,
-                    name: name,
-                    role: 'support',
-                    profile: response
-                };
-                
-                localStorage.setItem('user', JSON.stringify(user));
-                localStorage.removeItem('invitationToken');
-                localStorage.removeItem('invitationRole');
-                
-                setTimeout(() => {
-                    window.location.href = 'support-dashboard-upgraded.html';
-                }, 500);
+                if (response.otpRequired && response.sessionId) {
+                    localStorage.setItem('otpSessionId', response.sessionId);
+                    localStorage.setItem('signupEmailForOtp', email);
+                    document.getElementById('otpEmailDisplay').textContent = email;
+                    
+                    document.querySelector('form[onsubmit="handleSupportSignup(event)"]').classList.add('hidden');
+                    document.getElementById('otpVerificationForm').classList.remove('hidden');
+                    document.querySelector('.card-title').textContent = 'Verify Support';
+                    console.log('OTP sent to your email. Please verify.');
+                } else {
+                    // Direct signup (no OTP or already verified)
+                    handleSuccessfulSignup(response, name, email, 'support');
+                }
                 
             } catch (error) {
                 console.error('Signup error:', error);
@@ -424,6 +464,52 @@
                     window.location.href = 'support-dashboard-upgraded.html';
                 }, 500);
             }
+        }
+
+        async function handleOtpVerification(event) {
+            event.preventDefault();
+            const otp = document.getElementById('otpInput').value.trim();
+            const btn = document.getElementById('verifyOtpBtn');
+            const otpErrorDiv = document.getElementById('otp-error');
+            const sessionId = localStorage.getItem('otpSessionId');
+            const email = localStorage.getItem('signupEmailForOtp');
+
+            if (!sessionId || !email) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const response = await api.verifyOtpSignup(email, otp, sessionId);
+                handleSuccessfulSignup(response, response.user.firstName + ' ' + response.user.lastName, email, 'support');
+            } catch (error) {
+                otpErrorDiv.textContent = error.message;
+                otpErrorDiv.className = 'message error';
+                btn.disabled = false;
+                btn.textContent = 'Verify OTP';
+            }
+        }
+
+        async function resendOtp() {
+            const email = localStorage.getItem('signupEmailForOtp');
+            const sessionId = localStorage.getItem('otpSessionId');
+            try {
+                await api.resendOtp(email, sessionId);
+                alert('New OTP sent!');
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function handleSuccessfulSignup(response, name, email, role) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('user', JSON.stringify({ name, email, role, id: response?.user?.id }));
+            localStorage.setItem('token', response?.token || response?.accessToken);
+            localStorage.removeItem('invitationToken');
+            localStorage.removeItem('invitationRole');
+            setTimeout(() => {
+                window.location.href = getDashboardByRole(role);
+            }, 500);
         }
     </script>
 </body>

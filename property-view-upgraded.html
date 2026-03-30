@@ -1183,6 +1183,12 @@
         quickFeatures.forEach(feature => {
             const div = document.createElement('div');
             div.className = 'text-center p-4 bg-white/50 rounded-xl';
-            div.innerHTML = `
-                <i class="fas ${feature.icon} text-2xl text-purple-500 mb-2"></i>
-                <p class="
+            div.innerHTML = `<i class="fas ${feature.icon} text-2xl text-purple-500 mb-2"></i><p class="text-sm font-medium">${feature.name}</p>`;
+            container.appendChild(div);
+        });
+    }
+
+    // Additional UI helper functions and logic would go here
+</script>
+</body>
+</html>

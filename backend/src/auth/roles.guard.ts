@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '../entities/user.entity';
 import { ROLES_KEY } from './roles.decorator';
@@ -18,6 +18,16 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    return requiredRoles.includes(user.role);
+
+    if (!user) {
+      throw new ForbiddenException('User authentication context is missing. Ensure the route is protected by JwtAuthGuard.');
+    }
+
+    const hasRole = requiredRoles.includes(user.role as UserRole);
+    if (!hasRole) {
+      throw new ForbiddenException(`Insufficient permissions. This action requires one of the following roles: [${requiredRoles.join(', ')}]. Your current role is: ${user.role}`);
+    }
+
+    return true;
   }
 }

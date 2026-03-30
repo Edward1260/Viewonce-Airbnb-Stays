@@ -14,15 +14,33 @@ import { UnitAvailability } from '../entities/unit-availability.entity';
 import { BuildingsService } from './buildings.service';
 import { BuildingsController } from './buildings.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { PropertyOwnershipPipe } from './pipes/property-ownership.pipe';
+import { PropertyOwnershipPipe } from './property-ownership.pipe';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Property, User, HostInvitation, Building, Unit, UnitAvailability]),
+    TypeOrmModule.forFeature([
+      Property, 
+      User, 
+      HostInvitation, 
+      Building, 
+      Unit, 
+      UnitAvailability
+    ]),
     NotificationsModule,
   ],
-  providers: [PropertiesService, HostInvitationService, ImageClassificationService, BuildingsService, PropertyOwnershipPipe],
-  controllers: [PropertiesController, HostInvitationController, PublicHostInvitationController, BuildingsController],
+  providers: [
+    PropertiesService, 
+    HostInvitationService, 
+    ImageClassificationService, 
+    BuildingsService, 
+    PropertyOwnershipPipe
+  ],
+  controllers: [
+    PropertiesController, 
+    HostInvitationController, 
+    PublicHostInvitationController, 
+    BuildingsController
+  ],
   exports: [PropertiesService, HostInvitationService, BuildingsService, PropertyOwnershipPipe],
 })
 export class PropertiesModule {}

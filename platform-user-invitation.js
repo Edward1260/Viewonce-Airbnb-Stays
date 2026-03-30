@@ -4,6 +4,109 @@
 // Store for invitations
 var sentInvitations = [];
 
+/**
+ * Sync invitations from the backend API
+ */
+async function syncInvitations() {
+  try {
+    const data = await window.api.getInvitations();
+    sentInvitations = Array.isArray(data) ? data : (data.data || []);
+  } catch (e) {
+    console.error('Failed to sync invitations:', e);
+  }
+}
+
+/**
+ * Renders the categorized Invitation Center directly into the dashboard.
+ */
+async function renderInvitationCenter(containerId) {
+  await syncInvitations();
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const roles = [
+    { id: 'admin', label: 'Administrators', icon: 'fa-user-shield', color: 'emerald' },
+    { id: 'support', label: 'Support Team', icon: 'fa-headset', color: 'blue' },
+    { id: 'host', label: 'Property Hosts', icon: 'fa-home', color: 'purple' },
+    { id: 'platform_master', label: 'Platform Masters', icon: 'fa-crown', color: 'indigo' }
+  ];
+
+  let html = `
+    <div class="invitation-center p-6">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-2xl font-bold">User Access & Invitations</h2>
+        <button class="luxury-btn" onclick="openAddUserModal()">+ Quick Add User</button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        ${roles.map(role => `
+          <div class="role-card glassmorphism p-5 border-t-4 border-${role.color}-500 rounded-xl shadow-lg">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-${role.color}-100 flex items-center justify-center text-${role.color}-600">
+                <i class="fas ${role.icon}"></i>
+              </div>
+              <h3 class="text-lg font-bold">${role.label}</h3>
+            </div>
+            
+            <div class="space-y-4">
+              <p class="text-sm text-gray-400">Invite new ${role.id}s to manage the platform.</p>
+              <button onclick="openCategorizedInviteModal('${role.id}')" 
+                      class="w-full py-2 px-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all text-sm font-semibold">
+                Generate ${role.id} Link
+              </button>
+              
+              <div class="mt-4 pt-4 border-t border-white/10">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Recent ${role.label}</h4>
+                <div id="recent-${role.id}-invites" class="space-y-2 max-height-40 overflow-y-auto">
+                  ${renderRoleSpecificInvites(role.id)}
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+/**
+ * Opens the invitation modal pre-configured for a specific role.
+ */
+async function openCategorizedInviteModal(role) {
+  await openInviteUserModal();
+  // Slight delay to ensure DOM is ready
+  setTimeout(() => {
+    const roleSelect = document.getElementById('inviteRole');
+    if (roleSelect) {
+      roleSelect.value = role;
+    }
+  }, 50);
+}
+
+/**
+ * Renders recent invitations filtered by role.
+ */
+function renderRoleSpecificInvites(role) {
+  const roleInvites = sentInvitations.filter(inv => inv.role === role).slice(0, 3);
+  if (roleInvites.length === 0) {
+    return '<p class="text-xs text-gray-500 italic">No recent invites</p>';
+  }
+  
+  return roleInvites.map(inv => `
+    <div class="flex justify-between items-center text-xs p-2 bg-black/20 rounded">
+      <div class="truncate mr-2">
+        <div class="font-bold">${inv.email}</div>
+        <div class="text-gray-500">${inv.date}</div>
+      </div>
+      <span class="px-1.5 py-0.5 rounded ${inv.status === 'sent' ? 'bg-blue-900/40 text-blue-400' : 'bg-green-900/40 text-green-400'}">
+        ${inv.status}
+      </span>
+    </div>
+  `).join('');
+}
+
 // Open Add User Modal
 function openAddUserModal() {
   var modal = document.getElementById('modal');
@@ -107,12 +210,13 @@ async function addNewUser() {
 }
 
 // Open Invite User Modal
-function openInviteUserModal() {
+async function openInviteUserModal() {
+  await syncInvitations();
   var modal = document.getElementById('modal');
   var title = document.getElementById('modalTitle');
   var content = document.getElementById('modalText');
   
-  title.innerText = '📧 Send User Invitation';
+  title.innerText = '📧 Send Access Invitation';
   content.innerHTML = `
     <div style="margin-bottom:20px">
       <p style="color:var(--muted);margin-bottom:15px">Send invitation links to new users to join the platform.</p>
@@ -131,10 +235,11 @@ function openInviteUserModal() {
     <div style="margin-bottom:15px">
       <label style="margin-bottom:5px;display:block">Dashboard Type *</label>
       <select id="inviteRole">
-        <option value="customer">Customer Dashboard</option>
+        <option value="platform_master">Platform Master Hub</option>
+        <option value="admin">Admin Dashboard</option>
         <option value="host">Host Dashboard</option>
         <option value="support">Support Dashboard</option>
-        <option value="admin">Admin Dashboard</option>
+        <option value="customer" selected>Customer Dashboard</option>
       </select>
     </div>
     
@@ -175,7 +280,7 @@ function renderInvitationsList() {
 }
 
 // Send Invitation Link
-function sendInvitationLink(method) {
+async function sendInvitationLink(method) {
   var email = document.getElementById('inviteEmail').value.trim();
   var name = document.getElementById('inviteName').value.trim();
   var role = document.getElementById('inviteRole').value;
@@ -186,13 +291,27 @@ function sendInvitationLink(method) {
     return;
   }
   
-  // Generate invitation link
-  var baseUrl = window.location.origin + window.location.pathname.replace(/[^/]+$/, '');
-  var inviteToken = 'invite_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  var dashboardPage = role + '-dashboard.html';
-  var invitationLink = baseUrl + dashboardPage + '?invite=' + inviteToken;
-  
-  // Default message
+  let invitationLink = '';
+  let inviteToken = '';
+
+  try {
+    // 1. Call the Backend API to create the invitation
+    const result = await window.api.createInvitation({
+      email,
+      name,
+      role,
+      message
+    });
+
+    inviteToken = result.token;
+    invitationLink = result.link || (window.location.origin + '/auth.html?form=signup&role=' + role + '&token=' + inviteToken + '&email=' + encodeURIComponent(email));
+  } catch (e) {
+    console.error('API Invitation Error:', e);
+    alert('Backend connection failed. Generating local token instead.');
+    inviteToken = 'local_' + Date.now();
+    invitationLink = window.location.origin + '/auth.html?form=signup&role=' + role + '&token=' + inviteToken + '&email=' + encodeURIComponent(email);
+  }
+
   var defaultMessage = name ? 'Hi ' + name + ',' : 'Hi,';
   defaultMessage += '\n\nYou have been invited to join ViewOnce Airbnb Stays as a ' + role + '.';
   defaultMessage += '\n\nClick the link below to get started:\n' + invitationLink;
@@ -200,7 +319,7 @@ function sendInvitationLink(method) {
     defaultMessage += '\n\nPersonal message: ' + message;
   }
   defaultMessage += '\n\nBest regards,\nViewOnce Team';
-  
+
   var subject = 'Invitation to join ViewOnce Airbnb Stays';
   
   // Send based on method
@@ -244,6 +363,11 @@ function sendInvitationLink(method) {
   // Save to local storage
   localStorage.setItem('sentInvitations', JSON.stringify(sentInvitations));
   
+  // Refresh categorized UI if it exists on the page
+  if (document.querySelector('.invitation-center')) {
+    renderInvitationCenter('invitation-center-container'); 
+  }
+
   // Refresh the list
   document.getElementById('invitationsList').innerHTML = renderInvitationsList();
   
@@ -259,8 +383,22 @@ function sendUserInvitation(user) {
   // Generate link
   var baseUrl = window.location.origin + window.location.pathname.replace(/[^/]+$/, '');
   var inviteToken = 'invite_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  var dashboardPage = role + '-dashboard.html';
-  var invitationLink = baseUrl + dashboardPage + '?invite=' + inviteToken;
+  
+  // Use Clean Secure Routes for invitations
+  var targetRoute = '';
+  if (role === 'platform_master' || role === 'platform_master_hub' || role === 'super_admin') {
+      targetRoute = '/platform-master-hub';
+  } else if (role === 'admin') {
+      targetRoute = '/dashboard';
+  } else if (role === 'host') {
+      targetRoute = '/host-dashboard';
+  } else if (role === 'support') {
+      targetRoute = '/support-dashboard';
+  } else {
+      targetRoute = '/customer-dashboard';
+  }
+  
+  var invitationLink = window.location.origin + targetRoute + '?invite=' + inviteToken;
   
   var message = 'Hi ' + name + ',\n\nWelcome to ViewOnce Airbnb Stays! You have been added as a ' + role + '.\n\nClick here to access your dashboard: ' + invitationLink + '\n\nBest regards,\nViewOnce Team';
   

@@ -71,4 +71,35 @@ export class BuildingsController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.buildingsService.remove(id);
   }
+
+  @Post(':id/units')
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async createUnits(
+    @Param('id', ParseUUIDPipe) id: string, 
+    @Body() createUnitDtos: CreateUnitDto[], 
+    @Req() req
+  ) {
+    const building = await this.buildingsService.findOne(id);
+    
+    // Ownership check for hosts
+    if (req.user.role === UserRole.HOST && building.hostId !== req.user.id) {
+      throw new ForbiddenException('You do not have permission to add units to this building');
+    }
+    
+    return this.buildingsService.createUnits(id, createUnitDtos);
+  }
+
+  @Get('host/:hostId')
+  @Roles(UserRole.HOST, UserRole.ADMIN)
+  async getHostBuildings(
+    @Param('hostId', ParseUUIDPipe) hostId: string, 
+    @Req() req
+  ) {
+    // Hosts can only see their own buildings
+    if (req.user.role === UserRole.HOST && hostId !== req.user.id) {
+      throw new ForbiddenException('You can only view your own buildings');
+    }
+    
+    return this.buildingsService.getHostBuildings(hostId);
+  }
 }

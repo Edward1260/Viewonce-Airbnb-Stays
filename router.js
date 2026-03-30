@@ -48,6 +48,12 @@ const router = {
     }
 };
 
+// Helper to get URL parameters (for invitations/roles)
+window.getQueryParam = function(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+};
+
 // Make router globally available
 window.router = router;
 
@@ -143,14 +149,39 @@ const roleDashboardMap = {
     'customer': 'customer-dashboard.html',
     'host': 'host-dashboard-upgraded.html',
     'admin': 'admin-dashboard.html',
-    'support': 'support-dashboard-upgraded.html',
-    'platform_master_hub': 'platform-master-hub-fixed.html'
+    'support': 'support-dashboard-upgraded.html', // Fixed mapping
+    'platform_master_hub': 'platform-master-hub-fixed.html',
+    'platform_master': 'platform-master-hub-fixed.html'
 };
 
 // Get redirect URL based on role
 function getDashboardByRole(role) {
     return roleDashboardMap[role] || 'customer-dashboard.html';
 }
+
+// Authentication Guard Helper
+window.checkAuth = function(requiredRole = null) {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const token = localStorage.getItem('token');
+    if (!isLoggedIn || !token) {
+        return false;
+    }
+
+    if (requiredRole) {
+        let user = null;
+        try {
+            user = JSON.parse(localStorage.getItem('user') || 'null');
+        } catch (e) {
+            user = null;
+        }
+        if (!user || user.role !== requiredRole) {
+            console.warn(`Access denied: User role '${user?.role}' does not match required role '${requiredRole}'.`);
+            return false;
+        }
+    }
+
+    return true;
+};
 
 // Routes - Updated to redirect to auth.html
 router.addRoute('/login', () => window.location.href = 'auth.html?form=login');
@@ -179,6 +210,14 @@ router.addRoute('/dashboard', () => {
     }
 });
 router.addRoute('/admin-dashboard', () => loadContent('admin-dashboard.html'));
+router.addRoute('/platform-master/login', () => window.location.href = 'platform-master-login.html');
+router.addRoute('/platform-master-hub', () => {
+    if (window.checkAuth('platform_master') || window.checkAuth('platform_master_hub')) {
+        window.location.href = 'platform-master-hub-fixed.html';
+    } else {
+        window.location.href = 'platform-master-login.html';
+    }
+});
 router.addRoute('/support-dashboard', () => loadContent('support-dashboard-upgraded.html'));
 router.addRoute('/host-dashboard', () => loadContent('host-dashboard-upgraded.html'));
 router.addRoute('/customer-dashboard', () => loadContent('customer-dashboard.html'));

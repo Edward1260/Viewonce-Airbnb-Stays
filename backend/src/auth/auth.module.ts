@@ -11,6 +11,7 @@ import { User } from '../entities/user.entity';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
@@ -22,6 +23,23 @@ import { CacheModule } from '@nestjs/cache-manager';
         secret: configService.get<string>('JWT_SECRET') || 'default-jwt-secret-for-development',
         signOptions: {
           expiresIn: '24h',
+        },
+      }),
+      inject: [ConfigService],
+    }),
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        transport: {
+          host: config.get('MAIL_HOST'),
+          port: config.get('MAIL_PORT'),
+          auth: {
+            user: config.get('MAIL_USER'),
+            pass: config.get('MAIL_PASS'),
+          },
+        },
+        defaults: {
+          from: '"ViewOnce Team" <noreply@viewonce.com>',
         },
       }),
       inject: [ConfigService],

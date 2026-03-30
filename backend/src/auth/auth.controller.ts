@@ -1,23 +1,27 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Param, ForbiddenException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { Public } from './public.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('signup')
   async signup(@Body() signupDto: SignupDto) {
     return this.authService.signup(signupDto);
   }
 
+  @Public()
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
+  @Public()
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
     return this.authService.refreshToken(body.refreshToken);
@@ -41,6 +45,7 @@ export class AuthController {
    * Check if setup is required (one-time setup for super admin)
    * GET /api/v1/auth/setup-status
    */
+  @Public()
   @Get('setup-status')
   async getSetupStatus() {
     return this.authService.isSetupRequired();
@@ -50,6 +55,7 @@ export class AuthController {
    * Create super admin account (one-time setup)
    * POST /api/v1/auth/setup
    */
+  @Public()
   @Post('setup')
   async setup(@Body() body: any) {
     return this.authService.createSuperAdmin(body);
@@ -71,6 +77,7 @@ export class AuthController {
    * Verify email with token
    * POST /api/v1/auth/verify-email/:token
    */
+  @Public()
   @Post('verify-email/:token')
   async verifyEmail(@Param('token') token: string) {
     return this.authService.verifyEmail(token);
@@ -112,6 +119,7 @@ export class AuthController {
    * Login with 2FA code
    * POST /api/v1/auth/login/2fa
    */
+  @Public()
   @Post('login/2fa')
   async loginWith2FA(@Body() body: { email: string; password: string; code: string }) {
     return this.authService.loginWith2FA(body.email, body.password, body.code);
@@ -125,5 +133,20 @@ export class AuthController {
   @Get('2fa/status')
   async get2FAStatus(@Request() req) {
     return this.authService.get2FAStatus(req.user.id);
+  }
+
+  /**
+   * Verify Platform Master access for dashboard route protection
+   * GET /auth/verify-platform-master
+   * Can be called with or without JWT - checks user role in DB
+   */
+  @Public()
+  @Get('verify-platform-master')
+  async verifyPlatformMaster(@Request() req) {
+    const userId = req.user?.id || req.query.userId as string;
+    if (!userId) {
+      return { valid: false, message: 'User ID required' };
+    }
+    return this.authService.verifyPlatformMaster(userId);
   }
 }

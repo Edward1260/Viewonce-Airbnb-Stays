@@ -377,6 +377,7 @@
                 return;
             }
             loadPayoutData();
+            subscribeToPayoutUpdates();
         }
 
         // Sidebar Functions
@@ -409,13 +410,8 @@
                 renderPayouts();
             } catch (error) {
                 console.error('Error loading payouts:', error);
-                // Demo data
-                payouts = [
-                    { id: 'PO001', amount: 25000, status: 'completed', date: '2024-01-15', method: 'M-Pesa', bookingRef: 'BK001' },
-                    { id: 'PO002', amount: 18000, status: 'completed', date: '2024-01-08', method: 'Bank', bookingRef: 'BK002' },
-                    { id: 'PO003', amount: 12000, status: 'processing', date: '2024-01-18', method: 'M-Pesa', bookingRef: 'BK003' },
-                    { id: 'PO004', amount: 8000, status: 'pending', date: '2024-01-20', method: 'M-Pesa', bookingRef: 'BK004' }
-                ];
+                payouts = [];
+                showToast('Could not sync payout history', 'error');
             }
             renderPayouts();
             loadStats();
@@ -447,8 +443,8 @@
                             <i class="fas ${payout.status === 'completed' ? 'fa-check' : payout.status === 'pending' ? 'fa-clock' : 'fa-spinner'} ${payout.status === 'completed' ? 'text-green-500' : payout.status === 'pending' ? 'text-yellow-500' : 'text-blue-500'}"></i>
                         </div>
                         <div>
-                            <p class="font-bold">Payout #${payout.id}</p>
-                            <p class="text-sm text-gray-500">${payout.method} | ${payout.date}</p>
+                            <p class="font-bold">Payout #${payout.id.substring(0, 8)}</p>
+                            <p class="text-sm text-gray-500">${payout.method || 'M-Pesa'} | ${new Date(payout.created_at || Date.now()).toLocaleDateString()}</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -497,7 +493,7 @@
                 return `
                     <tr style="border-bottom: 1px solid #eee;">
                         <td style="padding: 12px;">${booking.id}</td>
-                        <td style="padding: 12px;">${booking.guest}</td>
+                            <td style="padding: 12px;">${booking.customer?.full_name || 'Guest'}</td>
                         <td style="padding: 12px; text-align: right;">KSh ${booking.amount.toLocaleString()}</td>
                         <td style="padding: 12px; text-align: right; color: #ef4444;">-KSh ${commission.toLocaleString()}</td>
                         <td style="padding: 12px; text-align: right; font-weight: bold; color: #10b981;">KSh ${net.toLocaleString()}</td>
@@ -535,21 +531,38 @@
             const amount = parseFloat(document.getElementById('payoutAmount').value);
             const method = document.getElementById('payoutMethod').value;
             const phone = document.getElementById('mpesaPhone').value;
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const balance = user.balance || 0;
 
             if (!amount || amount <= 0) {
                 alert('Please enter a valid amount');
                 return;
             }
 
-            if (amount > 50000) {
+            if (amount > balance) {
                 alert('Amount exceeds available balance');
                 return;
             }
 
+            if (method === 'mpesa') {
+                const phoneRegex = /^254[17][0-9]{8}$/;
+                if (!phoneRegex.test(phone)) {
+                    alert('Please enter a valid M-Pesa number (format: 2547XXXXXXXX or 2541XXXXXXXX)');
+                    return;
+                }
+            }
+
             try {
-                // In production, this would call the API
-                // await api.createPayout({ amount, method, phone });
+                const newPayout = await api.createPayout({ 
+                    amount, 
+                    method, 
+                    notes: method === 'mpesa' ? `Phone: ${phone}` : '' 
+                });
                 
+                if (method === 'mpesa') {
+                    await api.processPayout(newPayout.id);
+                }
+
                 showToast('Payout request submitted successfully!');
                 closeModal('payoutModal');
                 loadPayoutData();
@@ -578,6 +591,28 @@
         function logout() {
             localStorage.clear();
             window.location.href = 'welcome.html';
+        }
+
+        function subscribeToPayoutUpdates() {
+            if (!window.supabase) return;
+            
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user.id) return;
+
+            window.supabase
+                .channel('host-payouts')
+                .on('postgres_changes', { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'payouts',
+                    filter: `host_id=eq.${user.id}`
+                }, (payload) => {
+                    loadPayoutData();
+                    if (payload.eventType === 'UPDATE') {
+                        showToast(`Payout status: ${payload.new.status}`);
+                    }
+                })
+                .subscribe();
         }
     </script>
 </body>

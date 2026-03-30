@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -7,6 +7,8 @@ import { ResponseInterceptor } from './backend/src/common/response.interceptor';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { ConfigService } from '@nestjs/config';
+import { JwtAuthGuard } from './backend/src/auth/jwt-auth.guard';
+import { RolesGuard } from './backend/src/auth/roles.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -41,8 +43,13 @@ async function bootstrap() {
   // Apply global response standardization
   app.useGlobalInterceptors(new ResponseInterceptor());
 
-  // Apply global throttling guard
-  app.useGlobalGuards(new ThrottlerGuard());
+  // Apply global guards in order: Throttling -> Authentication -> Authorization
+  const reflector = app.get(Reflector);
+  app.useGlobalGuards(
+    new ThrottlerGuard(),
+    new JwtAuthGuard(reflector),
+    new RolesGuard(reflector),
+  );
 
   // Configure WebSocket adapter
   app.useWebSocketAdapter(new WsAdapter(app));
