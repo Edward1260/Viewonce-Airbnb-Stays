@@ -74,7 +74,14 @@ const api = {
   },
 
   logout: async () => {
-    await window.supabase.auth.signOut();
+    // 1. Sign out from Supabase if applicable
+    if (window.supabase?.auth) await window.supabase.auth.signOut();
+
+    // 2. Clear LocalStorage for the legacy frontend parts
+    localStorage.clear();
+
+    // 3. Redirect to the Next.js logout handler to clear cookies
+    window.location.href = '/logout';
   }, // End logout
 
   // Verify platform master role via secure endpoint

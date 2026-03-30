@@ -159,6 +159,22 @@ function getDashboardByRole(role) {
     return roleDashboardMap[role] || 'customer-dashboard.html';
 }
 
+/**
+ * Synchronizes auth data between LocalStorage (legacy) and Cookies (Next.js)
+ * Call this immediately after a successful login.
+ */
+window.updateAuthSession = function(token, user) {
+    // 1. Update LocalStorage for the legacy SPA parts
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('isLoggedIn', 'true');
+
+    // 2. Update Cookies for Next.js Middleware and Server Components
+    const cookieOptions = "; path=/; SameSite=Lax; max-age=604800"; // 7 days
+    document.cookie = `token=${token}${cookieOptions}`;
+    document.cookie = `user-role=${user.role}${cookieOptions}`;
+};
+
 // Authentication Guard Helper
 window.checkAuth = function(requiredRole = null) {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
