@@ -5,8 +5,8 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '**',
-      },
-    ];
+      }
+    ]
   },
   // Vercel deployment
   output: 'standalone',
