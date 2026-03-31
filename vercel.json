@@ -8,7 +8,6 @@
     { "source": "/host-dashboard", "destination": "/host-dashboard-upgraded.html" },
     { "source": "/support-dashboard", "destination": "/support-dashboard-upgraded.html" },
     { "source": "/customer-dashboard", "destination": "/customer-dashboard.html" },
-    { "source": "/platform-master-hub", "destination": "/platform-master-hub-fixed.html" },
     { "source": "/property/:id", "destination": "/property-view.html" },
     { "source": "/add-property", "destination": "/add-property.html" },
     { "source": "/property-listing", "destination": "/property-listing.html" },

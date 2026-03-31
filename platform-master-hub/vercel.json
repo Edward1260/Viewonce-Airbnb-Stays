@@ -1,4 +1,5 @@
 {
-  "cleanUrls": true
+  "rewrites": [
+    { "source": "/", "destination": "/platform-master-hub-fixed.html" }
+  ]
 }
-</
