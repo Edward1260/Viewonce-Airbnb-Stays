@@ -4,8 +4,9 @@
   "description": "Airbnb-like property booking platform - Frontend PWA",
   "scripts": {
     "dev": "next dev",
+    "minify-styles": "tailwindcss -i ./styles.css -o ./styles.css --minify",
     "build-css": "tailwindcss -i ./input.css -o ./app/globals.css --minify",
-    "build": "npm run build-css && next build",
+    "build": "npm run minify-styles && npm run build-css && next build",
     "start": "next start",
     "lint": "next lint",
     "preview": "npx serve -p 3000 .",
@@ -22,7 +23,7 @@
     "@types/react-dom": "^18.3.7",
     "autoprefixer": "^10.4.27",
     "chart.js": "^4.5.1",
-    "eslint": "^10.1.0",
+    "eslint": "^9.19.0",
     "eslint-config-next": "^16.2.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
@@ -35,6 +36,6 @@
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "swr": "^2.4.1",
-    "typescript": "^6.0.2"
+    "typescript": "^5.7.2"
   }
 }

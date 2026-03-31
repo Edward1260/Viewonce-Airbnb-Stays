@@ -106,13 +106,6 @@ const api = {
   getUsers: async (role) => {
     let endpoint = '/users';
     if (role) endpoint += `?role=${role}`;
-    return api.request(endpoint);
-  },
-
-  // Users
-  getUsers: async (role) => {
-    let endpoint = '/users';
-    if (role) endpoint += `?role=${role}`;
     return api.request(endpoint, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
@@ -355,14 +348,6 @@ const api = {
     });
   },
 
-  validateInviteToken: async (token) => {
-    return api.request(`/invitations/validate/${token}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify(inviteData)
-    });
-  },
-
   // Legacy: Keeping for compatibility
   createHostInvitation: async (inviteData) => { return api.createInvitation({ ...inviteData, role: 'host' }); },
 
@@ -465,7 +450,6 @@ window.api = api; // Expose globally
 
 // Add the validateInviteToken method to the global API object
 window.api.validateInviteToken = async (token) => {
-  // This assumes your backend has an endpoint like /auth/validate-invite-token
   const { data, error } = await window.supabase.functions.invoke('validate-invite-token', {
     body: { token }
   });

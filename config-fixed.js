@@ -1,7 +1,11 @@
 // Configuration - VERSION 10 - Single Port (Backend serves Frontend)
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 const config = {
-    // API Configuration - Backend runs on port 3001
-    API_BASE_URL: 'http://localhost:3001/api/v1',
+    // API Configuration - Dynamic detection for Vercel deployment
+    API_BASE_URL: isLocal 
+        ? 'http://localhost:3001/api/v1' 
+        : 'https://your-production-backend-api.com/api/v1',
 
     // Frontend runs on port 9002
     FRONTEND_PORT: 9002,
