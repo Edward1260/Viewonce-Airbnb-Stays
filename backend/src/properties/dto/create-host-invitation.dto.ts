@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, IsPhoneNumber, Length, IsIn } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsPhoneNumber, Length, IsIn, IsNumber, IsUUID } from 'class-validator';
 
 export class CreateHostInvitationDto {
   @IsEmail()
@@ -14,7 +14,7 @@ export class CreateHostInvitationDto {
   message?: string;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   expiresInHours?: number; // Default 24 hours
 
   @IsOptional()
@@ -22,6 +22,6 @@ export class CreateHostInvitationDto {
   role?: 'host' | 'admin' | 'support'; // Role for the invitation
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   assignedAdminId?: string; // Admin ID to assign this host to (for host invitations)
 }

@@ -39,11 +39,18 @@ export async function middleware(request: NextRequest) {
   const dashboardPaths = Object.values(ROLE_DASHBOARD_MAP);
   const isSpecificDashboard = dashboardPaths.some((path) => pathname.startsWith(path));
   const isGenericDashboard = pathname === '/dashboard';
+  const isAuthPage = pathname === '/login' || pathname === '/invite-signup';
 
   // 1. Redirect to login if accessing any dashboard without a token
   if ((isSpecificDashboard || isGenericDashboard) && !authToken) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 2. Redirect logged-in users away from Auth pages
+  if (isAuthPage && authToken && userRole) {
+    const target = ROLE_DASHBOARD_MAP[userRole] || '/customer';
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   // 2. Handle generic '/dashboard' route by redirecting to the role-specific one

@@ -1,7 +1,8 @@
-import { IsString, IsNumber, IsOptional, IsArray, Min, Max, IsUrl } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, Min, Max, IsUrl, IsNotEmpty, IsInt } from 'class-validator';
 
 export class CreatePropertyDto {
   @IsString()
+  @IsNotEmpty()
   title: string;
 
   @IsOptional()
@@ -9,6 +10,7 @@ export class CreatePropertyDto {
   description?: string;
 
   @IsString()
+  @IsNotEmpty()
   location: string;
 
   @IsNumber()
@@ -16,13 +18,14 @@ export class CreatePropertyDto {
   price: number;
 
   @IsString()
+  @IsNotEmpty()
   type: string;
 
-  @IsNumber()
+  @IsInt()
   @Min(1)
   bedrooms: number;
 
-  @IsNumber()
+  @IsInt()
   @Min(1)
   bathrooms: number;
 
