@@ -95,17 +95,6 @@ function initializeAuth() {
         if (!email) errors.push('Email is required.');
         if (!password) errors.push('Password is required.');
 
-        let role = '';
-        if (email.endsWith('@gmail.com')) {
-            role = 'customer';
-        } else if (email.endsWith('@view1s@gmail.com')) {
-            role = 'host';
-        } else if (email.endsWith('@viewad@gmail.com')) {
-            role = 'admin';
-        } else {
-            errors.push('Invalid email domain.');
-        }
-
         if (errors.length > 0) {
             errorDiv.innerHTML = errors.join('<br>');
             return;
@@ -118,23 +107,20 @@ function initializeAuth() {
         api.login(data)
         .then(result => {
             console.log('Login result:', result);
-            // Store user data and token
-            store.login({
-                profile: result.user,
-                token: result.token
-            });
+            const role = result.user.role;
+
+            // Use session data from api.js (Supabase session contains access_token)
+            const token = result.session?.access_token;
+            
             localStorage.setItem('userRole', role);
             localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('token', result.token);
-            localStorage.setItem('refreshToken', result.refreshToken);
+            localStorage.setItem('token', token);
+
+            // Set cookie for Next.js Middleware (Vercel compatibility)
+            document.cookie = `token=${token}; path=/; max-age=604800; SameSite=Lax; Secure`;
+            
             alert('Login successful!');
-            if (role === 'customer') {
-                window.location.href = 'customer-dashboard.html';
-            } else if (role === 'host') {
-                window.location.href = 'host-dashboard.html';
-            } else if (role === 'admin') {
-                window.location.href = 'admin-dashboard.html';
-            }
+            redirectToDashboard(role);
         })
         .catch(error => {
             console.error('Login failed:', error);
@@ -163,20 +149,6 @@ function initializeAuth() {
         if (password !== confirmPassword) errors.push('Passwords do not match.');
         if (!agreeTerms) errors.push('You must agree to the Terms & Conditions.');
 
-        let role = '';
-        if (email.endsWith('@gmail.com')) {
-            role = 'customer';
-            if (!phone) errors.push('Phone number is required for customers.');
-        } else if (email.endsWith('@view1s@gmail.com')) {
-            role = 'host';
-            if (!phone) errors.push('Phone number is required for hosts.');
-        } else if (email.endsWith('@viewad@gmail.com')) {
-            role = 'admin';
-            // Phone optional for admins
-        } else {
-            errors.push('Email must end with @gmail.com (Customer), @view1s@gmail.com (Host), or @viewad@gmail.com (Admin).');
-        }
-
         if (errors.length > 0) {
             errorDiv.innerHTML = errors.join('<br>');
             return;
@@ -190,23 +162,17 @@ function initializeAuth() {
         api.signup(data)
         .then(result => {
             console.log('Signup result:', result);
-            // Store user data and token
-            store.login({
-                profile: result.user,
-                token: result.token
-            });
+            const role = result.user.role;
+            
             localStorage.setItem('userRole', role);
             localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('token', result.token);
-            localStorage.setItem('refreshToken', result.refreshToken);
+            localStorage.setItem('token', result.session?.access_token);
+
+            // Set cookie for Next.js Middleware
+            document.cookie = `token=${result.session?.access_token}; path=/; max-age=604800; SameSite=Lax; Secure`;
+            
             alert('Sign up successful!');
-            if (role === 'customer') {
-                window.location.href = 'customer-dashboard.html';
-            } else if (role === 'host') {
-                window.location.href = 'host-dashboard.html';
-            } else if (role === 'admin') {
-                window.location.href = 'admin-dashboard.html';
-            }
+            redirectToDashboard(role);
         })
         .catch(error => {
             console.error('Signup failed:', error);
@@ -225,6 +191,30 @@ function initializeAuth() {
             this.parentElement.style.transform = 'scale(1)';
         });
     });
+}
+
+/**
+ * Centralized redirection logic based on verified database roles
+ * @param {string} role 
+ */
+function redirectToDashboard(role) {
+    const roleMap = {
+        'super_admin': 'platform-master-hub/dashboard.html',
+        'platform_master': 'platform-master-hub/dashboard.html',
+        'admin': 'admin-dashboard.html',
+        'host': 'host-dashboard.html',
+        'support': 'support-dashboard.html',
+        'customer': 'customer-dashboard.html'
+    };
+
+    const target = roleMap[role.toLowerCase()];
+    
+    if (target) {
+        window.location.href = target;
+    } else {
+        console.warn('Unknown role received from database:', role);
+        window.location.href = 'customer-dashboard.html'; // Default fallback
+    }
 }
 
 // Initialize on DOMContentLoaded for initial page

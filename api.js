@@ -43,6 +43,21 @@ const api = {
     };
   }, // End login
 
+  // Standard Signup (matching script-fixed.js expectations)
+  signup: async (userData) => {
+    const { data, error } = await window.supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        data: { full_name: userData.name, phone: userData.phone }
+      }
+    });
+    if (error) throw error;
+
+    // Default role for new signups is customer
+    return { user: { ...data.user, role: 'customer' }, session: data.session };
+  },
+
   // Step 1: Request OTP for Signup
   requestOtpSignup: async (userData) => {
     // This will call your NestJS backend endpoint to send OTP
@@ -173,28 +188,15 @@ const api = {
   },
 
   createBooking: async (bookingData) => {
-    // Calculate commission (10% platform fee)
-    const commissionRate = 0.10;
-    const commission = (bookingData.totalPrice || bookingData.total_price) * commissionRate;
-    const netAmount = (bookingData.totalPrice || bookingData.total_price) - commission;
-
+    // Financial calculations and payment record creation moved to backend for security
     const booking = await api.request('/bookings', {
       method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+      },
       body: JSON.stringify(bookingData)
     });
-
-    // Create a matching payment record via API
-    await api.request('/payments', {
-      method: 'POST',
-      body: JSON.stringify({
-        booking_id: booking.id,
-        amount: bookingData.totalPrice || bookingData.total_price,
-        commission: commission,
-        net_amount: netAmount,
-        status: 'pending'
-      })
-    });
-
     return booking;
   },
 

@@ -1,11 +1,12 @@
-// Configuration - VERSION 10 - Single Port (Backend serves Frontend)
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+// Configuration - VERSION 10.1 - Environment Variable Support
+const isLocal = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 const config = {
     // API Configuration - Dynamic detection for Vercel deployment
-    API_BASE_URL: isLocal 
-        ? 'http://localhost:3001/api/v1' 
-        : 'https://your-production-backend-api.com/api/v1',
+    // Uses NEXT_PUBLIC_ prefix for Next.js/Vercel compatibility
+    API_BASE_URL: (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 
+        (isLocal ? 'http://localhost:3001/api/v1' : '/api/v1'),
 
     // Frontend runs on port 9002
     FRONTEND_PORT: 9002,
@@ -14,7 +15,7 @@ const config = {
     NODE_ENV: 'development',
 
     // Enable debug logging in development
-    DEBUG: true,
+    DEBUG: isLocal,
 
     // Force cache refresh - VERSION 10
     VERSION: '10.0.0-single-port',

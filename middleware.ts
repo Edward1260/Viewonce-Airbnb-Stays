@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
 // Mapping roles to their designated dashboard paths
 const ROLE_DASHBOARD_MAP: Record<string, string> = {
@@ -12,12 +13,28 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   'customer': '/customer',
 };
 
-export function middleware(request: NextRequest) {
+async function verifyToken(token: string) {
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    return payload as { role: string; sub: string };
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Retrieve auth data from cookies (required for Middleware)
-  const userRole = request.cookies.get('user-role')?.value?.toLowerCase();
   const authToken = request.cookies.get('token')?.value;
+  
+  let userRole: string | undefined;
+
+  // Verify token and extract role from payload if token exists
+  if (authToken) {
+    const payload = await verifyToken(authToken);
+    userRole = payload?.role?.toLowerCase();
+  }
 
   const dashboardPaths = Object.values(ROLE_DASHBOARD_MAP);
   const isSpecificDashboard = dashboardPaths.some((path) => pathname.startsWith(path));
