@@ -4,13 +4,12 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: '**'
       }
     ]
   },
-  // Vercel deployment
   output: 'standalone',
-  trailingSlash: true,
+  trailingSlash: true
 };
 
 export default nextConfig;
