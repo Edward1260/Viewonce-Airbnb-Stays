@@ -1,5 +1,7 @@
 // Centralized Supabase API client for the ViewOnce Airbnb Stays App
 
+const isBrowser = typeof window !== 'undefined';
+
 // Expose API functions globally via window.api
 const api = {
   // Internal state for caching and real-time updates
@@ -7,7 +9,13 @@ const api = {
   _propertyCacheTime: null,
   _CACHE_DURATION: 30000, // 30 seconds
   _propertyRefreshCallbacks: [],
-  baseUrl: window.config.API_BASE_URL, // Initialize baseUrl from config
+  baseUrl: (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || (isBrowser && window.config?.API_BASE_URL) || '',
+
+  // Internal helper to get auth headers safely across environments
+  _getAuthHeaders(tokenOverride = null) {
+    const token = tokenOverride || (isBrowser ? localStorage.getItem('token') : null);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  },
 
   // Centralized Request Wrapper with Error Handling
   async request(endpoint, options = {}) {
@@ -19,14 +27,16 @@ const api = {
       }
       return await response.json();
     } catch (error) {
-      console.error(`Request failed for ${endpoint}:`, error);
-      if (window.showToast) window.showToast(error.message, 'error');
+      if (isBrowser) console.error(`Request failed for ${endpoint}:`, error);
+      if (isBrowser && window.showToast) window.showToast(error.message, 'error');
       throw error;
     }
   },
 
   // Authentication via Supabase Auth
   login: async (credentials) => {
+    if (!isBrowser) throw new Error('Auth requires browser environment');
+    
     const { data, error } = await window.supabase.auth.signInWithPassword(credentials);
     if (error) throw error;
 
@@ -45,6 +55,8 @@ const api = {
 
   // Standard Signup (matching script-fixed.js expectations)
   signup: async (userData) => {
+    if (!isBrowser) throw new Error('Auth requires browser environment');
+
     const { data, error } = await window.supabase.auth.signUp({
       email: userData.email,
       password: userData.password,
@@ -89,6 +101,8 @@ const api = {
   },
 
   logout: async () => {
+    if (!isBrowser) return;
+
     // 1. Sign out from Supabase if applicable
     if (window.supabase?.auth) await window.supabase.auth.signOut();
 
@@ -100,13 +114,20 @@ const api = {
   }, // End logout
 
   // Verify platform master role via secure endpoint
-  verifyMasterRole: async () => {
+  verifyMasterRole: async (token = null) => {
     return api.request('/auth/verify-master', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { ...api._getAuthHeaders(token) }
     });
   },
 
-  getProfile: async () => {
+  getProfile: async (token = null) => {
+    if (!isBrowser && !token) return null;
+    
+    // If token is provided but we are on server, we typically use the /users/me endpoint
+    if (token || !window.supabase) {
+        return api.request('/users/me', { headers: api._getAuthHeaders(token) });
+    }
+
     const { data: { user } } = await window.supabase.auth.getUser();
     if (!user) return null;
     const { data: profile } = await window.supabase
@@ -118,19 +139,19 @@ const api = {
   },
 
   // Users
-  getUsers: async (role) => {
+  getUsers: async (role, token = null) => {
     let endpoint = '/users';
     if (role) endpoint += `?role=${role}`;
     return api.request(endpoint, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { ...api._getAuthHeaders(token) }
     });
   },
 
   // Admin: Create or update a user manually
-  createUser: async (userData) => {
+  createUser: async (userData, token = null) => {
     return api.request('/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
       body: JSON.stringify(userData)
     });
   },
@@ -147,12 +168,12 @@ const api = {
     return api.request('/properties');
   },
 
-  createProperty: async (propData) => {
+  createProperty: async (propData, token = null) => {
     const result = await api.request('/properties', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        ...api._getAuthHeaders(token)
       },
       body: JSON.stringify(propData)
     });
@@ -178,22 +199,24 @@ const api = {
   },
 
   // Bookings
-  getBookings: async () => {
-    return api.request('/bookings');
+  getBookings: async (token = null) => {
+    return api.request('/bookings', {
+        headers: api._getAuthHeaders(token)
+    });
   },
 
   // Admin: Get all payments/transactions across the platform
-  getAllPayments: async () => {
-    return api.request('/payments');
+  getAllPayments: async (token = null) => {
+    return api.request('/payments', { headers: api._getAuthHeaders(token) });
   },
 
-  createBooking: async (bookingData) => {
+  createBooking: async (bookingData, token = null) => {
     // Financial calculations and payment record creation moved to backend for security
     const booking = await api.request('/bookings', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        ...api._getAuthHeaders(token)
       },
       body: JSON.stringify(bookingData)
     });
@@ -210,17 +233,18 @@ const api = {
     };
   },
 
-  getSupportTickets: async (filters = {}) => {
-    let query = window.supabase.from('support_tickets').select('*, customer:profiles!customer_id(full_name)');
+  getSupportTickets: async (filters = {}, token = null) => {
     let endpoint = '/support/tickets';
     const params = new URLSearchParams(filters);
     if (params.toString()) endpoint += `?${params.toString()}`;
-    const data = await api.request(endpoint);
+    const data = await api.request(endpoint, { headers: api._getAuthHeaders(token) });
     return data.map(t => ({ ...t, customer: t.customer?.full_name || 'Guest' })); // Assuming backend joins customer data
   },
 
-  createSupportTicket: async (ticketData) => {
-    const { data: { user } } = await window.supabase.auth.getUser();
+  createSupportTicket: async (ticketData, token = null) => {
+    const user = await api.getProfile(token);
+    if (!user) throw new Error('User not authenticated');
+
     
     // Auto-categorize based on subject before insertion
     const { category } = await api.categorizeTicket(ticketData.subject);
@@ -241,15 +265,18 @@ const api = {
     return { ...ticket, comments };
   },
 
-  addSupportComment: async (ticketId, { content, isInternal = false }) => {
-    const { data: { user } } = await window.supabase.auth.getUser();
+  addSupportComment: async (ticketId, { content, isInternal = false }, token = null) => {
+    const user = await api.getProfile(token);
     return api.request('/support/comments', {
       method: 'POST',
+      headers: api._getAuthHeaders(token),
       body: JSON.stringify({ ticket_id: ticketId, author_id: user.id, content, is_internal: isInternal })
     });
   },
 
   getKnowledgeBaseArticles: async () => {
+    if (!isBrowser || !window.supabase) return [];
+
     const { data, error } = await window.supabase
       .from('knowledge_base')
       .select('*')
@@ -306,10 +333,10 @@ const api = {
     return api.request(`/properties/${id}`);
   },
 
-  getWishlist: async () => {
-    const { data: { user } } = await window.supabase.auth.getUser();
+  getWishlist: async (token = null) => {
+    const user = await api.getProfile(token);
     if (!user) return [];
-    return api.request(`/wishlists/user/${user.id}`);
+    return api.request(`/wishlists/user/${user.id}`, { headers: api._getAuthHeaders(token) });
   },
 
   // Host specific payouts
@@ -328,24 +355,24 @@ const api = {
   },
 
   // Invitations
-  getInvitations: async () => {
+  getInvitations: async (token = null) => {
     return api.request('/invitations', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: { ...api._getAuthHeaders(token) }
     });
   },
 
-  assignHost: async (hostId, adminId) => {
+  assignHost: async (hostId, adminId, token = null) => {
     return api.request(`/users/hosts/${hostId}/assign`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
       body: JSON.stringify({ adminId })
     });
   },
 
-  createInvitation: async (inviteData) => {
+  createInvitation: async (inviteData, token = null) => {
     return api.request('/invitations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
       body: JSON.stringify(inviteData)
     });
   },
@@ -358,7 +385,10 @@ const api = {
   },
 
   // Trigger M-Pesa Payout via Edge Function
-  processPayout: async (payoutId) => {
+  processPayout: async (payoutId, token = null) => {
+    if (!isBrowser && !token) throw new Error('Token required for server-side payout processing');
+    if (!window.supabase) throw new Error('Supabase client unavailable');
+
     const { data, error } = await window.supabase.functions.invoke('mpesa-payout', {
       body: { payoutId }
     });
@@ -378,11 +408,11 @@ const api = {
   },
 
   // Real AI Chat via Backend Proxy
-  sendAIMessage: async (message, context = {}) => {
+  sendAIMessage: async (message, context = {}, token = null) => {
     try {
       const response = await fetch(`${api.baseUrl}/ai/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+        headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
         body: JSON.stringify({ message, context: { view: context.view || 'support_dashboard', activeTicketId: context.activeTicketId, userRole: context.userRole || 'support', ...context } })
       });
       return await response.json();
@@ -411,10 +441,10 @@ const api = {
 
   // M-Pesa Status Verification (Reconciliation)
   checkMpesaStatus: async (transactionId) => { return api.request(`/payments/mpesa/status/${transactionId}`); }, // End checkMpesaStatus
-  getReviews: async () => {
-    const { data: { user } } = await window.supabase.auth.getUser();
+  getReviews: async (token = null) => {
+    const user = await api.getProfile(token);
     if (!user) return [];
-    // Assuming backend can filter reviews by user_id and join property details
+
     return api.request(`/reviews/user/${user.id}`);
   }, // End getReviews
 
@@ -436,25 +466,29 @@ const api = {
   // Real-time Subscriptions using Supabase Channels
   registerPropertyRefreshCallback: (cb) => {
     // This assumes Supabase client is initialized and available globally
-    if (window.supabase) {
+    if (isBrowser && window.supabase?.channel) {
       return window.supabase
         .channel('public:properties')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, payload => cb(payload))
         .subscribe();
-    } else {
-      console.warn('Supabase client not found for real-time property updates.');
-      return null;
     }
-  }, // End registerPropertyRefreshCallback
+    return null;
+  },
+
+  validateInviteToken: async (token) => {
+    if (!isBrowser || !window.supabase) return null;
+
+    const { data, error } = await window.supabase.functions.invoke('validate-invite-token', {
+      body: { token }
+    });
+    if (error) throw error;
+    return data;
+  },
 }; // End api object
 
-window.api = api; // Expose globally
-
-// Add the validateInviteToken method to the global API object
-window.api.validateInviteToken = async (token) => {
-  const { data, error } = await window.supabase.functions.invoke('validate-invite-token', {
-    body: { token }
-  });
-  if (error) throw error;
-  return data;
-};
+if (isBrowser) {
+    window.api = api; // Expose globally for legacy scripts
+}
+// Support both ESM and CommonJS for Node/Edge environments
+export default api;
+if (typeof module !== 'undefined') module.exports = api;

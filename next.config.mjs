@@ -10,9 +10,7 @@ const nextConfig = {
   },
   output: 'standalone',
   trailingSlash: true,
-  experimental: {
-    typedRoutes: true
-  }
+  typedRoutes: true
 };
 
 export default nextConfig;

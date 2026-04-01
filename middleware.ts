@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { createServerClient } from '@supabase/ssr';
 
 // Mapping roles to their designated dashboard paths
 const ROLE_DASHBOARD_MAP: Record<string, string> = {
@@ -13,28 +13,50 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   'customer': '/customer',
 };
 
-async function verifyToken(token: string) {
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    return payload as { role: string; sub: string };
-  } catch (error) {
-    return null;
-  }
-}
-
 export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  // 1. Initialize Supabase Client with Cookie Handling
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // 2. Refresh the session if it exists
+  // IMPORTANT: Do not use supabase.auth.getSession(), use getUser() for security
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { pathname } = request.nextUrl;
-
-  const authToken = request.cookies.get('token')?.value;
+  const authToken = request.cookies.get('token')?.value || request.cookies.get('sb-access-token')?.value;
   
-  let userRole: string | undefined;
+  // Extract role from Supabase user metadata or profile
+  const userRole = (user?.app_metadata?.role || user?.user_metadata?.role || 'customer')?.toLowerCase();
 
-  // Verify token and extract role from payload if token exists
-  if (authToken) {
-    const payload = await verifyToken(authToken);
-    userRole = payload?.role?.toLowerCase();
-  }
+  // If the user is logged in via Supabase but the legacy 'token' cookie is missing,
+  // you can sync it here or rely entirely on the Supabase user object.
+  const isLoggedIn = !!user;
 
   const dashboardPaths = Object.values(ROLE_DASHBOARD_MAP);
   const isSpecificDashboard = dashboardPaths.some((path) => pathname.startsWith(path));
@@ -42,13 +64,13 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname === '/login' || pathname === '/invite-signup';
 
   // 1. Redirect to login if accessing any dashboard without a token
-  if ((isSpecificDashboard || isGenericDashboard) && !authToken) {
+  if ((isSpecificDashboard || isGenericDashboard) && !isLoggedIn) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
   // 2. Redirect logged-in users away from Auth pages
-  if (isAuthPage && authToken && userRole) {
+  if (isAuthPage && isLoggedIn && userRole) {
     const target = ROLE_DASHBOARD_MAP[userRole] || '/customer';
     return NextResponse.redirect(new URL(target, request.url));
   }
@@ -68,7 +90,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

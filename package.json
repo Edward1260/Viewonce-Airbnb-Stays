@@ -3,22 +3,24 @@
   "version": "1.0.0",
   "description": "Airbnb-like property booking platform - Frontend PWA",
   "engines": {
-    "node": ">=20.9.0"
+    "node": "20.x"
   },
   "scripts": {
     "dev": "next dev",
+    "build": "next build",
     "minify-styles": "tailwindcss -i ./styles.css -o ./public/styles.min.css --minify",
     "build-css": "tailwindcss -i ./input.css -o ./app/globals.css --minify",
-    "build": "npm run minify-styles && npm run build-css && next build",
     "start": "next start",
     "lint": "next lint",
     "preview": "npx serve -p 3000 .",
-    "deploy": "npm run build && vercel --prod"
+    "deploy": "npm run build && vercel --prod",
+    "postinstall": "npx update-browserslist-db@latest"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.99.3",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.10.0",
@@ -27,10 +29,11 @@
     "autoprefixer": "^10.4.20",
     "chart.js": "^4.5.1",
     "eslint": "^9.19.0",
-    "eslint-config-next": "^15.1.0",
+    "eslint-config-next": "^15.5.14",
+    "jose": "^5.9.6",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
-    "next": "^15.1.0",
+    "next": "^15.5.14",
     "postcss": "^8.4.49",
     "prettier": "^3.8.1",
     "qrcode": "^1.5.4",
