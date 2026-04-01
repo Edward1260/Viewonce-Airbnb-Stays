@@ -1,23 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/login", "destination": "/auth.html?form=login" },
-    { "source": "/signup", "destination": "/auth.html?form=signup" },
-    { "source": "/admin-dashboard", "destination": "/admin-dashboard.html" },
-    { "source": "/host-dashboard", "destination": "/host-dashboard-upgraded.html" },
-    { "source": "/support-dashboard", "destination": "/support-dashboard-upgraded.html" },
-    { "source": "/customer-dashboard", "destination": "/customer-dashboard.html" },
-    { "source": "/property/:id", "destination": "/property-view.html" },
-    { "source": "/add-property", "destination": "/add-property.html" },
-    { "source": "/property-listing", "destination": "/property-listing.html" },
-    { "source": "/live-tours", "destination": "/live-tours.html" },
-    { "source": "/help", "destination": "/help.html" },
-    { "source": "/wishlist", "destination": "/wishlist.html" },
-    { "source": "/messages", "destination": "/messages.html" },
-    { "source": "/profile", "destination": "/profile.html" },
-    { "source": "/settings", "destination": "/settings.html" }
-  ],
   "headers": [
     {
       "source": "/(.*)\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)",
