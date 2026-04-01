@@ -39,7 +39,8 @@ const renames = [
     { from: 'backend/src/app.module.fixed.ts', to: 'backend/src/app.module.ts' },
     { from: 'auth-updated.html', to: 'auth.html' },
     { from: 'script-fixed.js', to: 'script.js' },
-    { from: 'config-fixed.js', to: 'config.js' }
+    { from: 'config-fixed.js', to: 'config.js' },
+    { from: 'backend/src/auth/auth.service.fixed.ts', to: 'backend/src/auth/auth.service.ts' }
 ];
 
 async function cleanup() {

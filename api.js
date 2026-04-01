@@ -9,7 +9,7 @@ const api = {
   _propertyCacheTime: null,
   _CACHE_DURATION: 30000, // 30 seconds
   _propertyRefreshCallbacks: [],
-  baseUrl: (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || (isBrowser && window.config?.API_BASE_URL) || '',
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || (isBrowser && window.config?.API_BASE_URL) || 'http://localhost:3001/api/v1',
 
   // Internal helper to get auth headers safely across environments
   _getAuthHeaders(tokenOverride = null) {
