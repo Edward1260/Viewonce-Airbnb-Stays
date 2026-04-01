@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run minify-styles && npm run build-css && next build",
+    "build": "next build",
     "minify-styles": "tailwindcss -i ./styles.css -o ./public/styles.min.css --minify",
     "build-css": "tailwindcss -i ./input.css -o ./app/globals.css --minify",
     "start": "next start",

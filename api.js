@@ -489,9 +489,6 @@ const api = {
 if (isBrowser) {
     window.api = api; // Expose globally for legacy scripts
 }
-
-};
-
 // Support both ESM and CommonJS for Node/Edge environments
 export default api;
 if (typeof module !== 'undefined') module.exports = api;

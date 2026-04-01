@@ -16,11 +16,7 @@
     { "source": "/wishlist", "destination": "/wishlist.html" },
     { "source": "/messages", "destination": "/messages.html" },
     { "source": "/profile", "destination": "/profile.html" },
-    { "source": "/settings", "destination": "/settings.html" },
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/settings", "destination": "/settings.html" }
   ],
   "headers": [
     {
