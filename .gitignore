@@ -50,6 +50,11 @@ temp*.txt
 sidebar-fix*.js
 host-dashboard-fix.patch
 
+# Backend TS files (handled by backend build)
+chat.gateway.ts
+chat.module.ts
+chat.service.ts
+
 # TODO docs (optional clutter)
 TODO*.md
 DEBUG*.md
