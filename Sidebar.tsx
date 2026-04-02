@@ -28,7 +28,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ userRole }: SidebarProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
 
   const filteredLinks = navLinks.filter(link =>
     userRole && link.roles.includes(userRole)
