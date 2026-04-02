@@ -117,7 +117,7 @@ function initializeAuth() {
             localStorage.setItem('token', token);
 
             // Set cookie for Next.js Middleware (Vercel compatibility)
-            document.cookie = `token=${token}; path=/; max-age=604800; SameSite=Lax; Secure`;
+            document.cookie = `token=${token}; path=/; max-age=604800; SameSite=Strict; Secure`;
             
             alert('Login successful!');
             redirectToDashboard(role);
@@ -199,21 +199,22 @@ function initializeAuth() {
  */
 function redirectToDashboard(role) {
     const roleMap = {
-        'super_admin': 'platform-master-hub/dashboard.html',
-        'platform_master': 'platform-master-hub/dashboard.html',
-        'admin': 'admin-dashboard.html',
-        'host': 'host-dashboard.html',
-        'support': 'support-dashboard.html',
+        'super_admin': '/platform-master-hub/dashboard.html',
+        'platform_master': '/platform-master-hub/dashboard.html',
+        'admin': '/admin-dashboard.html',
+        'host': '/host-dashboard.html',
+        'support': '/support-dashboard.html',
         'customer': 'customer-dashboard.html'
     };
 
     const target = roleMap[role.toLowerCase()];
     
     if (target) {
-        window.location.href = target;
+        // Use absolute paths for Vercel reliability
+        window.location.assign(target);
     } else {
         console.warn('Unknown role received from database:', role);
-        window.location.href = 'customer-dashboard.html'; // Default fallback
+        window.location.assign('/customer-dashboard.html');
     }
 }
 

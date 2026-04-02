@@ -179,30 +179,28 @@ function setupNavigation() {
         page.style.display = 'none';
     });
 
-    // Show selected page
-    const pageElement = document.getElementById(pageId);
+    // Show selected page with modern display logic
+    const pageElement = document.getElementById(pageId) || document.getElementById(pageId + 'Page');
     if (pageElement) {
         pageElement.classList.remove('hidden');
-        pageElement.style.display = 'block';
+        pageElement.style.display = 'grid'; // Modern layouts often use grid
     } else {
-        return;
+        console.error(`Page ID ${pageId} not found`); return;
     }
 
-    // Initialize specific page functionality
-    try {
-        if (pageId === 'hostsPage') {
-            initializeHostManagement();
-        } else if (pageId === 'customersPage') {
-            initializeCustomerManagement();
-        } else if (pageId === 'propertiesPage') {
-            initializePropertiesManagement();
-        } else if (pageId === 'analyticsPage') {
-            initializeAnalyticsPage();
-        }
-    } catch (error) {
-        console.error('Error initializing page:', error);
+    // Lazy-initialize page specific data
+    const pageInitMap = {
+        'hostsPage': initializeHostManagement,
+        'customersPage': initializeCustomerManagement,
+        'propertiesPage': initializePropertiesManagement,
+        'analyticsPage': initializeAnalyticsPage
+    };
+
+    if (pageInitMap[pageId]) {
+        try { pageInitMappageId; } catch (e) { console.error('Init failed', e); }
     }
-    }; */
+};
+window.navigateTo = window.navigateToPage;
     // Close the sidebar after navigation (optional, only on mobile)
     if (window.innerWidth < 768) {
         closeSidebar();

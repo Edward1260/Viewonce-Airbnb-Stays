@@ -11,16 +11,34 @@ const api = {
   _propertyRefreshCallbacks: [],
   baseUrl: (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || (isBrowser && window.config?.API_BASE_URL) || '',
 
-  // Internal helper to get auth headers safely across environments
+  /**
+   * Internal helper to get auth headers safely
+   */
   _getAuthHeaders(tokenOverride = null) {
     const token = tokenOverride || (isBrowser ? localStorage.getItem('token') : null);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    return token ? { 
+        'Authorization': `Bearer ${token}`,
+        'X-Client-Version': window.config?.VERSION || '1.0.0'
+    } : {};
   },
 
-  // Centralized Request Wrapper with Error Handling
+  /**
+   * Centralized Request Wrapper with Timeout and Error Handling
+   */
   async request(endpoint, options = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), window.config?.TIMEOUT || 15000);
+    
+    options.signal = controller.signal;
+    options.headers = {
+        ...options.headers,
+        ...this._getAuthHeaders()
+    };
+
     try {
       const response = await fetch(`${api.baseUrl}${endpoint}`, options);
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText }));
         throw new Error(errorData.message || `API Error: ${response.statusText}`);
@@ -28,6 +46,7 @@ const api = {
       return await response.json();
     } catch (error) {
       if (isBrowser) console.error(`Request failed for ${endpoint}:`, error);
+      if (error.name === 'AbortError') throw new Error('Request timed out. Please try again.');
       if (isBrowser && window.showToast) window.showToast(error.message, 'error');
       throw error;
     }
@@ -157,11 +176,24 @@ const api = {
   },
 
   // Properties
-  getProperties: async (filters = {}) => {
+  getProperties: async (filters = {}, forceRefresh = false) => {
+    // Implement Modern Caching Strategy
+    if (!forceRefresh && api._propertyCache && (Date.now() - api._propertyCacheTime < api._CACHE_DURATION)) {
+        console.log('📦 Returning properties from cache');
+        return api._propertyCache;
+    }
+
     let endpoint = '/properties';
     const params = new URLSearchParams(filters);
     if (params.toString()) endpoint += `?${params.toString()}`;
-    return api.request(endpoint);
+    
+    const data = await api.request(endpoint);
+    
+    // Update cache
+    api._propertyCache = data;
+    api._propertyCacheTime = Date.now();
+    
+    return data;
   },
 
   getAllProperties: async () => {
@@ -272,6 +304,43 @@ const api = {
       headers: api._getAuthHeaders(token),
       body: JSON.stringify({ ticket_id: ticketId, author_id: user.id, content, is_internal: isInternal })
     });
+  },
+
+  // System Monitoring & Security
+  getSecurityStats: async (token = null) => {
+    return api.request('/security/stats', { headers: api._getAuthHeaders(token) });
+  },
+
+  getActiveThreats: async (token = null) => {
+    return api.request('/security/threats/active', { headers: api._getAuthHeaders(token) });
+  },
+
+  getSecurityEvents: async (token = null) => {
+    return api.request('/security/events', { headers: api._getAuthHeaders(token) });
+  },
+
+  getErrors: async (token = null) => {
+    return api.request('/system/errors', { headers: api._getAuthHeaders(token) });
+  },
+
+  getPerformanceMetrics: async (token = null) => {
+    return api.request('/system/performance', { headers: api._getAuthHeaders(token) });
+  },
+
+  getAuditLogs: async (token = null) => {
+    return api.request('/system/audit-logs', { headers: api._getAuthHeaders(token) });
+  },
+
+  getAIAnalyticsInsights: async (token = null) => {
+    return api.request('/ai/analytics/insights', { headers: api._getAuthHeaders(token) });
+  },
+
+  getRefundStats: async (token = null) => {
+    return api.request('/refunds/stats', { headers: api._getAuthHeaders(token) });
+  },
+
+  getPayoutStats: async (token = null) => {
+    return api.request('/payouts/stats', { headers: api._getAuthHeaders(token) });
   },
 
   getKnowledgeBaseArticles: async () => {

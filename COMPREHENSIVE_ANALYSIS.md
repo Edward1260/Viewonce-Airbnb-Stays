@@ -263,7 +263,7 @@ Root/
 ├── CSS Files
 │   └── styles.css (52KB)
 │
-└── Configuration
+└── Configuration & Build
     ├── manifest.json
     ├── package.json
     └── service-worker.js

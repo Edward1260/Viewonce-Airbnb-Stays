@@ -2473,6 +2473,14 @@
                 userAvatar.title = profile.full_name + ' (' + profile.role + ')';
             }
             
+            // Load admins for assignment if Master
+            if (profile.role === 'platform_master_hub' || profile.role === 'super_admin') {
+                try {
+                    const admins = await api.getUsers('admin');
+                    window.adminsList = Array.isArray(admins) ? admins : (admins.data || []);
+                } catch (e) { console.error('Failed to load admins list'); }
+            }
+            
         } catch (error) {
             console.error('Auth check failed:', error);
             localStorage.clear();

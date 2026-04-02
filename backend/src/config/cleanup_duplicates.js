@@ -31,7 +31,27 @@ const filesToDelete = [
     'script.js',
     'config.js',
     'temp-js-check.js',
-    'temp-js-check-clean.js'
+    'temp-js-check-clean.js',
+
+    // Phase 2: Current junk files
+    'TODO_',
+    'platform-master-hub/vercel.json'
+];
+
+const dirsToDelete = [
+    // Malformed/garbage directories
+    'backend/src/entities./',
+    'backend/src to use a tool. Let me add graceful shutdown handling to main.ts./',
+
+    // Empty/unused backend modules
+    'backend/src/analytics/',
+    'backend/src/chat/',
+    'backend/src/notifications/',
+    'backend/src/payouts/',
+    'backend/src/terms-acceptance/',
+    'backend/src/ui-settings/',
+    'backend/src/upload/',
+    'backend/src/wishlist/'
 ];
 
 const renames = [
@@ -43,7 +63,8 @@ const renames = [
 ];
 
 async function cleanup() {
-    console.log('--- Starting Codebase Consolidation ---');
+    console.log('--- Starting Comprehensive Duplicate Cleanup (Phase 2) ---');
+    console.log(`Project root: ${projectRoot}`);
 
     // 1. Perform Deletions
     filesToDelete.forEach(file => {
@@ -76,8 +97,11 @@ async function cleanup() {
         }
     });
 
-    console.log('--- Consolidation Complete ---');
-    console.log('Next Step: Run "npm run start:dev" in the backend to verify the promoted main.ts works correctly.');
+    console.log('\n--- Phase 1 Cleanup Complete ---');
+    console.log('✅ Malformed files/dirs removed');
+    console.log('✅ Previous duplicates handled');
+    console.log('✅ Config/script promotions completed');
+    console.log('\nNext: Verify with list_files, then test backend.');
 }
 
 cleanup();

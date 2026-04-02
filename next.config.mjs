@@ -8,9 +8,7 @@ const nextConfig = {
       }
     ]
   },
-  output: 'standalone',
-  trailingSlash: true,
-  typedRoutes: true
+  output: 'standalone'
 };
 
 export default nextConfig;

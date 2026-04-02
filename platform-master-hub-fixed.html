@@ -903,8 +903,10 @@ document.querySelectorAll('.switch').forEach(function(sw) {
     sw.setAttribute('aria-checked', c);
     const switchType = sw.parentElement.textContent.trim().split(':')[0];
     logSecurityEvent('System Setting Changed', { setting: switchType, enabled: c });
-    if (switchType === 'Error Auto-Correction' && window.api) {
-        api.apiCall('/system/settings', { method: 'PATCH', body: { autoFix: c } }).catch(() => {});
+    if (window.api) {
+        const endpoint = switchType.includes('Error') ? '/system/settings' : '/security/settings';
+        const payload = switchType.includes('Error') ? { autoFix: c } : { [switchType.replace(/\s+/g, '')]: c };
+        api.request(endpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
     }
   };
 });
