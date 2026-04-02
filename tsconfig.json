@@ -23,5 +23,14 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "backend/**"]
+  "exclude": [
+    "node_modules",
+    "backend/**",
+    "chat.*.ts",
+    "chat.*.tsx",
+    "**/server/**",
+    "**/*.gateway.ts",
+    "**/*.module.ts",
+    "**/*.service.ts"
+  ]
 }
