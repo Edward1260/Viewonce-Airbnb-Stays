@@ -1,0 +1,13 @@
+node_modules/
+backend/
+.git/
+*.log
+.DS_Store
+coverage/
+tests/
+images/**/raw/
+**/*.psd
+*.zip
+*.tar.gz
+README.md
+package-lock.json
