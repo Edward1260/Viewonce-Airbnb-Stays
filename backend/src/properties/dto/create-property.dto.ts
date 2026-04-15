@@ -1,4 +1,4 @@
-cimport { IsString, IsNumber, IsOptional, IsArray, Min, Max, IsUrl, IsNotEmpty, IsInt } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, Min, Max, IsUrl, IsNotEmpty, IsInt } from 'class-validator';
 
 export class CreatePropertyDto {
   @IsString()
