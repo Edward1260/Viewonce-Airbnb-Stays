@@ -810,6 +810,14 @@ window.closeSidebar = function() {
 };
 
 window.navigateTo = function(page, element) {
+    // If page is a full path (starts with '/'), perform a full navigation
+    if (typeof page === 'string' && page.startsWith('/')) {
+        // Use full navigation so server-side rewrites (vercel.json) are applied
+        window.location.assign(page);
+        return;
+    }
+
+    // Otherwise, attempt single-page navigation if available
     if (typeof navigateToPage === 'function') {
         navigateToPage(element, page + 'Page');
     }

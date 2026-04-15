@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Platform Master Signup</title>
+  <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;background:#f7f8fa;padding:24px} .card{max-width:520px;margin:32px auto;padding:20px;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.06)} label{display:block;margin:8px 0 4px;font-weight:600} input{width:100%;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:6px} button{padding:10px 14px;border-radius:6px;background:#0b66ff;color:#fff;border:0} .small{font-size:13px;color:#555}</style>
+</head>
+<body>
+  <div class="card">
+    <h2>Platform Master — One-Time Signup</h2>
+    <p class="small">This signup link is one-time. Complete the form below to register and install the PWA when prompted.</p>
+
+    <div id="status" class="small">Checking invite...</div>
+
+    <form id="signupForm" style="display:none">
+      <label for="name">Full name</label>
+      <input id="name" name="name" required />
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required />
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required />
+      <label for="accessCode">Private access code</label>
+      <input id="accessCode" name="accessCode" type="text" placeholder="Enter your private access code" required />
+      <button id="submit" type="submit">Complete Signup</button>
+    </form>
+
+    <div style="margin-top:12px">
+      <button id="installBtn" type="button" style="display:none">Install App</button>
+    </div>
+  </div>
+
+<script>
+(async function(){
+  const status = document.getElementById('status');
+  const form = document.getElementById('signupForm');
+  const installBtn = document.getElementById('installBtn');
+
+  // Get token from query or cookie
+  function getQuery(name){
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+  }
+  function getCookie(name){
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+  }
+
+  const token = getQuery('invite') || getQuery('token') || getCookie('invite') || getCookie('token');
+  if(!token){
+    status.textContent = 'Missing invite token. Redirecting...';
+    setTimeout(()=>location.replace('/'),1200);
+    return;
+  }
+
+  // Check token (non-consuming)
+  try{
+    const r = await fetch('/api/validate-invite', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token, action:'check' }) });
+    const j = await r.json();
+    if(!j || !j.valid){
+      status.textContent = 'Invite invalid or already used. Redirecting...';
+      setTimeout(()=>location.replace('/'),1600);
+      return;
+    }
+    status.textContent = 'Invite valid — please complete signup.';
+    form.style.display = 'block';
+  }catch(e){
+    console.error(e);
+    status.textContent = 'Validation failed. Try again later.';
+    return;
+  }
+
+  // Capture PWA install prompt
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'inline-block';
+  });
+
+  installBtn.addEventListener('click', async ()=>{
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+    console.log('install choice', choice);
+  });
+
+  // Submit signup — consume token
+  const submitBtn = document.getElementById('submit');
+  form.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const accessCode = document.getElementById('accessCode').value.trim();
+    status.textContent = 'Submitting signup...';
+    submitBtn.disabled = true;
+
+    try{
+      // For demo: consume the one-time invite token first
+      const r1 = await fetch('/api/validate-invite', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token, action:'consume' }) });
+      if(!r1.ok){
+        const txt = await r1.text().catch(()=>r1.statusText);
+        status.textContent = 'Invite could not be consumed: ' + (txt || r1.statusText);
+        return;
+      }
+      const j1 = await r1.json().catch(()=>null);
+      if(!j1 || !j1.valid){
+        status.textContent = 'Invite could not be consumed: ' + (j1 && j1.reason ? j1.reason : 'unknown');
+        return;
+      }
+
+      // Here you would call your real signup backend. We'll simulate success.
+      // Example payload that would be sent to real backend:
+      const signupPayload = { name, email, password, accessCode, token };
+      console.log('signup payload', signupPayload);
+      // Simulate network delay
+      await new Promise(r=>setTimeout(r,700));
+      status.textContent = 'Signup complete — welcome!';
+
+      // Prompt install if available
+      if(deferredPrompt){
+        installBtn.click();
+      } else {
+        // Show the install button in case the event fired earlier
+        installBtn.style.display = 'inline-block';
+      }
+
+      // Redirect into the hub after a short delay
+      setTimeout(()=>location.replace('/platform-master-hub'),1600);
+    }catch(e){
+      console.error(e);
+      status.textContent = 'Signup failed — try again.';
+    }finally{
+      submitBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

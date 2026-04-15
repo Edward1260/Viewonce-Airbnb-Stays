@@ -42,6 +42,15 @@ git commit -m "Initialize submodules"
 ```
 If no submodules needed, warning is harmless (Vercel shallow clone).
 
+### Vercel-resilient build
+If you can't modify the remote immediately, add a resilient build command so Vercel won't fail or warn when submodules are missing. The project includes a `vercel-build` script that will attempt to initialize submodules but will not fail the build if none exist:
+
+```bash
+npm run vercel-build
+```
+
+To use this in Vercel, set the project's Build Command to `npm run vercel-build` (instead of `npm run build`).
+
 ### Vercel Deployment
 ```bash
 npm run build

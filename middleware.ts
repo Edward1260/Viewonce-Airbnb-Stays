@@ -22,6 +22,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow public pages (signup/login) to be served without an invite token.
+  // These pages present the invitation flow and should remain public while
+  // the dashboard and other protected routes remain guarded below.
+  const PUBLIC_PATHS = [
+    '/platform-master-hub/signup.html',
+    '/platform-master-hub/signup',
+    '/platform-master-hub/login',
+    '/platform-master-hub/login.html'
+  ];
+  if (PUBLIC_PATHS.includes(pathname)) {
+    return NextResponse.next();
+  }
+
   // Accept token from query param `invite` or `token`, or from cookie `invite`/`token`
   const token =
     request.nextUrl.searchParams.get('invite') ||
@@ -41,7 +54,7 @@ export async function middleware(request: NextRequest) {
 
     let isValid = false;
     // Prefer calling Supabase Edge Function when env vars are set
-    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      if (SUPABASE_URL && SUPABASE_ANON_KEY) {
       const fnUrl = SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/validate-invite-token';
       const res = await fetch(fnUrl, {
         method: 'POST',
@@ -50,7 +63,8 @@ export async function middleware(request: NextRequest) {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ token }),
+        // Ask the function for a non-consuming check so the signup page can consume the invite
+        body: JSON.stringify({ token, action: 'check' }),
       });
 
       if (res.ok) {
@@ -64,7 +78,8 @@ export async function middleware(request: NextRequest) {
         const res = await fetch(origin + '/api/validate-invite', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
+          // Use check mode to avoid consuming the one-time token at middleware time
+          body: JSON.stringify({ token, action: 'check' }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -79,9 +94,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // Set a short-lived cookie so subsequent requests don't need the query param
+    // Set a short-lived, httpOnly cookie so subsequent requests don't need the query param.
+    // Only mark the cookie `secure` in production to avoid local-dev HTTPS issues.
+    const cookieOptions: any = { path: '/platform-master-hub', httpOnly: true, sameSite: 'lax', maxAge: 300 };
+    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
     const nextResponse = NextResponse.next();
-    nextResponse.cookies.set('invite', token, { path: '/platform-master-hub', httpOnly: true, sameSite: 'lax' });
+    nextResponse.cookies.set('invite', token, cookieOptions);
     return nextResponse;
   } catch (e) {
     return NextResponse.redirect(new URL('/', request.url));

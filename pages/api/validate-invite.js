@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { token } = req.body || {};
+    const { token, action = 'check' } = req.body || {};
     if (!token) return res.status(400).json({ valid: false, reason: 'missing_token' });
 
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, action }),
       });
 
       if (!r.ok) {
@@ -32,7 +32,39 @@ export default async function handler(req, res) {
       return res.status(200).json({ valid: !!(data && (data.valid || data.ok || data.isValid || data.tokenValid)), detail: data });
     }
 
-    // Local fallback validation: accept tokens generated locally or with common prefixes.
+    // Local fallback validation: check one-time invite file first.
+    // If `action` === 'consume' then mark the invite as used. 'check' will not consume.
+    const fs = await import('fs');
+    const path = await import('path');
+    try {
+      const invitePath = path.join(process.cwd(), 'data', 'one_time_invite.json');
+      if (fs.existsSync(invitePath)) {
+        const raw = fs.readFileSync(invitePath, 'utf8');
+        const obj = JSON.parse(raw || '{}');
+        if (obj && obj.token && obj.token === token) {
+          if (obj.used) {
+            return res.status(200).json({ valid: false, reason: 'token_already_used' });
+          }
+          if (action === 'consume') {
+            // Mark as used so it's one-time
+            obj.used = true;
+            obj.usedAt = new Date().toISOString();
+            try {
+              fs.writeFileSync(invitePath, JSON.stringify(obj, null, 2), 'utf8');
+            } catch (e) {
+              console.error('failed to write invite file', e);
+            }
+            return res.status(200).json({ valid: true, reason: 'one_time_token_consumed' });
+          }
+          // action === 'check', token is valid but not consumed
+          return res.status(200).json({ valid: true, reason: 'one_time_token_valid' });
+        }
+      }
+    } catch (e) {
+      console.error('one-time invite check failed', e);
+    }
+
+    // Generic fallback: accept tokens generated locally or with common prefixes.
     const ok = typeof token === 'string' && (token.startsWith('local_') || token.startsWith('invite_') || token.length >= 10);
     return res.status(200).json({ valid: ok, reason: ok ? 'local_accepted' : 'invalid_token' });
   } catch (e) {
