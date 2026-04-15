@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "git submodule update --init --recursive || true && npm run build",
+    "vercel-build": "npm run build",
     "minify-styles": "tailwindcss -i ./styles.css -o ./public/styles.min.css --minify",
     "build-css": "tailwindcss -i ./input.css -o ./app/globals.css --minify",
     "start": "next start",
