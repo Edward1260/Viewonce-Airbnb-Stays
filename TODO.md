@@ -1,21 +1,23 @@
-# Vercel Deployment Fixes
-## Current Progress
+# ViewOnce Airbnb Stays - Debug & Deploy Progress
 
-**Completed:**
-- [ ] Understand project structure (static PWA, no React/frontend/)
-- [ ] Analyze package.json, tailwind.config.js, vercel.json
-- [ ] Create deployment plan
+## Status: ✅ Plan Approved - Pure Static SPA for Vercel Frontend
 
-**To Do:**
-- [x] Update package.json: fix build-css (remove --watch, add --minify)
-- [x] Update package.json: ensure build script correct
-- [x] Update vercel.json: set buildCommand to "npm run build"
-- [x] Test: npm run build-css (successful: generated styles.css)
-- [x] Verify .gitignore ignores node_modules
-- [x] Local build test (npm run build-css works)
-- [x] Project Vercel-ready ✅
+## 1. Frontend (Vercel Static SPA) [0/5]
+- [ ] Fix vercel.json: Serve welcome.html at /, SPA index.html catch-all, API proxy if needed
+- [ ] Fix index.html: Create proper SPA shell with router.js loading
+- [ ] Verify script.js/api.js: handleLogin() sets localStorage userRole from backend response
+- [ ] Local test: `npx serve .` - welcome → login → dashboard flow
+- [ ] Vercel preview deploy & test
 
-**Next Steps:**
-- Deploy to Vercel: vercel --prod
-- Set project settings: Framework Preset = Other, Root Directory = . (no frontend/), Build Cmd = npm run build, Output Dir = .
-- All TailwindCSS issues fixed.
+## 2. Backend Integration (Supabase) [0/3]  
+- [ ] Verify backend/src/main.ts runs, API endpoints respond
+- [ ] Test auth flow: login → returns user with role → sets userRole
+- [ ] CORS: Allow Vercel domain
+
+## 3. End-to-End [0/2]
+- [ ] Full user flow: welcome → signup/login → correct dashboard
+- [ ] Production Vercel deploy
+
+**Next Step:** Fix vercel.json
+
+**Backend Note:** User confirmed runs well in Supabase
