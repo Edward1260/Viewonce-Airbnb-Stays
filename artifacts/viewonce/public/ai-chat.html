@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant - Airbnb Kenya</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js?v=20241201"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <script src="sidebar-patch.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2f3e46">
+    <link rel="apple-touch-icon" href="images/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-purple: #a855f7;
+            --neon-cyan: #06b6d4;
+            --neon-pink: #ec4899;
+            --dark-grey: #1a1a2e;
+            --grey: #16213e;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #16213e 75%, #1a1a2e 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #F1F5F9;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .floating-shapes { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .neon-border {
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+            transition: all 0.3s ease;
+        }
+        .neon-border:hover, .neon-border:focus-within {
+            border-color: rgba(168, 85, 247, 0.8);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.3);
+        }
+        
+        .neon-bottom {
+            position: relative;
+        }
+        .neon-bottom::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--neon-purple), var(--neon-cyan), var(--neon-pink), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .neon-bottom:hover::after, .neon-bottom:focus-within::after {
+            opacity: 1;
+        }
+        
+        .btn-neon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 28px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        .btn-neon:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 0 0 40px rgba(168, 85, 247, 0.4);
+        }
+        .btn-neon:active {
+            transform: translateY(-1px);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.8);
+        }
+        
+        .quick-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 10px 18px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .quick-btn:hover {
+            background: rgba(168, 85, 247, 0.3);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .suggestion-chip {
+            background: rgba(6, 182, 212, 0.2);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: #22d3ee;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+        .suggestion-chip:hover {
+            background: rgba(6, 182, 212, 0.4);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+        
+        .message-bubble {
+            max-width: 85%;
+            padding: 16px 20px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        .message-user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .message-user:hover {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+        }
+        .message-ai {
+            background: rgba(255, 255, 255, 0.1);
+            color: #F1F5F9;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .message-ai:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+        
+        .sidebar-jungle {
+            background: linear-gradient(180deg, #00897B 0%, #00695C 50%, #004D40 100%);
+            box-shadow: 20px 0 40px rgba(0, 137, 123, 0.3);
+            border-radius: 0 24px 24px 0;
+        }
+        .sidebar-item {
+            position: relative;
+            transition: all 0.3s ease;
+            border-radius: 16px;
+            margin: 4px 0;
+            overflow: hidden;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: left;
+            padding: 14px 20px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 500;
+            display: block;
+            font-size: 14px;
+        }
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            padding-left: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 10px rgba(168, 85, 247, 0.3);
+        }
+        .premium-badge {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        
+        .sidebar-container {
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 8px;
+        }
+        .sidebar-backdrop {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 90;
+        }
+        .sidebar-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        header {
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        
+        .chat-container {
+            max-height: 55vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .chat-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 16px 20px;
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .chat-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+        }
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Voice Button Styles */
+        .voice-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .voice-btn-inactive {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        .voice-btn-inactive:hover {
+            background: rgba(168, 85, 247, 0.4);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+        }
+        .voice-btn-active {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .voice-premium-lock {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+        }
+        
+        .loading-dots::after {
+            content: '.';
+            animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen relative">
+    <!-- Floating Shapes Background -->
+    <div class="floating-shapes">
+        <div style="position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%); top: 10%; left: 10%; animation: float 20s infinite;"></div>
+        <div style="position: absolute; width: 300px; height: 300px; background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%); top: 50%; right: 20%; animation: float 15s infinite; animation-delay: -5s;"></div>
+    </div>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -30px) rotate(5deg); }
+            50% { transform: translate(-10px, 20px) rotate(-3deg); }
+            75% { transform: translate(30px, 10px) rotate(7deg); }
+        }
+    </style>
+
+    <!-- HEADER -->
+    <header class="w-full flex items-center justify-between px-6 py-4 glass fixed top-0 z-50 neon-bottom">
+        <div class="flex items-center gap-4">
+            <button onclick="window.location.href='customer-dashboard.html'" class="text-white hover:text-purple-400 font-medium transition">← Back</button>
+            <h1 class="font-bold text-xl text-white drop-shadow-lg">🤖 AI Assistant</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Voice Button -->
+            <button onclick="toggleVoice()" id="voiceBtn" class="voice-btn voice-btn-inactive" title="Voice Assistant">
+                🎤
+            </button>
+            <button onclick="toggleSidebar()" class="quick-btn">☰ Menu</button>
+            <button onclick="clearChat()" class="quick-btn">Clear Chat</button>
+        </div>
+    </header>
+
+    <!-- JUNGLE GREEN SIDEBAR -->
+    <div id="sidebar" class="sidebar sidebar-jungle fixed top-0 left-0 h-full w-72 p-6 z-40 pt-24 text-white" style="transform: translateX(-100%);">
+        <div class="flex justify-between items-center mb-6 relative z-10">
+            <div>
+                <h2 class="font-bold text-lg">AI Menu</h2>
+                <p class="text-xs text-white/60">Welcome, <span id="sidebarUserName">User</span></p>
+            </div>
+            <button onclick="toggleSidebar()" class="bg-white/20 hover:bg-white/30 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl">×</button>
+        </div>
+        <div class="sidebar-container relative z-10">
+            <button onclick="handleAIAction('newChart')" class="sidebar-item">📊 New Chart</button>
+            <button onclick="handleAIAction('chartHistory')" class="sidebar-item">📈 Chart History</button>
+            <button onclick="handleAIAction('analyzer')" class="sidebar-item">🔍 Analyzer</button>
+            <button onclick="handlePremiumFeature('automation')" class="sidebar-item" id="automationBtn">⚡ Automation <span class="premium-badge">PRO</span></button>
+            <button onclick="handleAIAction('budgetPlanner')" class="sidebar-item">💰 Budget Planner</button>
+        </div>
+    </div>
+
+    <div id="sidebarBackdrop" class="sidebar-backdrop fixed inset-0 bg-black bg-opacity-50" onclick="toggleSidebar()"></div>
+
+    <div class="max-w-4xl mx-auto pt-24 px-6 pb-6 relative z-10">
+        <!-- Chat Container -->
+        <div class="glass neon-border p-6 mb-6 neon-bottom">
+            <div id="chatMessages" class="chat-container"></div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="glass neon-border p-6 neon-bottom">
+            <div class="flex gap-4 items-center">
+                <input type="text" id="chatInput" placeholder="Type your message..." class="chat-input flex-1" onkeypress="handleEnter(event)">
+                <button onclick="sendMessage()" class="btn-neon">Send</button>
+            </div>
+            
+            <!-- Quick Suggestions -->
+            <div class="flex flex-wrap gap-2 mt-4">
+                <span class="text-white/50 text-xs">Quick actions:</span>
+                <button onclick="quickQuestion('Show my bookings')" class="suggestion-chip">📅 My Bookings</button>
+                <button onclick="quickQuestion('Find properties in Nairobi')" class="suggestion-chip">🏠 Nairobi</button>
+                <button onclick="quickQuestion('Check my payments')" class="suggestion-chip">💳 Payments</button>
+                <button onclick="quickQuestion('My wishlist')" class="suggestion-chip">❤️ Wishlist</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isPremium = false;
+        let aiSessionId = 'ai_' + Date.now();
+        let isListening = false;
+        let recognition = null;
+        let conversationContext = {};
+
+        // Greeting patterns
+        const greetingPatterns = [
+            /^(hi|hey|hello|hi there|hey there)$/i,
+            /^(good\s+morning|good\s+afternoon|good\s+evening)$/i,
+            /^(what's up|whats up|wassup)$/i,
+            /^(howdy|hiya|greetings)$/i
+        ];
+
+        // Check authentication and initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            if (!isLoggedIn) {
+                window.location.href = 'login-signup.html';
+                return;
+            }
+            
+            // Update user info
+            const sidebarUserName = document.getElementById('sidebarUserName');
+            if (sidebarUserName && user.firstName) {
+                sidebarUserName.textContent = user.firstName;
+            }
+            
+            // Store user ID for data fetching
+            conversationContext.userId = user.id || localStorage.getItem('userId');
+            conversationContext.userName = user.firstName;
+            
+            // Check premium status
+            isPremium = user.isPremium || localStorage.getItem('isPremium') === 'true';
+            updatePremiumFeatures();
+            updateVoiceButton();
+            
+            // Send automatic greeting
+            await sendWelcomeGreeting();
+        });
+
+        function updateVoiceButton() {
+            const voiceBtn = document.getElementById('voiceBtn');
+            if (!isPremium) {
+                voiceBtn.className = 'voice-btn voice-premium-lock';
+                voiceBtn.title = 'Voice Assistant - Premium Only';
+            }
+        }
+
+        // Send welcome greeting
+        async function sendWelcomeGreeting() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const userName = user.firstName || 'there';
+            
+            const greeting = `Hello ${userName}! 👋
+
+Welcome to <strong>ViewOnce Airbnb AI Assistant</strong>! 
+
+I'm here to help you with:
+🏠 <strong>Finding properties</strong> - Search stays in any location
+📅 <strong>Your bookings</strong> - View reservation details
+💳 <strong>Payments</strong> - Check payment status
+❤️ <strong>Wishlist</strong> - View saved properties
+💬 <strong>Contact hosts</strong> - Get in touch with property owners
+
+Just ask me anything or use the quick action buttons below!`;
+            
+            addMessage(greeting, 'ai');
+            
+            // Show smart suggestions after greeting
+            setTimeout(() => {
+                addSuggestions([
+                    { text: '📅 Show my bookings', action: 'Show my bookings' },
+                    { text: '🏠 Find properties', action: 'Find properties' },
+                    { text: '💳 Check payments', action: 'Check my payments' },
+                    { text: '❤️ My wishlist', action: 'My wishlist' }
+                ]);
+            }, 500);
+        }
+
+        // Check if message is a greeting
+        function isGreeting(message) {
+            return greetingPatterns.some(pattern => pattern.test(message.trim()));
+        }
+
+        // Get greeting response
+        function getGreetingResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('morning')) {
+                return "Good morning! 🌅 How can I help you today?";
+            } else if (lowerMessage.includes('afternoon')) {
+                return "Good afternoon! ☀️ How may I assist you?";
+            } else if (lowerMessage.includes('evening')) {
+                return "Good evening! 🌙 How can I help you?";
+            } else {
+                return "Hello there! 😊 How can I assist you today?";
+            }
+        }
+
+        // Toggle Voice Assistant
+        function toggleVoice() {
+            if (!isPremium) {
+                alert('🎤 Voice Assistant is a Premium feature!\n\nUpgrade to Premium to access voice commands and voice responses.\n\nCost: KSh 2,500/month');
+                return;
+            }
+            
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Sorry, your browser does not support voice recognition. Please use Chrome or Edge.');
+                return;
+            }
+            
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            
+            recognition.onstart = function() {
+                isListening = true;
+                const voiceBtn = document.getElementById('voiceBtn');
+                voiceBtn.className = 'voice-btn voice-btn-active';
+                voiceBtn.innerHTML = '🛑';
+                addMessage('🎤 Listening... Speak now', 'ai');
+            };
+            
+            recognition.onresult = function(event) {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript)
+                    .join('');
+                
+                if (event.results[0].isFinal) {
+                    document.getElementById('chatInput').value = transcript;
+                    sendMessage();
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Voice recognition error:', event.error);
+                stopListening();
+                addMessage('Sorry, I didn\'t catch that. Please try again or type your message.', 'ai');
+            };
+            
+            recognition.onend = function() {
+                stopListening();
+            };
+            
+            recognition.start();
+        }
+
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isListening = false;
+            const voiceBtn = document.getElementById('voiceBtn');
+            voiceBtn.className = 'voice-btn voice-btn-inactive';
+            voiceBtn.innerHTML = '🎤';
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            const transform = sidebar.style.transform;
+            
+            if (transform === 'translateX(-100%)' || transform === '') {
+                sidebar.style.transform = 'translateX(0)';
+                backdrop.classList.add('active');
+            } else {
+                sidebar.style.transform = 'translateX(-100%)';
+                backdrop.classList.remove('active');
+            }
+        }
+
+        function handleAIAction(action) {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            sidebar.style.transform = 'translateX(-100%)';
+            backdrop.classList.remove('active');
+            
+            // Permission confirmation messages for each action
+            const permissionMessages = {
+                'newChart': 'Create a new chart? This will start a new analytics session.',
+                'chartHistory': 'View your chart history? This will show your past analytics data.',
+                'analyzer': 'Open the analyzer? This will analyze your booking patterns.',
+                'budgetPlanner': 'Open the Budget Planner? This will help you plan your travel budget.',
+                'dashboard': 'Go to Dashboard?',
+                'bookings': 'View your bookings?',
+                'messages': 'View your messages?',
+                'wishlist': 'View your wishlist?',
+                'profile': 'View your profile?',
+                'settings': 'Open settings?',
+                'help': 'Get help?'
+            };
+            
+            // For actions that need permission, ask first
+            if (permissionMessages[action]) {
+                if (!confirm(permissionMessages[action] + '\n\nClick OK to proceed or Cancel to stay here.')) {
+                    return; // User cancelled
+                }
+            }
+            
+            const actions = {
+                'newChart': newChat,
+                'chartHistory': () => window.location.href = 'ai-recommendations.js',
+                'analyzer': () => window.location.href = 'analytics.html',
+                'budgetPlanner': () => {
+                    // Show budget planner in chat
+                    addMessage('💰 Opening Budget Planner...', 'ai');
+                    setTimeout(() => {
+                        addMessage('💰 <strong>Budget Planner</strong>\n\nTell me your travel budget and I\'ll help you find properties that fit your budget!\n\nEnter your budget (e.g., "My budget is KSh 50,000")', 'ai');
+                    }, 500);
+                },
+                'dashboard': () => window.location.href = 'customer-dashboard.html',
+                'bookings': () => window.location.href = 'bookings.html',
+                'messages': () => window.location.href = 'messages.html',
+                'wishlist': () => window.location.href = 'wishlist.html',
+                'profile': () => window.location.href = 'profile.html',
+                'settings': () => window.location.href = 'settings.html',
+                'help': () => window.location.href = 'help.html',
+                'premium': upgradeToPremium
+            };
+            
+            if (actions[action]) actions[action]();
+        }
+
+        function handlePremiumFeature(feature) {
+            if (!isPremium) {
+                if (confirm(`"${feature}" is a premium feature.\n\nUpgrade to Premium to access automation, analytics, and voice assistant!\n\nWould you like to upgrade?`)) {
+                    upgradeToPremium();
+                }
+                return;
+            }
+            if (feature === 'automation') {
+                alert('Automation features coming soon!');
+            }
+        }
+
+        function upgradeToPremium() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (confirm('Upgrade to Premium Membership?\n\nPremium Benefits:\n• Voice Assistant\n• Automation features\n• Priority booking\n• Advanced analytics\n\nCost: KSh 2,500/month')) {
+                user.isPremium = true;
+                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('isPremium', 'true');
+                isPremium = true;
+                updatePremiumFeatures();
+                updateVoiceButton();
+                alert('Premium activated! You now have access to voice assistant!');
+            }
+        }
+
+        function updatePremiumFeatures() {
+            const automationBtn = document.getElementById('automationBtn');
+            if (isPremium) {
+                if (automationBtn) {
+                    automationBtn.innerHTML = '⚡ Automation';
+                }
+            } else {
+                if (automationBtn) {
+                    automationBtn.innerHTML = '🔒 <span style="margin-right:8px;">⚡ Automation</span><span class="premium-badge">PRO</span>';
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Check if greeting
+            if (isGreeting(message)) {
+                const greetingResponse = getGreetingResponse(message);
+                addMessage(message, 'user');
+                input.value = '';
+                
+                setTimeout(() => {
+                    addMessage(greetingResponse, 'ai');
+                    setTimeout(() => {
+                        addSuggestions([
+                            { text: '📅 Show my bookings', action: 'Show my bookings' },
+                            { text: '🏠 Find properties', action: 'Find properties' },
+                            { text: '💳 Check payments', action: 'Check my payments' }
+                        ]);
+                    }, 300);
+                }, 500);
+                return;
+            }
+
+            addMessage(message, 'user');
+            input.value = '';
+            showTyping();
+
+            try {
+                // Try AI backend first
+                const response = await api.sendAIMessage(message, aiSessionId);
+                removeTyping();
+                
+                if (response && (response.reply || response.message)) {
+                    addMessage(response.reply || response.message, 'ai');
+                } else {
+                    // Fallback to smart response
+                    const smartResponse = await getSmartResponse(message);
+                    addMessage(smartResponse.text, 'ai');
+                    if (smartResponse.suggestions) {
+                        addSuggestions(smartResponse.suggestions);
+                    }
+                }
+            } catch (error) {
+                console.error('AI Error:', error);
+                removeTyping();
+                
+                // Get smart response from real data
+                const smartResponse = await getSmartResponse(message);
+                addMessage(smartResponse.text, 'ai');
+                if (smartResponse.suggestions) {
+                    addSuggestions(smartResponse.suggestions);
+                }
+            }
+        }
+
+        // Get smart response with real data
+        async function getSmartResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            // Update context
+            conversationContext.lastMessage = message;
+            
+            try {
+                // Bookings query - more robust detection
+                if (lowerMessage.includes('booking') || lowerMessage.includes('reservation') || 
+                    lowerMessage.includes('find my book') || lowerMessage.includes('show my book') ||
+                    lowerMessage.includes('my book')) {
+                    
+                    console.log('Fetching bookings for user...');
+                    let bookings = [];
+                    try {
+                        bookings = await api.getBookings();
+                        console.log('Bookings received:', bookings);
+                    } catch (bookError) {
+                        console.error('Error fetching bookings:', bookError);
+                    }
+                    
+                    if (bookings && Array.isArray(bookings) && bookings.length > 0) {
+                        const bookingList = bookings.slice(0, 5).map(b => {
+                            const propTitle = b.property?.title || b.propertyTitle || 'Property';
+                            const checkIn = b.checkIn ? new Date(b.checkIn).toLocaleDateString() : 'N/A';
+                            const checkOut = b.checkOut ? new Date(b.checkOut).toLocaleDateString() : 'N/A';
+                            const price = b.totalPrice || b.price || b.amount || 0;
+                            const status = b.status || 'confirmed';
+                            return `📅 ${propTitle}\n   📆 ${checkIn} → ${checkOut}\n   💵 KSh ${price.toLocaleString()}\n   📊 ${status}`;
+                        }).join('\n\n');
+                        
+                        return {
+                            text: `✅ You have ${bookings.length} booking(s)! Here are your reservations:\n\n${bookingList}`,
+                            suggestions: [
+                                { text: '📅 View all bookings', action: 'Show all my bookings' },
+                                { text: '💳 Check payments', action: 'Check my payments' }
+                            ]
+                        };
+                    } else {
+                        return {
+                            text: "📭 You don't have any bookings yet.\n\nWould you like me to help you find properties to book? I can show you properties in Nairobi, Mombasa, or any other location!",
+                            suggestions: [
+                                { text: '🏠 Find properties', action: 'Find properties' },
+                                { text: '🏙️ Nairobi stays', action: 'Properties in Nairobi' },
+                                { text: '🏖️ Mombasa beach', action: 'Properties in Mombasa' }
+                            ]
+                        };
+                    }
+                }
+                
+                // Payments query
+                if (lowerMessage.includes('payment') || lowerMessage.includes('pay')) {
+                    return {
+                        text: "💳 Payment Information:\n\nWe accept the following payment methods:\n\n• 💳 Credit/Debit Cards (Visa, Mastercard)\n• 📱 M-Pesa\n• 🏦 Bank Transfer\n• 💵 Cash on Arrival\n\nWould you like to check your payment history or make a payment?",
+                        suggestions: [
+                            { text: '📅 My bookings', action: 'Show my bookings' },
+                            { text: '🏠 Find properties', action: 'Find properties' }
+                        ]
+                    };
+                }
+                
+                // Wishlist query
+                if (lowerMessage.includes('wishlist') || lowerMessage.includes('saved')) {
+                    const wishlist = await api.getWishlist();
+                    if (wishlist && wishlist.length > 0) {
+                        return {
+                            text: `❤️ Your wishlist has ${wishlist.length} saved properties!\n\n` + 
+                                wishlist.slice(0, 3).map(p => `• ${p.title || 'Property'}\n  📍 ${p.location}\n  💰 KSh ${p.price?.toLocaleString()}/night`).join('\n\n'),
+                            suggestions: [
+                                { text: '❤️ View all saved', action: 'My wishlist' },
+                                { text: '📅 My bookings', action: 'Show my bookings' }
+                            ]
+                        };
+                    } else {
+                        return {
+                            text: "Your wishlist is empty. Let me help you find properties you might like!",
+                            suggestions: [
+                                { text: '🏠 Find properties', action: 'Find properties' },
+                                { text: '🏙️ Nairobi', action: 'Properties in Nairobi' }
+                            ]
+                        };
+                    }
+                }
+                
+                // Properties in Nairobi
+                if (lowerMessage.includes('nairobi')) {
+                    const properties = await api.getProperties({ city: 'nairobi' });
+                    if (properties && properties.length > 0) {
+                        return {
+                            text: `🏙️ Found ${properties.length} properties in Nairobi!\n\n` + 
+                                properties.slice(0, 3).map(p => `🏠 ${p.title}\n  📍 ${p.location}\n  💰 KSh ${p.price?.toLocaleString()}/night\n  ⭐ ${p.rating || 'New'}`).join('\n\n'),
+                            suggestions: [
+                                { text: '📅 Book now', action: 'Book first property' },
+                                { text: '❤️ Save property', action: 'Add to wishlist' }
+                            ]
+                        };
+                    }
+                }
+                
+                // Properties in Mombasa
+                if (lowerMessage.includes('mombasa') || lowerMessage.includes('beach')) {
+                    const properties = await api.getProperties({ city: 'mombasa' });
+                    if (properties && properties.length > 0) {
+                        return {
+                            text: `🏖️ Found ${properties.length} beach properties in Mombasa!\n\n` + 
+                                properties.slice(0, 3).map(p => `🏖️ ${p.title}\n  📍 ${p.location}\n  💰 KSh ${p.price?.toLocaleString()}/night\n  ⭐ ${p.rating || 'New'}`).join('\n\n'),
+                            suggestions: [
+                                { text: '📅 Book now', action: 'Book first property' },
+                                { text: '❤️ Save property', action: 'Add to wishlist' }
+                            ]
+                        };
+                    }
+                }
+                
+                // All properties
+                if (lowerMessage.includes('property') || lowerMessage.includes('stay') || lowerMessage.includes('find')) {
+                    const properties = await api.getProperties();
+                    const randomProps = properties.slice(0, 3);
+                    return {
+                        text: `🏠 I found ${properties.length} properties available!\n\n` + 
+                            randomProps.map((p, i) => `${i+1}. ${p.title}\n   📍 ${p.location}\n   💰 KSh ${p.price?.toLocaleString()}/night\n   ⭐ ${p.rating || 'New listing'}`).join('\n\n'),
+                        suggestions: [
+                            { text: '🏙️ Nairobi', action: 'Properties in Nairobi' },
+                            { text: '🏖️ Mombasa', action: 'Properties in Mombasa' },
+                            { text: '❤️ Save one', action: 'Add to wishlist' }
+                        ]
+                    };
+                }
+                
+                // Profile/Settings
+                if (lowerMessage.includes('profile') || lowerMessage.includes('settings') || lowerMessage.includes('account')) {
+                    return {
+                        text: `👤 Your Profile\n\nName: ${conversationContext.userName || 'User'}\nID: ${conversationContext.userId || 'N/A'}\n\nYou can:\n• 📝 Update profile details\n• 🔒 Change password\n• 💳 Manage payment methods\n• 🔔 Notification preferences\n\nWhat would you like to do?`,
+                        suggestions: [
+                            { text: '📅 My bookings', action: 'Show my bookings' },
+                            { text: '💳 Payments', action: 'Check my payments' }
+                        ]
+                    };
+                }
+                
+                // Contact host
+                if (lowerMessage.includes('contact') || lowerMessage.includes('host') || lowerMessage.includes('message')) {
+                    return {
+                        text: "💬 To contact a host:\n\n1. Find a property you're interested in\n2. Click 'Contact Host' or 'Message Host'\n3. Send them a message directly\n\nWould you like me to help you find properties?",
+                        suggestions: [
+                            { text: '🏠 Find properties', action: 'Find properties' },
+                            { text: '📅 My bookings', action: 'Show my bookings' }
+                        ]
+                    };
+                }
+                
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+            
+            // Default response with navigation help
+            return {
+                text: `I'm here to help! You can ask me about:\n\n🏠 <strong>Finding properties</strong> - "Find properties in Nairobi"\n📅 <strong>Your bookings</strong> - "Show my bookings"\n💳 <strong>Payments</strong> - "Check payments"\n❤️ <strong>Wishlist</strong> - "My wishlist"\n💬 <strong>Contact hosts</strong> - "Contact a host"\n\nOr use the quick action buttons above!`,
+                suggestions: [
+                    { text: '📅 My bookings', action: 'Show my bookings' },
+                    { text: '🏠 Find properties', action: 'Find properties' },
+                    { text: '💳 Check payments', action: 'Check my payments' }
+                ]
+            };
+        }
+
+        function addMessage(text, type) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-bubble ${type === 'user' ? 'message-user' : 'message-ai'}`;
+            
+            if (type === 'ai') {
+                messageDiv.innerHTML = `<p class="font-semibold text-purple-400 mb-2">🤖 ViewOnce AI</p><p>${text.replace(/\n/g, '<br>')}</p>`;
+            } else {
+                messageDiv.innerHTML = `<p>${text}</p>`;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addSuggestions(suggestions) {
+            const chatMessages = document.getElementById('chatMessages');
+            const suggestionsDiv = document.createElement('div');
+            suggestionsDiv.className = 'flex flex-wrap gap-2 mt-3';
+            suggestionsDiv.style.justifyContent = 'flex-start';
+            
+            suggestions.forEach(suggestion => {
+                const chip = document.createElement('button');
+                chip.className = 'suggestion-chip';
+                chip.textContent = suggestion.text;
+                chip.onclick = () => {
+                    document.getElementById('chatInput').value = suggestion.action;
+                    sendMessage();
+                };
+                suggestionsDiv.appendChild(chip);
+            });
+            
+            chatMessages.appendChild(suggestionsDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTyping() {
+            const chatMessages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'message-bubble message-ai';
+            typingDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTyping() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) typing.remove();
+        }
+
+        function quickQuestion(question) {
+            document.getElementById('chatInput').value = question;
+            sendMessage();
+        }
+
+        function handleEnter(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        function clearChat() {
+            if (confirm('Clear all chat history?')) {
+                document.getElementById('chatMessages').innerHTML = '';
+                aiSessionId = 'ai_' + Date.now();
+                conversationContext = {};
+                sendWelcomeGreeting();
+            }
+        }
+
+        function newChat() {
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('chatInput').value = '';
+            aiSessionId = 'ai_' + Date.now();
+            conversationContext = {};
+            sendWelcomeGreeting();
+        }
+    </script>
+</body>
+</html>

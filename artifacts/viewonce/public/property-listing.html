@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airbnb Property Listing</title>
+    <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="shortcut icon" href="images/icon-192.png" type="image/png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --accent: #e00069;
+            --muted: #6b7280;
+            --border: #e6e6e6;
+            --bg: #ffffff;
+            --card-shadow: 0 8px 30px rgba(16,24,40,0.08);
+            --radius: 14px;
+            --max-w: 1220px;
+            --gap: 20px;
+        }
+        body {
+            background: #7DC0B5; /* Turquoise */
+            font-family: 'Inter', sans-serif;
+        }
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 700;
+        }
+        .lightbox img {
+            max-width: 94%;
+            max-height: 86%;
+            border-radius: 8px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        }
+        .lb-close {
+            position: fixed;
+            top: 18px;
+            right: 20px;
+            color: #fff;
+            font-size: 26px;
+            cursor: pointer;
+            z-index: 710;
+        }
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 600;
+        }
+        .modal-card {
+            width: 360px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border);
+        }
+        .close {
+            float: right;
+            cursor: pointer;
+        }
+        .guest-menu {
+            position: absolute;
+            left: 0;
+            top: 46px;
+            width: 100%;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(10,10,10,0.08);
+            display: none;
+            z-index: 40;
+        }
+        .guest-menu div {
+            padding: 10px;
+            border-bottom: 1px solid #f3f3f3;
+            cursor: pointer;
+        }
+        .guest-menu div:hover {
+            background: #f9f9f9;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #f0f0f0;
+            background: #fafafa;
+            font-size: 14px;
+        }
+        .pill.strike {
+            text-decoration: line-through;
+            opacity: 0.7;
+            background: #fff;
+        }
+        .star-rating {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-900">
+    <!-- Header -->
+    <header class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold text-white">Airbnb</h1>
+                <div class="hidden md:flex items-center gap-4 bg-white rounded-full px-4 py-2 shadow-md">
+                    <input id="searchLocation" placeholder="Location" class="outline-none" value="Nairobi, Kenya">
+                    <input id="searchDates" placeholder="Check in / Check out" class="outline-none">
+                    <input id="searchGuests" placeholder="Guests" class="outline-none">
+                    <button class="bg-red-500 text-white px-4 py-2 rounded-full">Search</button>
+                </div>
+            </div>
+            <a href="host-dashboard.html" class="text-white underline">Become a host</a>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-6 pb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Title and Details -->
+                <div>
+                    <h1 id="propertyTitle" class="text-3xl font-bold text-white">Nairobi Luxury Loft</h1>
+                    <p id="propertyMeta" class="text-white/80">Entire loft in Nairobi CBD, Kenya · 2 guests · 1 bedroom · 1 bed · 1 bath</p>
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="flex items-center gap-2">
+                            <span id="propertyRating" class="text-white">4.85 · 142 reviews</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="text-white underline">Share</button>
+                            <button class="text-white underline">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Gallery -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="grid grid-cols-2 gap-2" id="galleryGrid">
+                        <!-- Images will be populated by JS -->
+                    </div>
+                    <button id="showAllPhotosBtn" class="w-full text-center py-4 border-t">Show all photos</button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex border-b">
+                        <button class="tab active px-4 py-2" data-tab="photos">Photos</button>
+                        <button class="tab px-4 py-2" data-tab="amenities">Amenities</button>
+                        <button class="tab px-4 py-2" data-tab="reviews">Reviews</button>
+                        <button class="tab px-4 py-2" data-tab="location">Location</button>
+                    </div>
+                    <div id="photos" class="tab-panel active mt-4">
+                        <h3>Show all photos</h3>
+                        <p>Browse the full gallery of the property.</p>
+                    </div>
+                    <div id="amenities" class="tab-panel mt-4">
+                        <h3>What this place offers</h3>
+                        <div id="amenitiesList" class="flex flex-wrap gap-2 mt-4"></div>
+                    </div>
+                    <div id="reviews" class="tab-panel mt-4">
+                        <h3>Reviews</h3>
+                        <div id="reviewsList" class="space-y-4"></div>
+
+                        <!-- Review Form -->
+                        <div class="mt-8 p-4 border rounded-lg bg-gray-50">
+                            <h4 class="font-semibold mb-4">Write a Review</h4>
+                            <form id="reviewForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Rating</label>
+                                    <div class="flex gap-1">
+                                        <input type="radio" name="rating" value="1" id="star1" class="hidden">
+                                        <label for="star1" class="cursor-pointer text-gray-300 text-2xl hover:text-yellow-400">★</label>
+                                        <input type="radio" name="rating" value="2" id="star2" class="hidden">
+                                        <label for="star2" class="cursor-pointer text-gray-300 text-2xl hover:text-yellow-400">★</label>
+                                        <input type="radio" name="rating" value="3" id="star3" class="hidden">
+                                        <label for="star3" class="cursor-pointer text-gray-300 text-2xl hover:text-yellow-400">★</label>
+                                        <input type="radio" name="rating" value="4" id="star4" class="hidden">
+                                        <label for="star4" class="cursor-pointer text-gray-300 text-2xl hover:text-yellow-400">★</label>
+                                        <input type="radio" name="rating" value="5" id="star5" class="hidden" checked>
+                                        <label for="star5" class="cursor-pointer text-gray-300 text-2xl hover:text-yellow-400">★</label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="reviewComment" class="block text-sm font-medium mb-2">Your Review</label>
+                                    <textarea id="reviewComment" rows="4" class="w-full border rounded px-3 py-2" placeholder="Share your experience with this property..."></textarea>
+                                </div>
+                                <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">Submit Review</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="location" class="tab-panel mt-4">
+                        <h3>Where you'll be</h3>
+                        <p id="locationMeta">Nairobi CBD, Kenya</p>
+                        <div id="miniMap" class="mt-4 h-48 bg-gray-200 rounded"></div>
+                        <div class="mt-4">
+                            <h4>Meet your host</h4>
+                            <div class="flex items-center gap-4 mt-2">
+                                <img src="/images/placeholder-property.jpg" alt="host" class="w-12 h-12 rounded-full">
+                                <div>
+                                    <p id="hostName" class="font-semibold">Sarah</p>
+                                    <p class="text-sm text-gray-600">Superhost · 7 years hosting</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About this place -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3>About this place</h3>
+                    <p id="propertyDescription" class="mt-2">Welcome to our modern & secure property...</p>
+                </div>
+            </div>
+
+            <!-- Right Column - Booking -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-md p-4 sticky top-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-sm line-through text-gray-500" id="oldPrice">KSh 29,385</p>
+                            <p class="text-2xl font-bold" id="cardPrice">KSh 26,785 for 2 nights</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Per night</p>
+                            <p class="font-bold" id="perNight">KSh 13,392</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div>
+                            <label class="block text-sm text-gray-600">Check-in</label>
+                            <input id="checkin" class="w-full border rounded px-2 py-1" value="1/30/2026">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600">Checkout</label>
+                            <input id="checkout" class="w-full border rounded px-2 py-1" value="2/1/2026">
+                        </div>
+                        <div class="col-span-2 relative">
+                            <label class="block text-sm text-gray-600">Guests</label>
+                            <div id="guestLabel" class="border rounded px-2 py-1 cursor-pointer">1 guest ▼</div>
+                            <div class="guest-menu" id="guestMenu">
+                                <div data-val="1">1 guest</div>
+                                <div data-val="2">2 guests</div>
+                                <div data-val="3">3 guests</div>
+                                <div data-val="4">4 guests</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600">
+                        <input type="checkbox" id="bookingTerms" class="mr-2">
+                        I agree to the <a href="terms-and-conditions.html" target="_blank" class="underline text-blue-600">Terms & Conditions</a>
+                    </div>
+                    <button id="reserveBtn" class="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-3 rounded-lg font-bold">Reserve</button>
+                    <p class="text-center text-sm text-gray-500 mt-2">You won't be charged yet</p>
+                    <button id="priceBreakBtn" class="w-full text-center underline mt-4">Show price breakdown</button>
+                    <div id="bookingMiniMap" class="mt-4 h-32 bg-gray-200 rounded"></div>
+                    <a href="#" id="reportLink" class="block text-center text-sm text-gray-500 underline mt-4">Report this listing</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="priceModal">
+        <div class="modal-card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold">Price breakdown</h3>
+                <span class="close" id="closePrice">✕</span>
+            </div>
+            <div class="space-y-2">
+                <div class="flex justify-between"><span>KSh 13,392 × 2 nights</span><span>KSh 26,784</span></div>
+                <div class="flex justify-between"><span>Cleaning fee</span><span>KSh 1,200</span></div>
+                <div class="flex justify-between"><span>Service fee</span><span>KSh 1,001</span></div>
+                <hr>
+                <div class="flex justify-between font-bold"><span>Total</span><span>KSh 29,000</span></div>
+            </div>
+            <p class="text-sm text-gray-500 mt-4">You won't be charged yet</p>
+        </div>
+    </div>
+
+    <!-- Payment Options Modal -->
+    <div class="modal" id="paymentOptionsModal">
+        <div class="modal-card max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">Choose Payment Option</h3>
+                <span class="close cursor-pointer text-xl" id="closePaymentOptions">✕</span>
+            </div>
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-2">Total Amount: <span class="font-bold text-lg">KSh 29,000</span></p>
+                <p class="text-sm text-gray-500">How would you like to proceed?</p>
+            </div>
+            <div class="space-y-3 mb-6">
+                <button onclick="choosePaymentOption('payNow')" class="w-full flex items-center p-4 border-2 border-blue-500 rounded-lg cursor-pointer hover:bg-blue-50 bg-blue-50">
+                    <div class="w-10 h-10 bg-blue-500 rounded mr-4 flex items-center justify-center">
+                        <span class="text-white text-lg">💳</span>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-bold text-blue-700">Continue with Payment</p>
+                        <p class="text-sm text-gray-600">Pay now and secure your booking</p>
+                    </div>
+                </button>
+                <button onclick="choosePaymentOption('payLater')" class="w-full flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div class="w-10 h-10 bg-gray-500 rounded mr-4 flex items-center justify-center">
+                        <span class="text-white text-lg">🕒</span>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-bold text-gray-700">Pay Later</p>
+                        <p class="text-sm text-gray-600">Book now, pay when you arrive</p>
+                    </div>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 text-center">You can change your payment option later</p>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-card max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">Complete Your Booking</h3>
+                <span class="close cursor-pointer text-xl" id="closePayment">✕</span>
+            </div>
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-2">Total Amount: <span class="font-bold text-lg">KSh 29,000</span></p>
+                <p class="text-sm text-gray-500">Choose your payment method</p>
+            </div>
+            <div class="space-y-3 mb-6">
+                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input type="radio" name="payment" value="card" class="mr-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-500 rounded mr-3 flex items-center justify-center">
+                            <span class="text-white text-sm">💳</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">Credit/Debit Card</p>
+                            <p class="text-sm text-gray-500">Visa, Mastercard, American Express</p>
+                        </div>
+                    </div>
+                </label>
+                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input type="radio" name="payment" value="mpesa" class="mr-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-green-500 rounded mr-3 flex items-center justify-center">
+                            <span class="text-white text-sm">📱</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">M-Pesa</p>
+                            <p class="text-sm text-gray-500">Pay with your mobile money</p>
+                        </div>
+                    </div>
+                </label>
+                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input type="radio" name="payment" value="paypal" class="mr-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-600 rounded mr-3 flex items-center justify-center">
+                            <span class="text-white text-sm">🅿️</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">PayPal</p>
+                            <p class="text-sm text-gray-500">Pay with your PayPal account</p>
+                        </div>
+                    </div>
+                </label>
+                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input type="radio" name="payment" value="bank" class="mr-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-gray-600 rounded mr-3 flex items-center justify-center">
+                            <span class="text-white text-sm">🏦</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">Bank Transfer</p>
+                            <p class="text-sm text-gray-500">Direct bank transfer</p>
+                        </div>
+                    </div>
+                </label>
+                <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input type="radio" name="payment" value="cash" class="mr-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-yellow-500 rounded mr-3 flex items-center justify-center">
+                            <span class="text-white text-sm">💵</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">Cash on Arrival</p>
+                            <p class="text-sm text-gray-500">Pay when you arrive at the property</p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+            <button onclick="processPayment()" class="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-3 rounded-lg font-bold hover:from-pink-600 hover:to-red-600">Complete Payment</button>
+            <p class="text-xs text-gray-500 mt-2 text-center">Your payment information is secure and encrypted</p>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <span class="lb-close" id="lbClose">✕</span>
+        <img id="lbImg" src="/images/placeholder-property.jpg" alt="photo">
+    </div>
+
+    <script>
+        // Property data from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const propertyData = {
+            title: urlParams.get('title') || 'Loading...',
+            images: JSON.parse(urlParams.get('images') || '["/images/placeholder-property.jpg"]'),
+            videos: JSON.parse(urlParams.get('videos') || '[]'),
+            rating: parseFloat(urlParams.get('rating')) || 0,
+            price: parseInt(urlParams.get('price')) || 0,
+            city: urlParams.get('city') || 'Location'
+        };
+
+        const images = propertyData.images;
+        const videos = propertyData.videos;
+        const amenities = ["Kitchen", "Wifi", "Dedicated workspace", "Free parking", "Pool", "TV", "Elevator"];
+        const reviews = [
+            {name: "David", rating: 5, text: "Great experience..."},
+            {name: "Berkant", rating: 5, text: "All around satisfaction..."}
+        ];
+
+        // Populate data
+        document.getElementById('propertyTitle').textContent = propertyData.title;
+        document.getElementById('propertyMeta').textContent = `Entire property in ${propertyData.city}, Kenya · 2 guests · 1 bedroom · 1 bed · 1 bath`;
+        document.getElementById('propertyRating').textContent = `${propertyData.rating} · 142 reviews`;
+        document.getElementById('cardPrice').textContent = `KSh ${(propertyData.price * 2).toLocaleString()} for 2 nights`;
+        document.getElementById('perNight').textContent = `KSh ${propertyData.price.toLocaleString()}`;
+        document.getElementById('oldPrice').textContent = `KSh ${(propertyData.price * 2.2).toFixed(0).toLocaleString()}`;
+        document.getElementById('locationMeta').textContent = `${propertyData.city} CBD, Kenya`;
+        document.getElementById('searchLocation').value = `${propertyData.city}, Kenya`;
+
+        // Gallery - combine images and videos
+        const galleryGrid = document.getElementById('galleryGrid');
+        galleryGrid.innerHTML = '';
+
+        // Create media array combining images and videos
+        const mediaItems = [];
+        images.forEach(src => mediaItems.push({ type: 'image', src }));
+        videos.forEach(src => mediaItems.push({ type: 'video', src }));
+
+        // Display up to 5 items in the grid
+        mediaItems.slice(0, 5).forEach((item, i) => {
+            if (item.type === 'image') {
+                const img = document.createElement('img');
+                img.src = item.src;
+                img.className = i === 0 ? 'col-span-2 row-span-2 h-64 object-cover rounded cursor-pointer' : 'h-32 object-cover rounded cursor-pointer';
+                img.onclick = () => openLightbox(item.src);
+                galleryGrid.appendChild(img);
+            } else if (item.type === 'video') {
+                const videoContainer = document.createElement('div');
+                videoContainer.className = i === 0 ? 'col-span-2 row-span-2 h-64 relative cursor-pointer' : 'h-32 relative cursor-pointer';
+                videoContainer.innerHTML = `
+                    <video class="w-full h-full object-cover rounded" muted autoplay loop playsinline>
+                        <source src="${item.src}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="absolute inset-0 bg-black bg-opacity-20 rounded flex items-center justify-center">
+                        <div class="bg-white bg-opacity-90 rounded-full p-2">
+                            <svg class="w-6 h-6 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </div>
+                    </div>
+                `;
+                videoContainer.onclick = () => openVideoLightbox(item.src);
+                galleryGrid.appendChild(videoContainer);
+            }
+        });
+
+        // Amenities
+        const amenitiesList = document.getElementById('amenitiesList');
+        amenities.forEach(a => {
+            const div = document.createElement('div');
+            div.className = 'pill';
+            div.innerHTML = `<span>✔</span><span>${a}</span>`;
+            amenitiesList.appendChild(div);
+        });
+
+        // Reviews
+        const reviewsList = document.getElementById('reviewsList');
+        reviews.forEach(r => {
+            const div = document.createElement('div');
+            div.className = 'p-4 border rounded';
+            div.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <img src="/images/placeholder-property.jpg" class="w-10 h-10 rounded-full">
+                    <div>
+                        <p class="font-semibold">${r.name}</p>
+                        <div class="star-rating">${'★'.repeat(r.rating)}</div>
+                    </div>
+                </div>
+                <p class="mt-2">${r.text}</p>
+            `;
+            reviewsList.appendChild(div);
+        });
+
+        // Maps
+        const mapQuery = encodeURIComponent(`${propertyData.city}, Kenya`);
+        document.getElementById('miniMap').innerHTML = `<iframe width="100%" height="100%" frameborder="0" src="https://www.google.com/maps?q=${mapQuery}&z=13&output=embed"></iframe>`;
+        document.getElementById('bookingMiniMap').innerHTML = `<iframe width="100%" height="100%" frameborder="0" src="https://www.google.com/maps?q=${mapQuery}&z=13&output=embed"></iframe>`;
+
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            };
+        });
+
+        // Guest dropdown
+        const guestLabel = document.getElementById('guestLabel');
+        const guestMenu = document.getElementById('guestMenu');
+        guestLabel.onclick = () => guestMenu.style.display = guestMenu.style.display === 'block' ? 'none' : 'block';
+        guestMenu.onclick = e => {
+            if (e.target.dataset.val) {
+                guestLabel.textContent = e.target.dataset.val + (e.target.dataset.val === '1' ? ' guest ▼' : ' guests ▼');
+                guestMenu.style.display = 'none';
+            }
+        };
+        document.onclick = e => {
+            if (!guestLabel.contains(e.target)) guestMenu.style.display = 'none';
+        };
+
+        // Price modal
+        document.getElementById('priceBreakBtn').onclick = () => document.getElementById('priceModal').style.display = 'flex';
+        document.getElementById('closePrice').onclick = () => document.getElementById('priceModal').style.display = 'none';
+        document.getElementById('priceModal').onclick = e => { if (e.target.id === 'priceModal') e.target.style.display = 'none'; };
+
+        // Lightbox
+        function openLightbox(src) {
+            document.getElementById('lbImg').src = src;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        // Video lightbox
+        function openVideoLightbox(src) {
+            const lbImg = document.getElementById('lbImg');
+            const lightbox = document.getElementById('lightbox');
+
+            // Replace image with video for video lightbox
+            lbImg.style.display = 'none';
+            const video = document.createElement('video');
+            video.src = src;
+            video.controls = true;
+            video.autoplay = true;
+            video.className = 'max-w-full max-h-full';
+            video.id = 'lbVideo';
+
+            // Replace image with video
+            lbImg.parentNode.insertBefore(video, lbImg);
+
+            lightbox.style.display = 'flex';
+        }
+
+        document.getElementById('lbClose').onclick = () => {
+            document.getElementById('lightbox').style.display = 'none';
+            // Clean up video if it exists
+            const video = document.getElementById('lbVideo');
+            if (video) {
+                video.remove();
+            }
+            document.getElementById('lbImg').style.display = 'block';
+        };
+        document.getElementById('lightbox').onclick = e => {
+            if (e.target.id === 'lightbox') {
+                document.getElementById('lightbox').style.display = 'none';
+                // Clean up video if it exists
+                const video = document.getElementById('lbVideo');
+                if (video) {
+                    video.remove();
+                }
+                document.getElementById('lbImg').style.display = 'block';
+            }
+        };
+
+        // Show all photos
+        document.getElementById('showAllPhotosBtn').onclick = () => openLightbox(images[0]);
+
+        // Reserve
+        document.getElementById('reserveBtn').onclick = () => {
+            const terms = document.getElementById('bookingTerms');
+            if(!terms.checked) {
+                alert('Please accept the Terms & Conditions to proceed.');
+                return;
+            }
+            const logs = JSON.parse(localStorage.getItem('compliance_logs') || '[]');
+            logs.push({ action: 'BOOKING_TERMS_ACCEPTED', timestamp: new Date().toISOString() });
+            localStorage.setItem('compliance_logs', JSON.stringify(logs));
+            document.getElementById('paymentOptionsModal').style.display = 'flex';
+        };
+
+        // Payment options modal
+        document.getElementById('closePaymentOptions').onclick = () => document.getElementById('paymentOptionsModal').style.display = 'none';
+        document.getElementById('paymentOptionsModal').onclick = e => { if (e.target.id === 'paymentOptionsModal') e.target.style.display = 'none'; };
+
+        function formatDate(dateString) {
+            // Convert MM/DD/YYYY to YYYY-MM-DD
+            const parts = dateString.split('/');
+            if (parts.length === 3) {
+                const month = parts[0].padStart(2, '0');
+                const day = parts[1].padStart(2, '0');
+                const year = parts[2];
+                return `${year}-${month}-${day}`;
+            }
+            return dateString;
+        }
+
+        async function choosePaymentOption(option) {
+            document.getElementById('paymentOptionsModal').style.display = 'none';
+            if (option === 'payNow') {
+                document.getElementById('paymentModal').style.display = 'flex';
+            } else if (option === 'payLater') {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('Please log in to make a booking.');
+                        return;
+                    }
+
+                    const checkin = formatDate(document.getElementById('checkin').value);
+                    const checkout = formatDate(document.getElementById('checkout').value);
+                    const guests = parseInt(document.getElementById('guestLabel').textContent.split(' ')[0]);
+
+                    const response = await fetch('http://localhost:3001/api/bookings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            propertyId: propertyData.propertyId || urlParams.get('propertyId'),
+                            checkInDate: checkin,
+                            checkOutDate: checkout,
+                            numberOfGuests: guests,
+                            totalPrice: propertyData.price * 2, // Assuming 2 nights
+                            paymentStatus: 'pending'
+                        })
+                    });
+
+                    if (response.ok) {
+                        alert('Your booking has been confirmed! You can pay when you arrive at the property.');
+                        // Redirect to bookings page
+                        window.location.href = 'bookings.html';
+                    } else {
+                        const error = await response.json();
+                        alert('Failed to create booking: ' + (error.message || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Error creating booking:', error);
+                    alert('Failed to create booking. Please try again.');
+                }
+            }
+        }
+
+        // Payment modal
+        document.getElementById('closePayment').onclick = () => document.getElementById('paymentModal').style.display = 'none';
+        document.getElementById('paymentModal').onclick = e => { if (e.target.id === 'paymentModal') e.target.style.display = 'none'; };
+
+        function processPayment() {
+            const selectedPayment = document.querySelector('input[name="payment"]:checked');
+            if (!selectedPayment) {
+                alert('Please select a payment method.');
+                return;
+            }
+            alert(`Payment processed successfully using ${selectedPayment.value}! Your booking is confirmed.`);
+            document.getElementById('paymentModal').style.display = 'none';
+            // In a real app, redirect to booking confirmation page
+        }
+
+        // Review form submission
+        document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rating = document.querySelector('input[name="rating"]:checked')?.value || '5';
+            const comment = document.getElementById('reviewComment').value.trim();
+
+            if (!comment) {
+                alert('Please enter a review comment.');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    alert('Please log in to submit a review.');
+                    return;
+                }
+
+                const response = await fetch('http://localhost:3001/api/reviews', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        propertyId: propertyData.propertyId || urlParams.get('propertyId'),
+                        rating: parseInt(rating),
+                        comment: comment
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Review submitted successfully!');
+                    document.getElementById('reviewComment').value = '';
+                    // Refresh reviews list
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('Failed to submit review: ' + (error.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error submitting review:', error);
+                alert('Failed to submit review. Please try again.');
+            }
+        });
+
+        // Star rating interaction
+        document.querySelectorAll('input[name="rating"]').forEach((radio, index) => {
+            const label = radio.nextElementSibling;
+            label.addEventListener('click', () => {
+                // Update visual feedback
+                document.querySelectorAll('input[name="rating"]').forEach((r, i) => {
+                    const l = r.nextElementSibling;
+                    if (i <= index) {
+                        l.classList.remove('text-gray-300');
+                        l.classList.add('text-yellow-400');
+                    } else {
+                        l.classList.remove('text-yellow-400');
+                        l.classList.add('text-gray-300');
+                    }
+                });
+            });
+        });
+
+        // Report
+        document.getElementById('reportLink').onclick = e => { e.preventDefault(); alert('Report sent.'); };
+
+        // Keyboard nav for lightbox (basic)
+        document.onkeydown = e => {
+            if (e.key === 'Escape') {
+                document.getElementById('lightbox').style.display = 'none';
+                document.getElementById('priceModal').style.display = 'none';
+                document.getElementById('paymentModal').style.display = 'none';
+                document.getElementById('paymentOptionsModal').style.display = 'none';
+                guestMenu.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>

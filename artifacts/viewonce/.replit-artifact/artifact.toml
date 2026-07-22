@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "ViewOnce Airbnb Stays"
+version = "1.0.0"
+id = "artifacts/viewonce"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26144
+
+[services.development]
+run = "pnpm --filter @workspace/viewonce run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/viewonce", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/viewonce/dist/public"
+
+[[services.production.rewrites]]
+from = "/dashboard"
+to = "/index.html"
+
+[services.env]
+PORT = "26144"
+BASE_PATH = "/"

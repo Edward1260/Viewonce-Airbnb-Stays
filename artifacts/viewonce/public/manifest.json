@@ -1,0 +1,124 @@
+{
+  "name": "ViewOnce Airbnb Stays",
+  "short_name": "ViewOnce",
+  "description": "Find your perfect stay with unique accommodations worldwide",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2f3e46",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-US",
+  "categories": ["travel", "booking", "accommodation"],
+  "icons": [
+    {
+      "src": "images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "apple_mobile_web_app_capable": true,
+  "apple_mobile_web_app_status_bar_style": "default",
+  "apple_touch_icon": "images/icon-192.png",
+  "apple_touch_icon_precomposed": "images/icon-192.png",
+  "shortcuts": [
+    {
+      "name": "Explore Stays",
+      "short_name": "Explore",
+      "description": "Browse available properties",
+      "url": "/property-listing",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Bookings",
+      "short_name": "Bookings",
+      "description": "View your bookings",
+      "url": "/bookings",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Check your messages",
+      "url": "/messages",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Host Dashboard",
+      "short_name": "Host",
+      "description": "Manage your properties",
+      "url": "/host-dashboard-upgraded.html",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Platform Setup",
+      "short_name": "Setup",
+      "description": "Initial platform setup (Super Admin)",
+      "url": "/platform-master-hub/setup.html",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Platform Login",
+      "short_name": "PMLogin",
+      "description": "Platform Master Hub Login",
+      "url": "/platform-master-hub/login.html",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Platform Dashboard",
+      "short_name": "Dashboard",
+      "description": "Platform Master Hub Dashboard",
+      "url": "/platform-master-hub/dashboard.html",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Admin Dashboard",
+      "short_name": "Admin",
+      "description": "Admin Management Dashboard",
+      "url": "/admin-dashboard.html",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Support Dashboard",
+      "short_name": "Support",
+      "description": "Support Team Dashboard",
+      "url": "/support-dashboard.html",
+      "icons": [{ "src": "images/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "images/screenshot-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "images/screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

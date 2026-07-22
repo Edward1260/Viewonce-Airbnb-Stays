@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments - ViewOnce Airbnb</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF5A5F;
+            --secondary: #484848;
+            --accent: #00A699;
+            --background: #F7F7F7;
+            --white: #FFFFFF;
+            --text: #222222;
+            --text-light: #767676;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--background);
+            color: var(--text);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar { 
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 20px 0 40px rgba(0,0,0,0.3);
+            border-radius: 0 24px 24px 0;
+        }
+        .sidebar.active { transform: translateX(0); }
+        .sidebar-backdrop { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 999;
+        }
+        .sidebar-backdrop.active { opacity: 1; visibility: visible; }
+        .sidebar-item { 
+            display: block; width: 100%; padding: 12px 16px; margin: 4px 0;
+            background: transparent; border: none; color: white; text-align: left;
+            cursor: pointer; font-weight: 500; font-size: 14px; border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .sidebar-item:hover { 
+            background: rgba(255, 90, 95, 0.15); padding-left: 20px; color: #FF5A5F;
+        }
+        .sidebar-content { padding: 80px 16px 20px; }
+        .header { 
+            background: white; padding: 16px 24px; border-bottom: 1px solid #eee;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .btn-primary {
+            background: var(--primary); color: white; border: none;
+            padding: 12px 24px; border-radius: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .btn-primary:hover { background: #e8484c; transform: translateY(-2px); }
+        .btn-secondary {
+            background: white; color: var(--text); border: 2px solid #ddd;
+            padding: 10px 20px; border-radius: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+        .payment-method-card {
+            background: white; border: 2px solid #eee; border-radius: 16px;
+            padding: 20px; margin-bottom: 16px; transition: all 0.3s;
+        }
+        .payment-method-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .payment-method-card.selected { border-color: var(--primary); background: #FFF5F5; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+        }
+        .status-badge.success { background: #D1FAE5; color: #065F46; }
+        .status-badge.warning { background: #FEF3C7; color: #92400E; }
+        .status-badge.error { background: #FEE2E2; color: #991B1B; }
+        .status-badge.info { background: #DBEAFE; color: #1E40AF; }
+        .transaction-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px; border-bottom: 1px solid #eee;
+        }
+        .transaction-row:hover { background: #f9f9f9; }
+        .filter-chip {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+            border-radius: 20px; background: #f1f5f9; border: 2px solid transparent;
+            cursor: pointer; transition: all 0.2s; font-size: 14px;
+        }
+        .filter-chip:hover, .filter-chip.active { background: #e0f2fe; border-color: #0ea5e9; color: #0369a1; }
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+            padding: 20px;
+        }
+        .modal-backdrop.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 24px; padding: 32px;
+            max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;
+        }
+        .input-field {
+            width: 100%; padding: 14px 16px; border: 2px solid #eee;
+            border-radius: 12px; font-size: 14px; transition: all 0.3s;
+        }
+        .input-field:focus { outline: none; border-color: var(--primary); }
+        .tab-btn {
+            padding: 12px 24px; border: none; background: transparent;
+            color: var(--text-light); font-weight: 600; cursor: pointer;
+            border-bottom: 3px solid transparent; transition: all 0.3s;
+        }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .loading-spinner {
+            width: 40px; height: 40px; border: 4px solid #eee;
+            border-top-color: var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 20px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 16px; }
+            .filter-chips { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <button onclick="closeSidebar()" class="sidebar-close-btn" style="position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px;cursor:pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="sidebar-content">
+            <div class="mb-4">
+                <h2 class="font-bold text-lg text-white"><i class="fas fa-credit-card mr-2"></i>Payments</h2>
+                <p class="text-xs text-white/60">Manage your payments</p>
+            </div>
+            <button onclick="window.location.href='customer-dashboard.html'" class="sidebar-item"><i class="fas fa-home mr-2 w-6"></i>Dashboard</button>
+            <button onclick="window.location.href='bookings.html'" class="sidebar-item"><i class="fas fa-calendar-check mr-2 w-6"></i>Bookings</button>
+            <button onclick="window.location.href='wishlist.html'" class="sidebar-item"><i class="fas fa-heart mr-2 w-6"></i>Wishlist</button>
+            <button onclick="window.location.href='profile.html'" class="sidebar-item"><i class="fas fa-user mr-2 w-6"></i>Profile</button>
+            <button onclick="window.location.href='settings.html'" class="sidebar-item"><i class="fas fa-cog mr-2 w-6"></i>Settings</button>
+            <div class="h-px bg-white/20 my-4"></div>
+            <button onclick="logout()" class="sidebar-item" style="background: rgba(239,68,68,0.3);"><i class="fas fa-sign-out-alt mr-2 w-6"></i>Logout</button>
+        </div>
+    </div>
+    <div id="sidebarBackdrop" onclick="closeSidebar()" class="sidebar-backdrop"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="font-bold text-xl"><i class="fas fa-credit-card text-pink-500 mr-2"></i>Payments</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openAddPaymentMethodModal()" class="btn-primary">
+                <i class="fas fa-plus mr-2"></i>Add Payment Method
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-20 px-6 pb-6" style="max-width: 1200px; margin: 0 auto;">
+        <!-- Tabs -->
+        <div class="flex border-b mb-6 overflow-x-auto">
+            <button onclick="switchTab('methods')" class="tab-btn active" data-tab="methods">
+                <i class="fas fa-credit-card mr-2"></i>Payment Methods
+            </button>
+            <button onclick="switchTab('history')" class="tab-btn" data-tab="history">
+                <i class="fas fa-history mr-2"></i>Transaction History
+            </button>
+            <button onclick="switchTab('refunds')" class="tab-btn" data-tab="refunds">
+                <i class="fas fa-undo mr-2"></i>Refunds
+            </button>
+        </div>
+
+        <!-- Payment Methods Tab -->
+        <div id="methodsTab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Saved Cards -->
+                <div class="glass p-6">
+                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-credit-card text-blue-500 mr-2"></i>Credit/Debit Cards</h3>
+                    <div id="cardsList">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+
+                <!-- PayPal -->
+                <div class="glass p-6">
+                    <h3 class="font-bold text-lg mb-4"><i class="fab fa-paypal text-blue-600 mr-2"></i>PayPal</h3>
+                    <div id="paypalSection">
+                        <p class="text-gray-500 mb-4">Link your PayPal account for quick payments</p>
+                        <button onclick="connectPayPal()" class="btn-secondary w-full">
+                            <i class="fab fa-paypal mr-2"></i>Connect PayPal
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bank Transfer -->
+                <div class="glass p-6">
+                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-university text-green-500 mr-2"></i>Bank Transfer</h3>
+                    <div id="bankSection">
+                        <p class="text-gray-500 mb-4">Add bank account for payouts</p>
+                        <button onclick="openBankModal()" class="btn-secondary w-full">
+                            <i class="fas fa-plus mr-2"></i>Add Bank Account
+                        </button>
+                    </div>
+                </div>
+
+                <!-- M-Pesa -->
+                <div class="glass p-6">
+                    <h3 class="font-bold text-lg mb-4"><i class="fas fa-mobile-alt text-green-600 mr-2"></i>M-Pesa</h3>
+                    <div id="mpesaSection">
+                        <p class="text-gray-500 mb-4">Pay with M-Pesa mobile money</p>
+                        <div class="flex items-center gap-2">
+                            <span class="status-badge success"><i class="fas fa-check-circle"></i> Connected</span>
+                            <span class="text-sm text-gray-500">2547****1234</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction History Tab -->
+        <div id="historyTab" class="tab-content hidden">
+            <div class="glass p-6 mb-6">
+                <div class="flex flex-wrap gap-2 mb-4 filter-chips">
+                    <span class="filter-chip active" onclick="filterHistory('all', this)">All</span>
+                    <span class="filter-chip" onclick="filterHistory('payment', this)">Payments</span>
+                    <span class="filter-chip" onclick="filterHistory('refund', this)">Refunds</span>
+                    <span class="filter-chip" onclick="filterHistory('payout', this)">Payouts</span>
+                </div>
+                <div class="flex gap-4 mb-4">
+                    <input type="date" id="historyStartDate" class="input-field" style="width: auto;">
+                    <span class="self-center">to</span>
+                    <input type="date" id="historyEndDate" class="input-field" style="width: auto;">
+                    <button onclick="applyHistoryFilter()" class="btn-primary">Apply</button>
+                </div>
+            </div>
+            <div class="glass p-6">
+                <h3 class="font-bold text-lg mb-4">Transactions</h3>
+                <div id="transactionsList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refunds Tab -->
+        <div id="refundsTab" class="tab-content hidden">
+            <div class="glass p-6">
+                <h3 class="font-bold text-lg mb-4">Refund Requests</h3>
+                <div id="refundsList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Payment Method Modal -->
+    <div id="addPaymentModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Add Payment Method</h2>
+                <button onclick="closeModal('addPaymentModal')" class="text-2xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <!-- Payment Method Tabs -->
+            <div class="flex border-b mb-6">
+                <button onclick="switchPaymentType('card')" class="tab-btn active flex-1" data-type="card">
+                    <i class="fas fa-credit-card mr-2"></i>Card
+                </button>
+                <button onclick="switchPaymentType('bank')" class="tab-btn flex-1" data-type="bank">
+                    <i class="fas fa-university mr-2"></i>Bank
+                </button>
+            </div>
+
+            <!-- Card Form -->
+            <div id="cardForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Card Number</label>
+                    <input type="text" id="cardNumber" class="input-field" placeholder="1234 5678 9012 3456" maxlength="19">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Expiry Date</label>
+                        <input type="text" id="cardExpiry" class="input-field" placeholder="MM/YY" maxlength="5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">CVV</label>
+                        <input type="text" id="cardCvv" class="input-field" placeholder="123" maxlength="4">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Cardholder Name</label>
+                    <input type="text" id="cardName" class="input-field" placeholder="John Doe">
+                </div>
+            </div>
+
+            <!-- Bank Form -->
+            <div id="bankForm" class="hidden">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Bank Name</label>
+                    <select id="bankName" class="input-field">
+                        <option value="">Select Bank</option>
+                        <option value="kcb">Kenya Commercial Bank</option>
+                        <option value="equity">Equity Bank</option>
+                        <option value="absa">ABSA Bank</option>
+                        <option value="stanbic">Stanbic Bank</option>
+                        <option value="cooperative">Co-operative Bank</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Account Number</label>
+                    <input type="text" id="accountNumber" class="input-field" placeholder="1234567890">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Account Name</label>
+                    <input type="text" id="accountName" class="input-field" placeholder="John Doe">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Branch Code</label>
+                    <input type="text" id="branchCode" class="input-field" placeholder="12345">
+                </div>
+            </div>
+
+            <button onclick="savePaymentMethod()" class="btn-primary w-full">
+                <i class="fas fa-save mr-2"></i>Save Payment Method
+            </button>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Payment Receipt</h2>
+                <button onclick="closeModal('receiptModal')" class="text-2xl"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="receiptContent" class="text-center">
+                <div class="loading-spinner"></div>
+            </div>
+            <div class="flex gap-4 mt-6">
+                <button onclick="downloadReceipt()" class="btn-secondary flex-1">
+                    <i class="fas fa-download mr-2"></i>Download PDF
+                </button>
+                <button onclick="emailReceipt()" class="btn-secondary flex-1">
+                    <i class="fas fa-envelope mr-2"></i>Email Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'methods';
+        let paymentHistory = [];
+        let refunds = [];
+        let selectedTransactionId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
+
+        function initializePage() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (!isLoggedIn) {
+                window.location.href = 'welcome.html';
+                return;
+            }
+            loadPaymentMethods();
+            loadPaymentHistory();
+            loadRefunds();
+        }
+
+        // Sidebar Functions
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebarBackdrop').classList.add('active');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarBackdrop').classList.remove('active');
+        }
+
+        // Tab Functions
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+        }
+
+        // Payment Method Functions
+        async function loadPaymentMethods() {
+            try {
+                const methods = await api.getPaymentMethods();
+                renderPaymentMethods(methods);
+            } catch (error) {
+                console.error('Error loading payment methods:', error);
+                // Show demo data
+                document.getElementById('cardsList').innerHTML = `
+                    <div class="payment-method-card selected">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-3">
+                                <i class="fab fa-cc-visa text-3xl text-blue-600"></i>
+                                <div>
+                                    <p class="font-bold">Visa ending in 4242</p>
+                                    <p class="text-sm text-gray-500">Expires 12/25</p>
+                                </div>
+                            </div>
+                            <span class="status-badge success"><i class="fas fa-check"></i> Default</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="text-sm text-gray-500 hover:text-pink-500" onclick="editPaymentMethod('card1')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="text-sm text-gray-500 hover:text-red-500" onclick="deletePaymentMethod('card1')">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderPaymentMethods(methods) {
+            const cardsList = document.getElementById('cardsList');
+            if (!methods || methods.length === 0) {
+                cardsList.innerHTML = '<p class="text-gray-500 text-center py-4">No payment methods added yet</p>';
+                return;
+            }
+            // Render payment methods
+        }
+
+        function openAddPaymentMethodModal() {
+            document.getElementById('addPaymentModal').classList.add('active');
+        }
+
+        function switchPaymentType(type) {
+            document.querySelectorAll('[data-type]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            document.getElementById('cardForm').classList.toggle('hidden', type !== 'card');
+            document.getElementById('bankForm').classList.toggle('hidden', type !== 'bank');
+        }
+
+        async function savePaymentMethod() {
+            const cardNumber = document.getElementById('cardNumber').value;
+            const cardExpiry = document.getElementById('cardExpiry').value;
+            const cardCvv = document.getElementById('cardCvv').value;
+            const cardName = document.getElementById('cardName').value;
+
+            if (!cardNumber || !cardExpiry || !cardCvv || !cardName) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            try {
+                await api.addPaymentMethod({
+                    type: 'card',
+                    number: cardNumber,
+                    expiry: cardExpiry,
+                    cvv: cardCvv,
+                    name: cardName
+                });
+                alert('Payment method added successfully!');
+                closeModal('addPaymentModal');
+                loadPaymentMethods();
+            } catch (error) {
+                alert('Error adding payment method: ' + error.message);
+            }
+        }
+
+        function openBankModal() {
+            switchPaymentType('bank');
+            openAddPaymentMethodModal();
+        }
+
+        async function deletePaymentMethod(methodId) {
+            if (confirm('Are you sure you want to remove this payment method?')) {
+                try {
+                    await api.deletePaymentMethod(methodId);
+                    alert('Payment method removed');
+                    loadPaymentMethods();
+                } catch (error) {
+                    alert('Error removing payment method');
+                }
+            }
+        }
+
+        function editPaymentMethod(methodId) {
+            alert('Edit functionality coming soon');
+        }
+
+        function connectPayPal() {
+            alert('PayPal integration coming soon! You will be redirected to PayPal to connect your account.');
+        }
+
+        // Transaction History Functions
+        async function loadPaymentHistory() {
+            try {
+                const history = await api.getPaymentHistory();
+                paymentHistory = history || [];
+                renderTransactions(paymentHistory);
+            } catch (error) {
+                console.error('Error loading payment history:', error);
+                // Demo data
+                paymentHistory = [
+                    { id: 'txn_001', type: 'payment', amount: 25000, status: 'completed', date: '2024-01-15', description: 'Booking #BK001 - Malindi Villa' },
+                    { id: 'txn_002', type: 'payment', amount: 18000, status: 'completed', date: '2024-01-10', description: 'Booking #BK002 - Nairobi Apartment' },
+                    { id: 'txn_003', type: 'refund', amount: 5000, status: 'completed', date: '2024-01-08', description: 'Refund - Booking #BK003' },
+                    { id: 'txn_004', type: 'payment', amount: 35000, status: 'pending', date: '2024-01-20', description: 'Booking #BK004 - Diani Beach House' }
+                ];
+                renderTransactions(paymentHistory);
+            }
+        }
+
+        function renderTransactions(transactions) {
+            const container = document.getElementById('transactionsList');
+            if (!transactions || transactions.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No transactions yet</p>';
+                return;
+            }
+
+            container.innerHTML = transactions.map(txn => `
+                <div class="transaction-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center ${txn.type === 'payment' ? 'bg-green-100' : 'bg-yellow-100'}">
+                            <i class="fas ${txn.type === 'payment' ? 'fa-arrow-down text-green-500' : 'fa-undo text-yellow-500'}"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium">${txn.description || 'Transaction'}</p>
+                            <p class="text-sm text-gray-500">${txn.date || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold ${txn.type === 'payment' ? 'text-red-500' : 'text-green-500'}">
+                            ${txn.type === 'payment' ? '-' : '+'}KSh ${(txn.amount || 0).toLocaleString()}
+                        </p>
+                        <span class="status-badge ${txn.status === 'completed' ? 'success' : txn.status === 'pending' ? 'warning' : 'error'}">
+                            ${txn.status}
+                        </span>
+                    </div>
+                    <button onclick="viewReceipt('${txn.id}')" class="btn-secondary ml-4">
+                        <i class="fas fa-receipt"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function filterHistory(type, element) {
+            document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
+            element.classList.add('active');
+
+            if (type === 'all') {
+                renderTransactions(paymentHistory);
+            } else {
+                const filtered = paymentHistory.filter(t => t.type === type);
+                renderTransactions(filtered);
+            }
+        }
+
+        function applyHistoryFilter() {
+            const startDate = document.getElementById('historyStartDate').value;
+            const endDate = document.getElementById('historyEndDate').value;
+
+            let filtered = paymentHistory;
+            if (startDate) {
+                filtered = filtered.filter(t => t.date >= startDate);
+            }
+            if (endDate) {
+                filtered = filtered.filter(t => t.date <= endDate);
+            }
+            renderTransactions(filtered);
+        }
+
+        // Refund Functions
+        async function loadRefunds() {
+            try {
+                const refundList = await api.getRefunds();
+                refunds = refundList || [];
+                renderRefunds(refunds);
+            } catch (error) {
+                console.error('Error loading refunds:', error);
+                // Demo data
+                refunds = [
+                    { id: 'ref_001', amount: 5000, status: 'completed', date: '2024-01-08', bookingId: 'BK003', method: 'M-Pesa' },
+                    { id: 'ref_002', amount: 12000, status: 'pending', date: '2024-01-18', bookingId: 'BK005', method: 'Card' }
+                ];
+                renderRefunds(refunds);
+            }
+        }
+
+        function renderRefunds(refundList) {
+            const container = document.getElementById('refundsList');
+            if (!refundList || refundList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No refund requests</p>';
+                return;
+            }
+
+            container.innerHTML = refundList.map(refund => `
+                <div class="transaction-row">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-yellow-100">
+                            <i class="fas fa-undo text-yellow-500"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium">Refund #${refund.id}</p>
+                            <p class="text-sm text-gray-500">Booking: ${refund.bookingId} | ${refund.date}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-green-500">+KSh ${(refund.amount || 0).toLocaleString()}</p>
+                        <span class="status-badge ${refund.status === 'completed' ? 'success' : refund.status === 'pending' ? 'warning' : 'error'}">
+                            ${refund.status}
+                        </span>
+                        <p class="text-xs text-gray-500">via ${refund.method}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Receipt Functions
+        function viewReceipt(transactionId) {
+            selectedTransactionId = transactionId;
+            document.getElementById('receiptModal').classList.add('active');
+            
+            // Load receipt data
+            const txn = paymentHistory.find(t => t.id === transactionId);
+            if (txn) {
+                document.getElementById('receiptContent').innerHTML = `
+                    <div class="text-left border rounded-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold">ViewOnce Airbnb</h3>
+                                <p class="text-gray-500">Nairobi, Kenya</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-2xl">RECEIPT</p>
+                                <p class="text-gray-500">${txn.id}</p>
+                            </div>
+                        </div>
+                        <div class="border-t pt-4 mb-4">
+                            <p class="text-gray-500">Date: ${txn.date}</p>
+                            <p class="text-gray-500">Description: ${txn.description}</p>
+                        </div>
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between text-lg">
+                                <span>Amount:</span>
+                                <span class="font-bold">KSh ${(txn.amount || 0).toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between text-lg">
+                                <span>Status:</span>
+                                <span class="status-badge ${txn.status === 'completed' ? 'success' : 'warning'}">${txn.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function downloadReceipt() {
+            try {
+                await api.downloadReceipt(selectedTransactionId, 'pdf');
+                alert('Receipt downloaded!');
+            } catch (error) {
+                alert('Download functionality coming soon!');
+            }
+        }
+
+        async function emailReceipt() {
+            try {
+                await api.emailReceipt(selectedTransactionId, localStorage.getItem('userEmail'));
+                alert('Receipt sent to your email!');
+            } catch (error) {
+                alert('Email functionality coming soon!');
+            }
+        }
+
+        // Modal Functions
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modals on backdrop click
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+            backdrop.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'welcome.html';
+        }
+
+        // Format card number input
+        document.getElementById('cardNumber')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{4})/g, '$1 ').trim();
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>

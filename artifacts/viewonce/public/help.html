@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & Support - Airbnb Customer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="store.js"></script>
+    <script src="api.js"></script>
+    <script src="router.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #6366f1; --glass-bg: rgba(255, 255, 255, 0.15); --glass-border: rgba(255, 255, 255, 0.3); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #667eea, #764ba2);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .glass { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+        .glass-hover { transition: all 0.3s ease; }
+        .glass-hover:hover { background: rgba(255, 255, 255, 0.25); transform: translateY(-5px); }
+        .btn-neon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 50px; padding: 12px 28px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; }
+        .btn-neon:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6); }
+        .help-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-radius: 20px; transition: all 0.3s ease; cursor: pointer; }
+        .help-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15); }
+        header { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
+        details { background: rgba(255, 255, 255, 0.5); border-radius: 12px; margin-bottom: 8px; }
+        summary { padding: 16px; cursor: pointer; font-weight: 600; border-radius: 12px; }
+        details[open] summary { border-bottom: 1px solid rgba(0,0,0,0.1); border-radius: 12px 12px 0 0; }
+        .contact-btn { background: rgba(255, 255, 255, 0.2); border-radius: 16px; padding: 16px; transition: all 0.3s ease; }
+        .contact-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-3px); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="w-full flex items-center justify-between px-6 py-4 glass fixed top-0 z-50">
+        <div class="flex items-center gap-4">
+            <button onclick="window.location.href='customer-dashboard.html'" class="text-white hover:text-gray-200 font-medium transition">← Back to Dashboard</button>
+            <h1 class="font-bold text-xl text-white drop-shadow-lg">Help & Support</h1>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto pt-24 px-6 pb-12">
+        <div class="glass p-8">
+            <h2 class="text-4xl font-bold text-white mb-6">How can we help you?</h2>
+
+            <!-- Quick Help Categories -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="help-card glass-hover p-6 text-center" onclick="showHelpCategory('booking')">
+                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">📅</div>
+                    <h3 class="font-bold text-gray-800">Booking Issues</h3>
+                    <p class="text-gray-600 text-sm mt-2">Problems with reservations</p>
+                </div>
+                <div class="help-card glass-hover p-6 text-center" onclick="showHelpCategory('payment')">
+                    <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">💳</div>
+                    <h3 class="font-bold text-gray-800">Payment</h3>
+                    <p class="text-gray-600 text-sm mt-2">Refunds & billing</p>
+                </div>
+                <div class="help-card glass-hover p-6 text-center" onclick="showHelpCategory('host')">
+                    <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">🏠</div>
+                    <h3 class="font-bold text-gray-800">Host Info</h3>
+                    <p class="text-gray-600 text-sm mt-2">Contact hosts</p>
+                </div>
+                <div class="help-card glass-hover p-6 text-center" onclick="showHelpCategory('account')">
+                    <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">👤</div>
+                    <h3 class="font-bold text-gray-800">Account</h3>
+                    <p class="text-gray-600 text-sm mt-2">Profile & settings</p>
+                </div>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-bold text-white mb-4">Frequently Asked Questions</h3>
+                <div class="space-y-3">
+                    <details class="glass p-4">
+                        <summary class="font-semibold text-gray-800">How do I cancel a booking?</summary>
+                        <p class="mt-3 text-gray-600 p-3">Go to "My Bookings" → Find your booking → Click "Cancel Booking". Review the cancellation policy before confirming.</p>
+                    </details>
+                    <details class="glass p-4">
+                        <summary class="font-semibold text-gray-800">What payment methods are accepted?</summary>
+                        <p class="mt-3 text-gray-600 p-3">Credit/Debit Cards, M-Pesa, PayPal, Bank Transfer, and Cash on Arrival. All payments are secure.</p>
+                    </details>
+                    <details class="glass p-4">
+                        <summary class="font-semibold text-gray-800">How do I contact my host?</summary>
+                        <p class="mt-3 text-gray-600 p-3">Use the Messages section in your dashboard. You can chat or call hosts directly.</p>
+                    </details>
+                    <details class="glass p-4">
+                        <summary class="font-semibold text-gray-800">How do refunds work?</summary>
+                        <p class="mt-3 text-gray-600 p-3">Refunds follow the property's cancellation policy. Full refunds for cancellations 24+ hours before check-in.</p>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Contact Support -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-bold text-white mb-4">Still need help? Contact Support</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="contact-btn glass text-center cursor-pointer" onclick="contactViaChat()">
+                        <div class="text-3xl mb-2">💬</div>
+                        <h4 class="font-bold text-white">Live Chat</h4>
+                        <p class="text-white/70 text-sm">Instant support</p>
+                    </div>
+                    <div class="contact-btn glass text-center cursor-pointer" onclick="contactViaEmail()">
+                        <div class="text-3xl mb-2">📧</div>
+                        <h4 class="font-bold text-white">Email</h4>
+                        <p class="text-white/70 text-sm">support@airbnb.co.ke</p>
+                    </div>
+                    <div class="contact-btn glass text-center cursor-pointer" onclick="contactViaPhone()">
+                        <div class="text-3xl mb-2">📞</div>
+                        <h4 class="font-bold text-white">Phone</h4>
+                        <p class="text-white/70 text-sm">+254 700 123 456</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!isLoggedIn || user.role !== 'customer') {
+                window.location.href = 'login-signup.html';
+            }
+        });
+
+        function showHelpCategory(category) {
+            alert('Showing ' + category + ' help content. This would scroll to the relevant section.');
+        }
+
+        function contactViaChat() { alert('Opening live chat...'); }
+        function contactViaEmail() { window.location.href = 'mailto:support@airbnb.co.ke?subject=Support Request'; }
+        function contactViaPhone() { window.location.href = 'tel:+254700123456'; }
+    </script>
+</body>
+</html>

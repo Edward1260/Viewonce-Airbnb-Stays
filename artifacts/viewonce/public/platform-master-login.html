@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Master Login | ViewOnce</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <style>
+        body { background: radial-gradient(circle at top right, #1a1a2e, #16213e); min-height: 100vh; display: flex; align-items: center; justify-content: center; color: white; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
+        .master-glow { box-shadow: 0 0 30px rgba(79, 70, 229, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="max-w-md w-full p-8 glass-card master-glow">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">Platform Master</h1>
+            <p class="text-gray-400 mt-2">Secure Gateway Access</p>
+        </div>
+
+        <div id="login-error" class="mb-4 text-red-400 text-sm hidden bg-red-900/20 p-3 rounded-lg border border-red-500/30"></div>
+
+        <form id="master-login-form" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Master Email</label>
+                <input type="email" id="email" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Security Key</label>
+                <input type="password" id="password" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+            </div>
+            <button type="submit" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all transform hover:scale-[1.02]">
+                Initialize Access
+            </button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('master-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('login-error');
+            const btn = document.getElementById('submit-btn');
+            
+            errorDiv.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Verifying Credentials...';
+
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                const data = await api.login({ email, password });
+
+                localStorage.setItem('token', data.session.access_token);
+                localStorage.setItem('refreshToken', data.session.refresh_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('isLoggedIn', 'true');
+
+                // Backend verification of the role for extra security
+                const verify = await api.verifyMasterRole();
+                if (!verify || !verify.isMaster) {
+                    localStorage.clear();
+                    throw new Error("Access Denied: You do not have Platform Master privileges.");
+                }
+
+                window.location.href = 'platform-master-hub';
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Initialize Access';
+            }
+        });
+
+        // Auto-redirect if already logged in as master
+        window.addEventListener('load', () => {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (localStorage.getItem('isLoggedIn') === 'true' && (user.role === 'platform_master' || user.role === 'platform_master_hub' || user.role === 'super_admin')) {
+                window.location.href = 'platform-master-hub';
+            }
+        });
+    </script>
+</body>
+</html>
