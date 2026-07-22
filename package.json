@@ -1,48 +1,19 @@
 {
-  "name": "viewonce-airbnb-stays",
-  "version": "1.0.0",
-  "description": "Airbnb-like property booking platform - Frontend PWA",
-  "engines": {
-    "node": "20.x"
-  },
+  "name": "workspace",
+  "version": "0.0.0",
+  "license": "MIT",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "vercel-build": "npm run build",
-    "minify-styles": "tailwindcss -i ./styles.css -o ./public/styles.min.css --minify",
-    "build-css": "tailwindcss -i ./input.css -o ./app/globals.css --minify",
-    "start": "next start",
-    "lint": "next lint",
-    "preview": "npx serve -p 3000 .",
-    "deploy": "npm run build && vercel --prod",
-    "postinstall": "npx update-browserslist-db@latest"
+    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+  },
+  "private": true,
+  "dependencies": {
+    "@replit/connectors-sdk": "^0.4.1"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.0"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.99.3",
-    "@types/leaflet": "^1.9.21",
-    "@types/node": "^22.10.0",
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
-    "autoprefixer": "^10.4.20",
-    "chart.js": "^4.5.1",
-    "eslint": "^9.19.0",
-    "eslint-config-next": "^15.5.14",
-    "jose": "^5.9.6",
-    "leaflet": "^1.9.4",
-    "lucide-react": "^0.294.0",
-    "next": "^15.5.14",
-    "postcss": "^8.4.49",
-    "prettier": "^3.8.1",
-    "qrcode": "^1.5.4",
-    "react": "^18.3.1",
-    "react-chartjs-2": "^5.3.1",
-    "react-dom": "^18.3.1",
-    "react-leaflet": "^4.2.1",
-    "swr": "^2.4.1",
-    "typescript": "^5.7.2"
+    "prettier": "^3.9.5",
+    "typescript": "~5.9.3"
   }
 }
