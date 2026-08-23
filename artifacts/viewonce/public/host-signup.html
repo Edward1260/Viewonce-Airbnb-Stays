@@ -478,11 +478,9 @@
                 
             } catch (error) {
                 console.error('Signup error:', error);
-                
-                // Fallback to demo mode
-                console.log('Using demo mode');
-                
-                handleSuccessfulSignup(null, name, email, 'host', true); // Pass true for demo
+                alert(error.message || 'Signup failed. Please use a valid invitation and try again.');
+                btn.disabled = false;
+                btn.textContent = 'Create Host Account';
             }
         }
 

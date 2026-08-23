@@ -1,0 +1,1 @@
+- [Invitation security](invitation-security.md) — privileged accounts require server-issued, single-use, expiring invitations.

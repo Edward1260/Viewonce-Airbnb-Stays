@@ -3447,11 +3447,6 @@
         }
     }
     
-    // Generate unique invitation token
-    function generateInviteToken() {
-        return 'invite_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-    }
-    
     // Send host invitation
     async function sendHostInvitation(event) {
         event.preventDefault();
@@ -3476,20 +3471,6 @@
                 document.getElementById('whatsappBtn').style.opacity = '1';
             }
             
-            // Store invitation data in localStorage for demo purposes
-            const invitations = JSON.parse(localStorage.getItem('hostInvitations') || '[]');
-            invitations.push({
-                id: response.token, // Use the token as ID
-                name: name,
-                email: email,
-                phone: phone,
-                message: message,
-                link: inviteLink,
-                createdAt: new Date().toISOString(),
-                status: 'pending'
-            });
-            localStorage.setItem('hostInvitations', JSON.stringify(invitations));
-        
             // Show success message
             showToast('Invitation link generated! You can now share it via email or WhatsApp.', 'success');
             
@@ -3573,31 +3554,37 @@
     }
     
     // Generate dashboard link
-    function generateLink(type) {
+    async function generateLink(type) {
         const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-        let link = ''; // The generated URL
+        let link = '';
         let linkInputId = ''; // The ID of the input field to display the link
         let whatsappBtnId = ''; // The ID of the WhatsApp button
         
         switch(type) {
             case 'admin':
-                link = baseUrl + 'admin-signup.html?role=admin&token=' + generateInviteToken();
                 linkInputId = 'adminLink';
                 whatsappBtnId = 'whatsappAdminBtn';
                 break;
             case 'host':
-                link = baseUrl + 'host-signup.html?role=host&token=' + generateInviteToken();
                 linkInputId = 'hostLink';
                 whatsappBtnId = 'whatsappHostBtn';
                 break;
             case 'support':
-                link = baseUrl + 'support-signup.html?role=support&token=' + generateInviteToken();
                 linkInputId = 'supportLink';
                 whatsappBtnId = 'whatsappSupportBtn';
                 break;
             default:
                 showToast('Invalid link type specified.', 'error');
                 return;
+        }
+
+        try {
+            const invitation = await api.createInvitation({ role: type, expiresInHours: 72 });
+            link = `${baseUrl}auth.html?form=signup&role=${encodeURIComponent(type)}&token=${encodeURIComponent(invitation.token)}`;
+        } catch (error) {
+            console.error('Failed to create invitation:', error);
+            showToast(error?.message || 'Failed to create invitation. Please try again.', 'error');
+            return;
         }
         
         // Display the generated link

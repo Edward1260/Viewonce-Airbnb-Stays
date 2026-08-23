@@ -1,87 +1,138 @@
-import { Router, type IRouter } from "express";
-import fs from "fs";
-import path from "path";
+import { Router, type IRouter, type Request, type Response } from "express";
+import crypto from "node:crypto";
+import { db } from "@workspace/db";
+import { invitationTokensTable } from "@workspace/db";
+import { and, eq, gt, isNull } from "drizzle-orm";
+import { requireAuth, type JwtPayload } from "../lib/auth.js";
 
 const router: IRouter = Router();
 
-/**
- * POST /api/validate-invite
- * Ported from pages/api/validate-invite.js.
- * Validates one-time invite tokens — tries Supabase edge function when env vars
- * are set, otherwise falls back to a local JSON file check.
- */
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function currentUser(req: Request): JwtPayload {
+  return (req as Request & { user: JwtPayload }).user;
+}
+
+function canManageInvites(user: JwtPayload): boolean {
+  return ["platform_master_hub", "super_admin", "platform_master"].includes(user.role);
+}
+
+// Public validation is intentionally read-only. Consumption happens only during
+// a successful privileged signup, so refreshing an invite page cannot burn it.
 router.post("/validate-invite", async (req, res) => {
+  const { token, action = "check" } = req.body ?? {};
+  if (typeof token !== "string" || token.length < 32) {
+    res.status(400).json({ valid: false, reason: "missing_or_invalid_token" });
+    return;
+  }
+
   try {
-    const { token, action = "check" } = req.body ?? {};
-    if (!token) {
-      res.status(400).json({ valid: false, reason: "missing_token" });
+    const [invite] = await db
+      .select()
+      .from(invitationTokensTable)
+      .where(
+        and(
+          eq(invitationTokensTable.token_hash, hashToken(token)),
+          isNull(invitationTokensTable.used_at),
+          gt(invitationTokensTable.expires_at, new Date()),
+        ),
+      )
+      .limit(1);
+
+    if (!invite) {
+      res.json({ valid: false, reason: "invalid_or_expired_invite" });
       return;
     }
 
-    const SUPABASE_URL = process.env["SUPABASE_URL"] ?? process.env["NEXT_PUBLIC_SUPABASE_URL"] ?? "";
-    const SUPABASE_ANON_KEY = process.env["SUPABASE_ANON_KEY"] ?? process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"] ?? "";
-
-    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-      const fnUrl = SUPABASE_URL.replace(/\/$/, "") + "/functions/v1/validate-invite-token";
-      const r = await fetch(fnUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ token, action }),
-      });
-      if (!r.ok) {
-        res.status(502).json({ valid: false, reason: "supabase_function_failed" });
+    if (action === "consume") {
+      const [consumed] = await db
+        .update(invitationTokensTable)
+        .set({ used_at: new Date() })
+        .where(
+          and(
+            eq(invitationTokensTable.id, invite.id),
+            isNull(invitationTokensTable.used_at),
+          ),
+        )
+        .returning();
+      if (!consumed) {
+        res.json({ valid: false, reason: "invite_already_used" });
         return;
       }
-      const data = await r.json() as Record<string, unknown>;
-      res.status(200).json({
-        valid: !!(data && (data["valid"] || data["ok"] || data["isValid"] || data["tokenValid"])),
-        detail: data,
-      });
+      res.json({ valid: true, role: invite.role, email: invite.email, reason: "invite_consumed" });
       return;
     }
 
-    // Local fallback: check one-time invite file
-    try {
-      const invitePath = path.join(process.cwd(), "data", "one_time_invite.json");
-      if (fs.existsSync(invitePath)) {
-        const raw = fs.readFileSync(invitePath, "utf8");
-        const obj = JSON.parse(raw || "{}") as { token?: string; used?: boolean; usedAt?: string };
-        if (obj.token && obj.token === token) {
-          if (obj.used) {
-            res.status(200).json({ valid: false, reason: "token_already_used" });
-            return;
-          }
-          if (action === "consume") {
-            obj.used = true;
-            obj.usedAt = new Date().toISOString();
-            try {
-              fs.writeFileSync(invitePath, JSON.stringify(obj, null, 2), "utf8");
-            } catch {
-              req.log.error("Failed to write invite file");
-            }
-            res.status(200).json({ valid: true, reason: "one_time_token_consumed" });
-            return;
-          }
-          res.status(200).json({ valid: true, reason: "one_time_token_valid" });
-          return;
-        }
-      }
-    } catch (e) {
-      req.log.error({ err: e }, "one-time invite check failed");
-    }
-
-    // Fail closed: no Supabase configured and no matching local invite file.
-    // We do not accept arbitrary tokens by length or prefix — that would bypass
-    // the one-time invite flow for privileged platform-master-hub signup paths.
-    res.status(200).json({ valid: false, reason: "no_upstream_available" });
-  } catch (e) {
-    req.log.error({ err: e }, "validate-invite error");
-    res.status(500).json({ valid: false, error: (e as Error).message });
+    res.json({ valid: true, role: invite.role, email: invite.email, reason: "invite_valid" });
+  } catch (error) {
+    req.log.error({ err: error }, "Invite validation failed");
+    res.status(500).json({ valid: false, reason: "invite_service_unavailable" });
   }
+});
+
+// Only the platform master can issue host/admin/support invitation links.
+router.post("/invitations", requireAuth, async (req: Request, res: Response) => {
+  const user = currentUser(req);
+  if (!canManageInvites(user)) {
+    res.status(403).json({ error: "Only the Platform Master can issue invitations" });
+    return;
+  }
+
+  const { email = null, role, expiresInHours = 72 } = req.body ?? {};
+  if (!["host", "admin", "support"].includes(String(role))) {
+    res.status(400).json({ error: "role must be host, admin, or support" });
+    return;
+  }
+  const hours = Number(expiresInHours);
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 720) {
+    res.status(400).json({ error: "expiresInHours must be between 1 and 720" });
+    return;
+  }
+
+  try {
+    const token = crypto.randomBytes(32).toString("base64url");
+    const [invite] = await db
+      .insert(invitationTokensTable)
+      .values({
+        token_hash: hashToken(token),
+        email: email ? String(email).toLowerCase().trim() : null,
+        role: String(role),
+        invited_by: user.userId,
+        expires_at: new Date(Date.now() + hours * 60 * 60 * 1000),
+      })
+      .returning({ id: invitationTokensTable.id, role: invitationTokensTable.role, email: invitationTokensTable.email, expires_at: invitationTokensTable.expires_at });
+
+    res.status(201).json({
+      ...invite,
+      token,
+      invitePath: `/auth.html?invite=${encodeURIComponent(token)}&role=${encodeURIComponent(String(role))}`,
+    });
+  } catch (error) {
+    req.log.error({ err: error }, "Invitation creation failed");
+    res.status(500).json({ error: "Failed to create invitation" });
+  }
+});
+
+router.get("/invitations", requireAuth, async (req: Request, res: Response) => {
+  const user = currentUser(req);
+  if (!canManageInvites(user)) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const invites = await db
+    .select({
+      id: invitationTokensTable.id,
+      email: invitationTokensTable.email,
+      role: invitationTokensTable.role,
+      expires_at: invitationTokensTable.expires_at,
+      used_at: invitationTokensTable.used_at,
+      created_at: invitationTokensTable.created_at,
+    })
+    .from(invitationTokensTable)
+    .orderBy(invitationTokensTable.created_at);
+  res.json(invites);
 });
 
 export default router;

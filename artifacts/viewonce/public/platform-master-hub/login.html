@@ -445,26 +445,26 @@
                 
                 if (data && data.user) {
                     if (rememberMe) {
-                        localStorage.setItem('token', data.session.access_token);
-                        localStorage.setItem('refreshToken', data.session.refresh_token);
+                        localStorage.setItem('token', data.token || data.accessToken);
+                        localStorage.setItem('refreshToken', data.refreshToken || '');
                         localStorage.setItem('user', JSON.stringify(data.user));
                         localStorage.setItem('isLoggedIn', 'true');
                     } else {
-                        sessionStorage.setItem('token', data.session.access_token);
-                        sessionStorage.setItem('refreshToken', data.session.refresh_token);
+                        sessionStorage.setItem('token', data.token || data.accessToken);
+                        sessionStorage.setItem('refreshToken', data.refreshToken || '');
                         sessionStorage.setItem('user', JSON.stringify(data.user));
                         localStorage.setItem('isLoggedIn', 'true');
                     }
                     
                     // Secure Backend Verification
                     const verify = await api.verifyMasterRole();
-                    if (!verify || !verify.isMaster) {
+                    if (!verify || !verify.valid) {
                         localStorage.clear();
                         sessionStorage.clear();
                         throw new Error("Access Denied: You do not have Platform Master privileges.");
                     }
 
-                    window.location.href = '/platform-master-hub';
+                    window.location.href = '/platform-master-hub/dashboard.html';
                 } else {
                     throw new Error('Invalid email or password');
                 }

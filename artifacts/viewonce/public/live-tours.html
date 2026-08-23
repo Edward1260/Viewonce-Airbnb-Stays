@@ -185,7 +185,7 @@
                     // Resolve video URL
                     let videoUrl = tour.videoUrl;
                     if (videoUrl && !videoUrl.startsWith('http')) {
-                        const backendUrl = 'http://localhost:3001';
+                        const backendUrl = (window.config && window.config.API_BASE_URL) || '/api';
                         const cleanPath = videoUrl.startsWith('/') ? videoUrl.substring(1) : videoUrl;
                         if (cleanPath.startsWith('uploads/')) {
                             videoUrl = `${backendUrl}/${cleanPath}`;

@@ -54,19 +54,19 @@
 
                 const data = await api.login({ email, password });
 
-                localStorage.setItem('token', data.session.access_token);
-                localStorage.setItem('refreshToken', data.session.refresh_token);
+                localStorage.setItem('token', data.token || data.accessToken);
+                localStorage.setItem('refreshToken', data.refreshToken || '');
                 localStorage.setItem('user', JSON.stringify(data.user));
                 localStorage.setItem('isLoggedIn', 'true');
 
                 // Backend verification of the role for extra security
                 const verify = await api.verifyMasterRole();
-                if (!verify || !verify.isMaster) {
+                if (!verify || !verify.valid) {
                     localStorage.clear();
                     throw new Error("Access Denied: You do not have Platform Master privileges.");
                 }
 
-                window.location.href = 'platform-master-hub';
+                window.location.href = '/platform-master-hub/dashboard.html';
             } catch (err) {
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');

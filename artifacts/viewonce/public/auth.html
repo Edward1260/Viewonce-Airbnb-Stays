@@ -1044,7 +1044,6 @@
                                 <div class="form-group">
                                     <select id="signupRole" class="form-input form-select" required>
                                         <option value="customer">I want to stay (Customer)</option>
-                                        <option value="host">I want to host (Host)</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -1505,6 +1504,7 @@
                     lastName,
                     phone: '', // Customer role usually doesn't have phone in auth.html
                     role: role,
+                    invitationToken: localStorage.getItem('invitationToken') || new URLSearchParams(window.location.search).get('token') || undefined,
                     agreeTerms: agreeTerms.checked // Pass T&C acceptance to backend
                 });
                 

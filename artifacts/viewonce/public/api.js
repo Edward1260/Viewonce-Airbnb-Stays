@@ -41,7 +41,7 @@ const api = {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(errorData.message || `API Error: ${response.statusText}`);
+        throw new Error(errorData.error || errorData.message || `API Error: ${response.statusText}`);
       }
       return await response.json();
     } catch (error) {
@@ -52,41 +52,26 @@ const api = {
     }
   },
 
-  // Authentication via Supabase Auth
+  // Authentication via Express API (no Supabase required)
   login: async (credentials) => {
     if (!isBrowser) throw new Error('Auth requires browser environment');
-    
-    const { data, error } = await window.supabase.auth.signInWithPassword(credentials);
-    if (error) throw error;
-
-    // Fetch associated role from profiles table
-    const { data: profile } = await window.supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .single();
-
-    return { 
-      user: { ...data.user, role: profile?.role || 'customer' }, 
-      session: data.session 
-    };
+    const data = await api.request('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+    return data;
   }, // End login
 
-  // Standard Signup (matching script-fixed.js expectations)
+  // Standard Signup — delegates to /auth/signup
   signup: async (userData) => {
     if (!isBrowser) throw new Error('Auth requires browser environment');
-
-    const { data, error } = await window.supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
-      options: {
-        data: { full_name: userData.name, phone: userData.phone }
-      }
+    const data = await api.request('/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
     });
-    if (error) throw error;
-
-    // Default role for new signups is customer
-    return { user: { ...data.user, role: 'customer' }, session: data.session };
+    return data;
   },
 
   // Step 1: Request OTP for Signup
@@ -122,14 +107,20 @@ const api = {
   logout: async () => {
     if (!isBrowser) return;
 
-    // 1. Sign out from Supabase if applicable
-    if (window.supabase?.auth) await window.supabase.auth.signOut();
+    // Tell the API server to invalidate (no-op for stateless JWTs)
+    try {
+      await api.request('/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    } catch { /* ignore — clear client state regardless */ }
 
-    // 2. Clear LocalStorage for the legacy frontend parts
-    localStorage.clear();
+    // Clear all local auth state
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('airbnb_app_state');
 
-    // 3. Redirect to the Next.js logout handler to clear cookies
-    window.location.href = '/logout';
+    // Redirect to auth page
+    window.location.href = '/auth.html';
   }, // End logout
 
   // Verify platform master role via secure endpoint
@@ -141,20 +132,7 @@ const api = {
 
   getProfile: async (token = null) => {
     if (!isBrowser && !token) return null;
-    
-    // If token is provided but we are on server, we typically use the /users/me endpoint
-    if (token || !window.supabase) {
-        return api.request('/users/me', { headers: api._getAuthHeaders(token) });
-    }
-
-    const { data: { user } } = await window.supabase.auth.getUser();
-    if (!user) return null;
-    const { data: profile } = await window.supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    return { ...user, ...profile };
+    return api.request('/users/me', { headers: api._getAuthHeaders(token) });
   },
 
   // Users
@@ -344,14 +322,11 @@ const api = {
   },
 
   getKnowledgeBaseArticles: async () => {
-    if (!isBrowser || !window.supabase) return [];
-
-    const { data, error } = await window.supabase
-      .from('knowledge_base')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
+    try {
+      return await api.request('/knowledge-base');
+    } catch {
+      return [];
+    }
   },
 
   createKnowledgeBaseArticle: async (articleData) => {
@@ -453,17 +428,13 @@ const api = {
     return api.request('/payouts', { method: 'POST', body: JSON.stringify(payoutData) });
   },
 
-  // Trigger M-Pesa Payout via Edge Function
+  // Trigger Payout via API
   processPayout: async (payoutId, token = null) => {
-    if (!isBrowser && !token) throw new Error('Token required for server-side payout processing');
-    if (!window.supabase) throw new Error('Supabase client unavailable');
-
-    const { data, error } = await window.supabase.functions.invoke('mpesa-payout', {
-      body: { payoutId }
+    return api.request(`/payouts/${payoutId}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
+      body: JSON.stringify({ payoutId })
     });
-    
-    if (error) throw error;
-    return data;
   },
 
   // Admin: Get all refund requests
@@ -532,25 +503,26 @@ const api = {
     });
   }, // End deleteReview
 
-  // Real-time Subscriptions using Supabase Channels
+  // Real-time property refresh via polling (Supabase not required)
   registerPropertyRefreshCallback: (cb) => {
-    // This assumes Supabase client is initialized and available globally
-    if (isBrowser && window.supabase?.channel) {
-      return window.supabase
-        .channel('public:properties')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, payload => cb(payload))
-        .subscribe();
-    }
-    return null;
+    if (!isBrowser || typeof cb !== 'function') return null;
+    // Poll every 30 seconds as a lightweight alternative to Supabase channels
+    const interval = setInterval(async () => {
+      try {
+        const props = await api.getProperties({}, true);
+        cb({ new: props });
+      } catch { /* ignore */ }
+    }, 30000);
+    return { unsubscribe: () => clearInterval(interval) };
   },
 
   validateInviteToken: async (token) => {
-    if (!isBrowser || !window.supabase) return null;
-
-    const { data, error } = await window.supabase.functions.invoke('validate-invite-token', {
-      body: { token }
+    const data = await api.request('/validate-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, action: 'check' })
     });
-    if (error) throw error;
+    if (!data.valid) throw new Error('Invalid or expired invite token');
     return data;
   },
 }; // End api object

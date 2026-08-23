@@ -452,17 +452,11 @@
                 
             } catch (error) {
                 console.error('Signup error:', error);
-                
-                // Fallback to demo mode
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('user', JSON.stringify({ name, email, phone, role: 'support' }));
-                localStorage.setItem('token', 'demo-support-token');
-                localStorage.removeItem('invitationToken');
-                localStorage.removeItem('invitationRole');
-                
-                setTimeout(() => {
-                    window.location.href = 'support-dashboard-upgraded.html';
-                }, 500);
+                alert(error?.message || 'Support signup failed. Please check your invitation and try again.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Create Support Account';
+                }
             }
         }
 

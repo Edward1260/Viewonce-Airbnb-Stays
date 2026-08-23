@@ -1,40 +1,34 @@
-// Configuration - VERSION 11.0 - Modern Environment & Security
-const isLocal = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+// ViewOnce Configuration — v12.0
+// Dynamically resolves the API base URL for any environment:
+//   • localhost dev  → Express server on :8080
+//   • Replit dev     → Vite dev-server proxy forwards /api → :8080
+//   • Production     → same-origin /api (deployed API server)
+(function () {
+  'use strict';
 
-const config = {
-    // API Configuration - Dynamic detection for Vercel deployment
-    // Uses NEXT_PUBLIC_ prefix for Next.js/Vercel compatibility
-    // For Vercel deployment, ensure VITE_APP_API_URL is set as an environment variable during build,
-    // or manually replace this placeholder with your deployed backend API URL.
-    // Example: https://your-backend-api.vercel.app/api/v1
-    API_BASE_URL: (typeof window !== 'undefined' && window.VITE_APP_API_URL) ||
-        (isLocal ? 'http://localhost:3001/api/v1' : 'https://your-api-production-url.com/api/v1'),
+  var host = typeof window !== 'undefined' ? window.location.hostname : '';
+  var isLocalhost = host === 'localhost' || host === '127.0.0.1';
 
-    // Frontend runs on port 9002
+  var config = {
+    // Relative /api works in ALL environments:
+    //   - Vite dev: proxied to Express :8080 (see vite.config.ts)
+    //   - Production static: served behind the same Replit proxy as the API
+    API_BASE_URL: isLocalhost ? 'http://localhost:8080/api' : '/api',
+
     FRONTEND_PORT: 9002,
-
-    // Environment
-    ENV: isLocal ? 'development' : 'production',
-
-    // Enable debug logging in development
-    DEBUG: isLocal,
-    TIMEOUT: 15000, // API request timeout in ms
-    
-    // Force cache refresh - VERSION 10
-    VERSION: '11.0.0-modern-core',
+    ENV: isLocalhost ? 'development' : 'production',
+    DEBUG: isLocalhost,
+    TIMEOUT: 15000,
+    VERSION: '12.0.0',
     TIMESTAMP: Date.now(),
-    CACHE_BUSTER: Math.random(),
-    FORCE_REFRESH: true
-};
+  };
 
-// Make available globally immediately
-if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined') {
     window.config = config;
-    console.log('🔧 Config loaded:', config);
-}
+    if (config.DEBUG) console.log('🔧 Config loaded:', config);
+  }
 
-// Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
+  if (typeof module !== 'undefined' && module.exports) {
     module.exports = config;
-}
+  }
+})();

@@ -132,14 +132,14 @@
                 user = JSON.parse(user);
                 
                 // Check if user is super_admin
-                if (user.role !== 'super_admin') {
+                if (!['platform_master_hub', 'super_admin', 'platform_master'].includes(user.role)) {
                     // Not authorized, show error
                     app.innerHTML = `
                         <div class="error-container">
                             <div class="error-icon">🚫</div>
                             <div class="error-title">Access Denied</div>
                             <div class="error-message">You don't have permission to access this dashboard. Only super admins can access this page.</div>
-                            <a href="login.html" class="btn">Login as Super Admin</a>
+                            <a href="login.html" class="btn">Login as Platform Master</a>
                         </div>
                     `;
                     return;

@@ -420,7 +420,7 @@ async function apiCall(endpoint, options = {}) {
             return await window.api.request(endpoint, options);
         } else {
             // Fallback to direct fetch if api is not available
-            const baseURL = 'http://localhost:3001/api/v1';
+            const baseURL = (window.config && window.config.API_BASE_URL) || '/api';
             const url = `${baseURL}${endpoint}`;
             const token = localStorage.getItem('token');
             const headers = {

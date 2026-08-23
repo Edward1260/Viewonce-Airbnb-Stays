@@ -72,6 +72,14 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    proxy: {
+      // Forward all /api requests to the Express API server
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   preview: {
     port,
