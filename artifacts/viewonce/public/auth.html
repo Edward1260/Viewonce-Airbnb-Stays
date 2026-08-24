@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ViewOnce Stays - Login</title>
     <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
+    <script src="config.js"></script>
+    <script src="api.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
@@ -1113,7 +1115,10 @@
 
     <script>
         // Global API instance
-        const api = window.api || new API();
+        const api = window.api;
+        if (!api) {
+            throw new Error('Authentication API failed to load. Please refresh and try again.');
+        }
         
         // Role to Dashboard Mapping (Confirmed by user)
         const roleDashboardMap = {

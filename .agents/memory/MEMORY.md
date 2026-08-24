@@ -1,1 +1,2 @@
 - [Invitation security](invitation-security.md) — privileged accounts require server-issued, single-use, expiring invitations.
+- [Vite API proxy](vite-api-proxy.md) — match `/api/` rather than `/api` so the proxy does not swallow static files such as `api.js`.

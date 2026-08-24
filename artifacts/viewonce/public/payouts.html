@@ -594,25 +594,9 @@
         }
 
         function subscribeToPayoutUpdates() {
-            if (!window.supabase) return;
-            
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!user.id) return;
-
-            window.supabase
-                .channel('host-payouts')
-                .on('postgres_changes', { 
-                    event: '*', 
-                    schema: 'public', 
-                    table: 'payouts',
-                    filter: `host_id=eq.${user.id}`
-                }, (payload) => {
-                    loadPayoutData();
-                    if (payload.eventType === 'UPDATE') {
-                        showToast(`Payout status: ${payload.new.status}`);
-                    }
-                })
-                .subscribe();
+            // Refresh through the Express API instead of the removed Supabase
+            // realtime client.
+            window.setInterval(loadPayoutData, 30000);
         }
     </script>
 </body>

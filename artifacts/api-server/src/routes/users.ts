@@ -158,6 +158,34 @@ router.post("/support/tickets", requireAuth, async (req: Request, res: Response)
   }
 });
 
+router.patch("/support/tickets/:id", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!["admin", "support"].includes(user.role)) {
+      res.status(403).json({ error: "Only support staff can update tickets" });
+      return;
+    }
+    const id = String(req.params.id);
+    const allowed = ["status", "priority", "category"];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = String(req.body[key]);
+    }
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "At least one ticket field is required" });
+      return;
+    }
+    const [updated] = await db.update(supportTicketsTable).set(updates).where(eq(supportTicketsTable.id, id)).returning();
+    if (!updated) {
+      res.status(404).json({ error: "Ticket not found" });
+      return;
+    }
+    res.json(updated);
+  } catch {
+    res.status(500).json({ error: "Failed to update ticket" });
+  }
+});
+
 // ─── Knowledge base ───────────────────────────────────────────────────────────
 router.get("/knowledge-base", requireAuth, async (_req, res) => res.json([]));
 router.post("/knowledge-base", requireAuth, async (req: Request, res: Response) => res.status(201).json({ id: "stub", ...req.body }));
@@ -198,7 +226,6 @@ router.get("/system/performance", requireAuth, async (_req, res) => res.json({ c
 router.get("/system/audit-logs", requireAuth, async (_req, res) => res.json([]));
 router.get("/ai/analytics/insights", requireAuth, async (_req, res) => res.json({ insights: [] }));
 router.get("/refunds/stats", requireAuth, async (_req, res) => res.json({ total: 0, pending: 0 }));
-router.get("/invitations", requireAuth, async (_req, res) => res.json([]));
 router.get("/host-onboarding/status", requireAuth, async (_req, res) => res.json({ complete: false, steps: [] }));
 router.get("/auth/verify-master", requireAuth, async (req: Request, res) => {
   const user = (req as any).user;

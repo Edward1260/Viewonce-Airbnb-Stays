@@ -1084,7 +1084,7 @@
 
     <script>
         // API Configuration
-        const API_BASE_URL = 'http://localhost:3001/api/v1';
+        const API_BASE_URL = (window.config && window.config.API_BASE_URL) || '/api';
         
         // Welcoming Messages Animation
         const messages = document.querySelectorAll('.welcome-message');

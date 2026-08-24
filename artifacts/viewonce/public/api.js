@@ -234,12 +234,12 @@ const api = {
   },
 
   // Support API
-  getSupportStats: async () => { // Assuming backend provides aggregated stats
-    const tickets = await api.request('/support/tickets/stats');
+  getSupportStats: async () => {
+    const stats = await api.request('/support/tickets/stats');
     return {
-      activeCount: tickets.activeCount || 0,
-      resolvedCount: tickets.filter(t => t.status === 'resolved').length,
-      totalCount: tickets.length
+      activeCount: Number(stats.activeCount || 0),
+      resolvedCount: Number(stats.resolvedCount || 0),
+      totalCount: Number(stats.totalCount || 0)
     };
   },
 
@@ -273,6 +273,14 @@ const api = {
     const ticket = await api.request(`/support/tickets/${id}`);
     const comments = await api.request(`/support/tickets/${id}/comments`);
     return { ...ticket, comments };
+  },
+
+  updateSupportTicket: async (id, updates, token = null) => {
+    return api.request(`/support/tickets/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
+      body: JSON.stringify(updates)
+    });
   },
 
   addSupportComment: async (ticketId, { content, isInternal = false }, token = null) => {

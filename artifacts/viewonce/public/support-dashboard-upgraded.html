@@ -1628,20 +1628,11 @@
                 async function runAnalysis() {
                     showToast('Analyzing and categorizing tickets...', 'info');
                     try {
-                        // Fetch tickets that are still in the 'general' category
-                        const { data: tickets, error } = await window.supabase
-                            .from('support_tickets')
-                            .select('id, subject')
-                            .eq('category', 'general');
-
-                        if (error) throw error;
+                        const tickets = (await api.getSupportTickets()).filter(ticket => ticket.category === 'general');
 
                         for (const ticket of (tickets || [])) {
                             const { category } = await api.categorizeTicket(ticket.subject);
-                            await window.supabase
-                                .from('support_tickets')
-                                .update({ category })
-                                .eq('id', ticket.id);
+                            await api.updateSupportTicket(ticket.id, { category });
                         }
                         
                         showToast(`Successfully analyzed ${tickets?.length || 0} tickets.`, 'success');
@@ -2042,13 +2033,6 @@
                 return;
             }
             
-            if (typeof window.supabase === 'undefined') {
-                console.error('Supabase client not initialized');
-                showToast('Database connection failed. Please refresh.', 'error');
-                loadFallbackData();
-                return;
-            }
-
             try {
                 await Promise.all([
                     loadKPIData(),
@@ -2057,8 +2041,7 @@
                 ]);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
-                showToast(`Load error: ${error.message}. Using fallback data.`, 'warning');
-                loadFallbackData();
+                showToast(`Load error: ${error.message}. Please try again.`, 'error');
             }
         }
 
@@ -2311,11 +2294,20 @@
 
         // Load analytics
         async function loadAnalytics() {
-            // Category stats
-            document.getElementById('categoryBooking').textContent = Math.floor(Math.random() * 50 + 20);
-            document.getElementById('categoryPayment').textContent = Math.floor(Math.random() * 30 + 10);
-            document.getElementById('categoryProperty').textContent = Math.floor(Math.random() * 25 + 15);
-            document.getElementById('categoryAccount').textContent = Math.floor(Math.random() * 20 + 5);
+            try {
+                const tickets = await api.getSupportTickets();
+                const counts = tickets.reduce((result, ticket) => {
+                    const category = String(ticket.category || 'general').toLowerCase();
+                    result[category] = (result[category] || 0) + 1;
+                    return result;
+                }, {});
+                document.getElementById('categoryBooking').textContent = counts.booking || 0;
+                document.getElementById('categoryPayment').textContent = counts.payment || 0;
+                document.getElementById('categoryProperty').textContent = counts.property || 0;
+                document.getElementById('categoryAccount').textContent = counts.account || 0;
+            } catch (error) {
+                showToast('Analytics unavailable. Please try again.', 'error');
+            }
 
             // Initialize charts
             initializeCharts();
@@ -2664,20 +2656,14 @@
 
         // Subscriptions for Realtime UI Updates
         function subscribeToUpdates() {
-            window.supabase // Ensure window.supabase exists
-                .channel('schema-db-changes')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_tickets' }, (payload) => {
-                    showToast('New ticket received: ' + payload.new.subject, 'info');
+            // The Express API is the source of truth. Polling keeps this legacy
+            // static dashboard fresh without requiring a Supabase client.
+            if (window.api) {
+                window.setInterval(() => {
                     loadDashboardData();
                     if (currentPage === 'tickets') loadTickets();
-                })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_comments' }, (payload) => {
-                    if (activeTicketId === payload.new.ticket_id) {
-                        showToast('New comment on active ticket', 'info');
-                        viewTicket(activeTicketId);
-                    }
-                })
-                .subscribe();
+                }, 30000);
+            }
         }
 
         function selectChat(id) {
@@ -2704,13 +2690,12 @@
             showToast('Loading predictions...', 'info');
         }
 
-        // Load fallback data when API is unavailable
         function loadFallbackData() {
-            document.getElementById('activeTicketsCount').textContent = '0';
-            document.getElementById('resolutionRate').textContent = '89%';
-            document.getElementById('avgResponseTime').textContent = '24min';
-            document.getElementById('customerSatisfaction').textContent = '4.8';
-            document.getElementById('ticketBadge').textContent = '0';
+            ['activeTicketsCount', 'resolutionRate', 'avgResponseTime', 'customerSatisfaction', 'ticketBadge']
+                .forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = 'Unavailable';
+                });
         }
 
         // Sidebar functionality
