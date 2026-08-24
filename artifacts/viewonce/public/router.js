@@ -18,7 +18,7 @@
 
     navigate: function (path) {
       if (typeof path === 'string' && path.length > 0) {
-        window.location.href = path;
+        window.location.href = new URL(path.replace(/^\/+/, ''), document.baseURI).href;
       }
     },
 
@@ -35,7 +35,7 @@
   // navigateTo() helper: used by welcome.html and other pages for button navigation
   function navigateTo(path) {
     if (typeof path === 'string' && path.length > 0) {
-      window.location.href = path;
+      window.location.href = new URL(path.replace(/^\/+/, ''), document.baseURI).href;
     }
   }
 

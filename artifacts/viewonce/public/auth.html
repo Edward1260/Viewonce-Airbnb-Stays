@@ -1115,8 +1115,8 @@
 
     <script>
         // Global API instance
-        const api = window.api;
-        if (!api) {
+        const authApi = window.api;
+        if (!authApi) {
             throw new Error('Authentication API failed to load. Please refresh and try again.');
         }
         
@@ -1422,7 +1422,7 @@
                     throw new Error('Password must be at least 6 characters.');
                 }
 
-                const response = await api.login({ email, password });
+                const response = await authApi.login({ email, password });
                 
                 console.log('Login response:', response);
                 
@@ -1441,7 +1441,7 @@
 
                 // Ensure role is available for redirection
                 if (!user.role && response.accessToken) {
-                    const profile = await api.getProfile();
+                    const profile = await authApi.getProfile();
                     Object.assign(user, profile);
                 }
                 
@@ -1502,7 +1502,7 @@
                 const lastName = nameParts.slice(1).join(' ') || '';
 
                 // Call the actual API for signup
-                const response = await api.requestOtpSignup({
+                const response = await authApi.requestOtpSignup({
                     email,
                     password,
                     firstName,
@@ -1559,7 +1559,7 @@
             btn.textContent = 'Verifying...';
 
             try {
-                const response = await api.verifyOtpSignup(email, otp, sessionId);
+                const response = await authApi.verifyOtpSignup(email, otp, sessionId);
                 handleSuccessfulSignup(response, response.user.firstName + ' ' + response.user.lastName, email, response.user.role);
             } catch (error) {
                 showError('signup-error', error.message);
@@ -1595,7 +1595,7 @@
             const email = localStorage.getItem('signupEmailForOtp');
             const sessionId = localStorage.getItem('otpSessionId');
             try {
-                await api.resendOtp(email, sessionId);
+                await authApi.resendOtp(email, sessionId);
                 showSuccess('signup-error', 'A new OTP has been sent to your email.');
                 startResendTimer();
             } catch (error) {
