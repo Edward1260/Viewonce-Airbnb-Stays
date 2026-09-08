@@ -107,13 +107,9 @@
     <script>
         let selectedProperties = [];
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!isLoggedIn || user.role !== 'customer') {
-                window.location.href = 'auth.html';
-                return;
-            }
+        document.addEventListener('DOMContentLoaded', async function() {
+            const user = await api.requireCustomerSession();
+            if (!user) return;
             document.getElementById('wishlistPaymentModal').addEventListener('click', function(e) {
                 if (e.target === this) this.style.display = 'none';
             });

@@ -119,12 +119,9 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!isLoggedIn || user.role !== 'customer') {
-                window.location.href = 'login-signup.html';
-            }
+        document.addEventListener('DOMContentLoaded', async function() {
+            const user = await api.requireCustomerSession();
+            if (!user) return;
         });
 
         function showHelpCategory(category) {

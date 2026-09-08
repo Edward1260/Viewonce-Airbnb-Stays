@@ -197,11 +197,8 @@
 
         // Check authentication
         document.addEventListener('DOMContentLoaded', async function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (!isLoggedIn) {
-                window.location.href = 'login-signup.html';
-                return;
-            }
+            const user = await api.requireCustomerSession();
+            if (!user) return;
             
             await loadHistory();
         });

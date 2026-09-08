@@ -245,13 +245,9 @@
         let currentCancelBookingId = null;
 
         // Check authentication
-        document.addEventListener('DOMContentLoaded', function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!isLoggedIn) {
-                window.location.href = 'login-signup.html';
-                return;
-            }
+        document.addEventListener('DOMContentLoaded', async function() {
+            const user = await api.requireCustomerSession();
+            if (!user) return;
             loadBookings();
         });
 

@@ -508,7 +508,7 @@
                 <p class="text-xs text-white/60">Welcome, <span id="sidebarUserName">User</span></p>
             </div>
             <button onclick="window.location.href='customer-dashboard.html'" class="sidebar-item"><i class="fas fa-home mr-2 w-6"></i>Dashboard</button>
-            <button onclick="window.location.href='index.html'" class="sidebar-item"><i class="fas fa-search mr-2 w-6"></i>Find Stays</button>
+            <button onclick="window.location.href='customer-dashboard.html#find-stays'" class="sidebar-item"><i class="fas fa-search mr-2 w-6"></i>Find Stays</button>
             <button onclick="window.location.href='wishlist.html'" class="sidebar-item"><i class="fas fa-heart mr-2 w-6"></i>Wishlist</button>
             <button onclick="window.location.href='bookings.html'" class="sidebar-item"><i class="fas fa-calendar-check mr-2 w-6"></i>My Bookings</button>
             <button onclick="window.location.href='my-history.html'" class="sidebar-item"><i class="fas fa-history mr-2 w-6"></i>My History</button>
@@ -518,6 +518,7 @@
             <button onclick="window.location.href='help.html'" class="sidebar-item"><i class="fas fa-question-circle mr-2 w-6"></i>Help</button>
             <div class="h-px bg-white/20 my-4"></div>
             <button onclick="openPremiumModal()" class="sidebar-item" style="background: var(--gold-green-gradient); color: #1a1a1a;"><i class="fas fa-crown mr-2"></i>Premium</button>
+            <button onclick="window.location.href='platform-master-hub/login.html'" class="sidebar-item" style="background: rgba(212,175,55,0.18); color: #f4e4bc;"><i class="fas fa-shield-halved mr-2 w-6"></i>Platform Master Hub</button>
             <div class="h-px bg-white/20 my-4"></div>
             <button onclick="logout()" class="sidebar-item" style="background: rgba(239,68,68,0.3);"><i class="fas fa-sign-out-alt mr-2 w-6"></i>Logout</button>
         </div>
@@ -533,7 +534,7 @@
         </div>
 
         <!-- SECTION ONE - Hero with Filters -->
-        <section class="hero-section mb-6">
+        <section id="find-stays" class="hero-section mb-6">
             <div class="hero-bg-image"></div>
             <div class="hero-content">
                 <h2 class="text-4xl font-bold text-white mb-4">Find Your Perfect Stay</h2>
@@ -930,17 +931,50 @@
             initializeDashboard(); 
         });
         
-        function initializeDashboard() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (!isLoggedIn) { 
-                window.location.href = 'welcome.html'; 
+        async function initializeDashboard() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'auth.html';
                 return; 
             }
             
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            let user;
+            try {
+                user = await api.getProfile();
+                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('isLoggedIn', 'true');
+            } catch (error) {
+                console.warn('Customer session could not be verified:', error);
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+                localStorage.removeItem('isLoggedIn');
+                window.location.href = 'auth.html';
+                return;
+            }
+
+            if (user.role && user.role !== 'customer') {
+                const dashboards = {
+                    host: 'host-dashboard-upgraded.html',
+                    admin: 'admin-dashboard.html',
+                    support: 'support-dashboard-upgraded.html',
+                    platform_master_hub: 'platform-master-hub/dashboard.html',
+                    platform_master: 'platform-master-hub/dashboard.html',
+                    super_admin: 'platform-master-hub/dashboard.html'
+                };
+                if (dashboards[user.role]) {
+                    window.location.href = dashboards[user.role];
+                    return;
+                }
+            }
+
             if (user.firstName) {
                 document.getElementById('welcome-header').textContent = 'Welcome back, ' + user.firstName + '!';
                 document.getElementById('sidebarUserName').textContent = user.firstName;
+            } else if (user.full_name || user.name) {
+                const displayName = user.full_name || user.name;
+                document.getElementById('welcome-header').textContent = 'Welcome back, ' + displayName + '!';
+                document.getElementById('sidebarUserName').textContent = displayName;
             }
             
             loadFeaturedProperties();
@@ -1131,9 +1165,15 @@
             }
         }
         
-        function logout() { 
-            localStorage.clear(); 
-            window.location.href = 'welcome.html'; 
+        async function logout() {
+            closeSidebar();
+            try {
+                await api.logout();
+            } catch (error) {
+                console.warn('Logout request failed; clearing local session:', error);
+                localStorage.clear();
+                window.location.href = 'auth.html';
+            }
         }
 
         // Load Properties

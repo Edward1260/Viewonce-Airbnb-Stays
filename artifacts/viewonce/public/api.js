@@ -9,7 +9,7 @@ const api = {
   _propertyCacheTime: null,
   _CACHE_DURATION: 30000, // 30 seconds
   _propertyRefreshCallbacks: [],
-  baseUrl: (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || (isBrowser && window.config?.API_BASE_URL) || '',
+  baseUrl: (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || (isBrowser && window.config?.API_BASE_URL) || '/api',
 
   /**
    * Internal helper to get auth headers safely
@@ -49,6 +49,64 @@ const api = {
       if (error.name === 'AbortError') throw new Error('Request timed out. Please try again.');
       if (isBrowser && window.showToast) window.showToast(error.message, 'error');
       throw error;
+    }
+  },
+
+  clearAuth: () => {
+    if (!isBrowser) return;
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('airbnb_app_state');
+  },
+
+  redirectToAuth: () => {
+    if (!isBrowser) return;
+    if (typeof window.navigateTo === 'function') {
+      window.navigateTo('auth.html');
+    } else {
+      window.location.href = 'auth.html';
+    }
+  },
+
+  requireCustomerSession: async () => {
+    if (!isBrowser) return null;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      api.redirectToAuth();
+      return null;
+    }
+
+    try {
+      const user = await api.getProfile(token);
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('isLoggedIn', 'true');
+
+      if (user?.role !== 'customer') {
+        const dashboards = {
+          host: 'host-dashboard-upgraded.html',
+          admin: 'admin-dashboard.html',
+          support: 'support-dashboard-upgraded.html',
+          platform_master_hub: 'platform-master-hub/dashboard.html',
+          platform_master: 'platform-master-hub/dashboard.html',
+          super_admin: 'platform-master-hub/dashboard.html'
+        };
+        const destination = dashboards[user?.role];
+        if (destination && typeof window.navigateTo === 'function') {
+          window.navigateTo(destination);
+        } else {
+          api.redirectToAuth();
+        }
+        return null;
+      }
+
+      return user;
+    } catch (error) {
+      api.clearAuth();
+      api.redirectToAuth();
+      return null;
     }
   },
 
@@ -113,14 +171,10 @@ const api = {
     } catch { /* ignore — clear client state regardless */ }
 
     // Clear all local auth state
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('airbnb_app_state');
+    api.clearAuth();
 
     // Redirect to auth page
-    window.location.href = '/auth.html';
+    api.redirectToAuth();
   }, // End logout
 
   // Verify platform master role via secure endpoint

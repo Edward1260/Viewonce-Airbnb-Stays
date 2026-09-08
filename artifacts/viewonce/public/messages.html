@@ -227,13 +227,9 @@
         let isSpeakerOn = false;
 
         // Check authentication
-        document.addEventListener('DOMContentLoaded', function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (!isLoggedIn || user.role !== 'customer') {
-                window.location.href = 'login-signup.html';
-                return;
-            }
+        document.addEventListener('DOMContentLoaded', async function() {
+            const user = await api.requireCustomerSession();
+            if (!user) return;
             loadConversations();
             
             // Check for URL params
