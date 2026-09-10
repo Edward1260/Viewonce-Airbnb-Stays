@@ -351,8 +351,7 @@
             </div>
             
             <div class="remember-me">
-                <input type="checkbox" id="rememberMe">
-                <label for="rememberMe">Remember me</label>
+                <span style="color:var(--muted);font-size:13px;">For your security, this hub always starts a new sign-in.</span>
             </div>
             
             <div class="forgot-password">
@@ -394,29 +393,34 @@
             infoAlert.style.display = 'block';
         }
 
-        // Check if already logged in
-        const token = localStorage.getItem('token');
-        const user = localStorage.getItem('user');
-        
-        if (token && user) {
-            try {
-                const userData = JSON.parse(user);
-                if (['super_admin', 'platform_master', 'platform_master_hub'].includes(userData.role)) {
-                    window.location.href = '/platform-master-hub';
-                }
-            } catch (e) {
-                // Invalid user data, clear and continue
+        // Platform Master access is intentionally never restored from a previous browser session.
+        // Clear only Platform Master credentials so a separate customer session is not affected.
+        sessionStorage.removeItem('platformMasterToken');
+        sessionStorage.removeItem('platformMasterRefreshToken');
+        sessionStorage.removeItem('platformMasterUser');
+        sessionStorage.removeItem('platformMasterIsLoggedIn');
+        // Remove credentials written by the previous shared-storage implementation.
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('isLoggedIn');
+        try {
+            const legacyUser = JSON.parse(localStorage.getItem('user') || 'null');
+            const legacyMasterRoles = ['super_admin', 'platform_master', 'platform_master_hub'];
+            if (legacyUser && legacyMasterRoles.includes(legacyUser.role)) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('refreshToken');
                 localStorage.removeItem('user');
+                localStorage.removeItem('isLoggedIn');
             }
+        } catch {
+            localStorage.removeItem('user');
         }
 
         // Handle login form submission
         async function handleLogin() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
             
             const errorAlert = document.getElementById('errorAlert');
             const infoAlert = document.getElementById('infoAlert');
@@ -444,27 +448,22 @@
                 const data = await api.login({ email, password });
                 
                 if (data && data.user) {
-                    if (rememberMe) {
-                        localStorage.setItem('token', data.token || data.accessToken);
-                        localStorage.setItem('refreshToken', data.refreshToken || '');
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.setItem('isLoggedIn', 'true');
-                    } else {
-                        sessionStorage.setItem('token', data.token || data.accessToken);
-                        sessionStorage.setItem('refreshToken', data.refreshToken || '');
-                        sessionStorage.setItem('user', JSON.stringify(data.user));
-                        localStorage.setItem('isLoggedIn', 'true');
-                    }
+                    sessionStorage.setItem('platformMasterToken', data.token || data.accessToken);
+                    sessionStorage.setItem('platformMasterRefreshToken', data.refreshToken || '');
+                    sessionStorage.setItem('platformMasterUser', JSON.stringify(data.user));
+                    sessionStorage.setItem('platformMasterIsLoggedIn', 'true');
                     
                     // Secure Backend Verification
                     const verify = await api.verifyMasterRole();
                     if (!verify || !verify.valid) {
-                        localStorage.clear();
-                        sessionStorage.clear();
+                        sessionStorage.removeItem('platformMasterToken');
+                        sessionStorage.removeItem('platformMasterRefreshToken');
+                        sessionStorage.removeItem('platformMasterUser');
+                        sessionStorage.removeItem('platformMasterIsLoggedIn');
                         throw new Error("Access Denied: You do not have Platform Master privileges.");
                     }
 
-                    window.location.href = '/platform-master-hub/dashboard.html';
+                    window.location.href = 'dashboard.html';
                 } else {
                     throw new Error('Invalid email or password');
                 }

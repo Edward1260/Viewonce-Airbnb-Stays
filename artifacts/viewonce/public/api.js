@@ -15,7 +15,11 @@ const api = {
    * Internal helper to get auth headers safely
    */
   _getAuthHeaders(tokenOverride = null) {
-    const token = tokenOverride || (isBrowser ? localStorage.getItem('token') : null);
+    const isPlatformMasterPage = isBrowser && window.location.pathname.includes('/platform-master-hub/');
+    const storedToken = isPlatformMasterPage
+      ? sessionStorage.getItem('platformMasterToken')
+      : (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    const token = tokenOverride || (isBrowser ? storedToken : null);
     return token ? { 
         'Authorization': `Bearer ${token}`,
         'X-Client-Version': window.config?.VERSION || '1.0.0'
@@ -59,6 +63,11 @@ const api = {
     localStorage.removeItem('user');
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('airbnb_app_state');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('refreshToken');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('airbnb_app_state');
   },
 
   redirectToAuth: () => {
@@ -73,7 +82,7 @@ const api = {
   requireCustomerSession: async () => {
     if (!isBrowser) return null;
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
       api.redirectToAuth();
       return null;

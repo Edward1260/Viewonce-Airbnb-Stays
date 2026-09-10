@@ -232,6 +232,7 @@ label{color:var(--text);font-weight:500;display:block;margin-bottom:8px}
 </div>
 <div class="secure-badge" title="Secure Connection">🔒 Secure</div>
 <div class="data-indicator" id="dataIndicator" title="Connected to Backend"><span>Live</span></div>
+<button class="luxury-btn danger" onclick="signOutPlatformMaster()" title="End this Platform Master session">↪ Sign out</button>
 </div>
 </header>
 <div class="wrapper">
@@ -810,7 +811,7 @@ var SessionManager = {
   expireSession: function() { 
     console.warn('Session expired'); 
     alert('Your session has expired. Please log in again.'); 
-    window.location.href = '/platform-master-hub/login.html'; // Redirect to super admin specific login
+    window.location.href = 'login.html'; // Redirect to a fresh Platform Master sign-in
   }
 };
 SessionManager.init();
@@ -1873,24 +1874,30 @@ async function performRestore() {
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', async function() {
   // Initial authentication and role check for Platform Master Hub
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isLoggedIn = sessionStorage.getItem('platformMasterIsLoggedIn') === 'true';
+  const user = JSON.parse(sessionStorage.getItem('platformMasterUser') || '{}');
   const isMaster = ['platform_master', 'platform_master_hub', 'super_admin'].includes(user.role);
 
   if (!isLoggedIn || !isMaster) {
     console.warn('Unauthorized access. Redirecting to login.');
-    localStorage.clear();
-    window.location.href = '/platform-master/login';
+    sessionStorage.removeItem('platformMasterToken');
+    sessionStorage.removeItem('platformMasterRefreshToken');
+    sessionStorage.removeItem('platformMasterUser');
+    sessionStorage.removeItem('platformMasterIsLoggedIn');
+    window.location.href = 'login.html?message=' + encodeURIComponent('Please login to access the Platform Master Hub');
     return;
   }
 
   // Secure backend verification
   try {
     const verify = await api.verifyMasterRole();
-    if (!verify || !verify.isMaster) throw new Error('Unauthorized role');
+    if (!verify || !verify.valid) throw new Error('Unauthorized role');
   } catch (e) {
-    localStorage.clear();
-    window.location.href = '/platform-master/login';
+    sessionStorage.removeItem('platformMasterToken');
+    sessionStorage.removeItem('platformMasterRefreshToken');
+    sessionStorage.removeItem('platformMasterUser');
+    sessionStorage.removeItem('platformMasterIsLoggedIn');
+    window.location.href = 'login.html?message=' + encodeURIComponent('Your Platform Master session is no longer valid. Please login again.');
     return;
   }
 
@@ -1908,6 +1915,14 @@ function addNotification(t, m, type) {
   var n = {id: Date.now(), title: t, message: m, time: 'Just now', read: false, type: type};
   notifications.unshift(n);
   renderNotifications();
+}
+
+function signOutPlatformMaster() {
+  sessionStorage.removeItem('platformMasterToken');
+  sessionStorage.removeItem('platformMasterRefreshToken');
+  sessionStorage.removeItem('platformMasterUser');
+  sessionStorage.removeItem('platformMasterIsLoggedIn');
+  window.location.href = 'login.html?message=' + encodeURIComponent('You have been signed out. Please login again.');
 }
 
 // Generic showToast function for consistent notifications

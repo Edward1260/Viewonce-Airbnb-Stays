@@ -117,9 +117,9 @@
         async function checkAuth() {
             const app = document.getElementById('app');
             
-            // Try to get token from localStorage or sessionStorage
-            let token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            let user = localStorage.getItem('user') || sessionStorage.getItem('user');
+            // Platform Master sessions are session-only and must come from a fresh login.
+            let token = sessionStorage.getItem('platformMasterToken');
+            let user = sessionStorage.getItem('platformMasterUser');
             
             if (!token || !user) {
                 // Not logged in, redirect to login
@@ -147,11 +147,17 @@
                 
                 // User is authorized, load the dashboard
                 // Load the main dashboard content
+                const verify = await api.verifyMasterRole(token);
+                if (!verify || !verify.valid) throw new Error('Platform Master verification failed');
                 loadDashboard();
                 
             } catch (e) {
                 console.error('Auth check error:', e);
                 // Invalid data, redirect to login
+                sessionStorage.removeItem('platformMasterToken');
+                sessionStorage.removeItem('platformMasterRefreshToken');
+                sessionStorage.removeItem('platformMasterUser');
+                sessionStorage.removeItem('platformMasterIsLoggedIn');
                 window.location.href = 'login.html?message=' + encodeURIComponent('Session expired. Please login again.');
             }
         }
