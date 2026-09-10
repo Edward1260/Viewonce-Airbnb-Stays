@@ -905,17 +905,11 @@ Which permissions would you like to manage?`;
                 const response = await api.sendAIMessage(message, aiSessionId);
                 removeTyping();
                 
-                if (response && response.reply) {
-                    addMessage(response.reply, 'ai');
-                } else {
-                    // Fall back to local processing
-                    processLocalMessage(message);
-                }
+                addMessage(response.reply, 'ai');
             } catch (error) {
                 console.error('AI API Error:', error);
                 removeTyping();
-                // Process locally with real data
-                processLocalMessage(message);
+                addMessage('The AI service is temporarily unavailable. Please try again shortly.', 'ai');
             }
         }
 

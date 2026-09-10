@@ -511,22 +511,28 @@ const api = {
 
   // Real AI Chat via Backend Proxy
   sendAIMessage: async (message, context = {}, token = null) => {
-    try {
-      const response = await fetch(`${api.baseUrl}/ai/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
-        body: JSON.stringify({ message, context: { view: context.view || 'support_dashboard', activeTicketId: context.activeTicketId, userRole: context.userRole || 'support', ...context } })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('AI API Error:', error);
-      // Graceful fallback
-      return { 
-        reply: `AI service temporarily unavailable. Error: ${error.message}. Please check backend server.`,
-        timestamp: new Date().toISOString(),
-        error: true
-      };
+    const normalizedContext = context && typeof context === 'object'
+      ? context
+      : { sessionId: typeof context === 'string' ? context : undefined };
+    const response = await fetch(`${api.baseUrl}/ai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api._getAuthHeaders(token) },
+      body: JSON.stringify({
+        message,
+        context: {
+          view: normalizedContext.view || 'support_dashboard',
+          activeTicketId: normalizedContext.activeTicketId,
+          ...normalizedContext
+        }
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload.error || 'The AI service is temporarily unavailable.');
+      error.code = payload.code;
+      throw error;
     }
+    return payload;
   },
 
   // AI Categorization Helper based on subject keywords

@@ -682,26 +682,11 @@ Just ask me anything or use the quick action buttons below!`;
                 const response = await api.sendAIMessage(message, aiSessionId);
                 removeTyping();
                 
-                if (response && (response.reply || response.message)) {
-                    addMessage(response.reply || response.message, 'ai');
-                } else {
-                    // Fallback to smart response
-                    const smartResponse = await getSmartResponse(message);
-                    addMessage(smartResponse.text, 'ai');
-                    if (smartResponse.suggestions) {
-                        addSuggestions(smartResponse.suggestions);
-                    }
-                }
+                addMessage(response.reply, 'ai');
             } catch (error) {
                 console.error('AI Error:', error);
                 removeTyping();
-                
-                // Get smart response from real data
-                const smartResponse = await getSmartResponse(message);
-                addMessage(smartResponse.text, 'ai');
-                if (smartResponse.suggestions) {
-                    addSuggestions(smartResponse.suggestions);
-                }
+                addMessage('The AI service is temporarily unavailable. Please try again shortly.', 'ai');
             }
         }
 
