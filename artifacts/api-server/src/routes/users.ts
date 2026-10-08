@@ -193,11 +193,6 @@ router.put("/knowledge-base/:id", requireAuth, async (req: Request, res: Respons
 router.delete("/knowledge-base/:id", requireAuth, async (_req, res) => res.json({ message: "Deleted" }));
 router.get("/knowledge-base/search", requireAuth, async (_req, res) => res.json([]));
 
-// ─── Reviews ──────────────────────────────────────────────────────────────────
-router.get("/reviews/user/:userId", requireAuth, async (_req, res) => res.json([]));
-router.post("/reviews", requireAuth, async (req: Request, res: Response) => res.status(201).json({ id: "stub", ...req.body, created_at: new Date() }));
-router.delete("/reviews/:id", requireAuth, async (_req, res) => res.json({ message: "Deleted" }));
-
 // ─── Refunds ──────────────────────────────────────────────────────────────────
 router.get("/refunds", requireAuth, async (_req, res) => res.json([]));
 router.patch("/refunds/:id/:action", requireAuth, async (req: Request, res: Response) => res.json({ id: req.params.id, action: req.params.action }));
@@ -318,14 +313,19 @@ router.post("/ai/chat", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// ─── Payout process stub ─────────────────────────────────────────────────────
-router.post("/payouts/:id/process", requireAuth, async (req: Request, res: Response) => {
-  res.json({ id: req.params.id, status: "processing", message: "Payout submitted for processing" });
+// A processing response is not a transfer confirmation. Do not claim a payout was sent.
+router.post("/payouts/:id/process", requireAuth, (_req: Request, res: Response) => {
+  res.status(503).json({
+    error: "Host payouts are unavailable until a payout processor is connected",
+    code: "PAYOUT_PROCESSOR_NOT_CONFIGURED",
+  });
 });
 
-// ─── M-Pesa status stub ───────────────────────────────────────────────────────
-router.get("/payments/mpesa/status/:txId", requireAuth, async (req: Request, res: Response) => {
-  res.json({ transactionId: req.params.txId, status: "unknown" });
+router.get("/payments/mpesa/status/:txId", requireAuth, (_req: Request, res: Response) => {
+  res.status(503).json({
+    error: "M-Pesa transaction verification is not configured",
+    code: "MPESA_NOT_CONFIGURED",
+  });
 });
 
 // ─── Stub endpoints for dashboard widgets ────────────────────────────────────

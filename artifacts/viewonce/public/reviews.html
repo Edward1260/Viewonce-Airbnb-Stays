@@ -31,48 +31,61 @@
         <div class="bg-white rounded-lg shadow-md p-6">
             <h2 class="text-2xl font-bold mb-6">Your Reviews</h2>
             
-            <div class="space-y-6" id="reviewsContainer">
-                <div class="border rounded-lg p-4">
-                    <div class="flex items-start gap-4">
-                        <img src="/images/placeholder-property.jpg" alt="Property" class="w-16 h-16 rounded-lg object-cover">
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-gray-800">Luxury Beach Villa</h3>
-                            <p class="text-sm text-gray-600 mb-2">Mombasa, Kenya</p>
-                            <div class="star-rating mb-2">★★★★★</div>
-                            <p class="text-gray-700">"Amazing property with stunning ocean views. The host was very accommodating and the amenities were top-notch. Highly recommend!"</p>
-                            <p class="text-xs text-gray-400 mt-2">Reviewed on Dec 26, 2024</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="border rounded-lg p-4">
-                    <div class="flex items-start gap-4">
-                        <img src="/images/placeholder-property.jpg" alt="Property" class="w-16 h-16 rounded-lg object-cover">
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-gray-800">Modern City Apartment</h3>
-                            <p class="text-sm text-gray-600 mb-2">Nairobi, Kenya</p>
-                            <div class="star-rating mb-2">★★★★☆</div>
-                            <p class="text-gray-700">"Great location and modern amenities. The apartment was clean and well-maintained. Only minor issue with parking but overall excellent stay."</p>
-                            <p class="text-xs text-gray-400 mt-2">Reviewed on Jan 12, 2025</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-8 text-center">
-                <p class="text-gray-500">No more reviews</p>
+            <div class="space-y-6" id="reviewsContainer" aria-live="polite">
+                <p class="text-gray-500">Loading your reviews…</p>
             </div>
         </div>
     </div>
 
     <script>
         // Check authentication
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const isLoggedIn = localStorage.getItem('isLoggedIn');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (!isLoggedIn || user.role !== 'customer') {
                 window.location.href = 'auth.html';
                 return;
+            }
+
+            const container = document.getElementById('reviewsContainer');
+            try {
+                const reviews = await api.getReviews();
+                if (!Array.isArray(reviews) || reviews.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500">You have not reviewed a completed stay yet.</p>';
+                    return;
+                }
+
+                container.replaceChildren();
+                reviews.forEach((review) => {
+                    const card = document.createElement('article');
+                    card.className = 'border rounded-lg p-4';
+
+                    const property = document.createElement('h3');
+                    property.className = 'font-semibold text-gray-800';
+                    property.textContent = review.property_title || 'Property';
+
+                    const location = document.createElement('p');
+                    location.className = 'text-sm text-gray-600 mb-2';
+                    location.textContent = review.property_location || '';
+
+                    const stars = document.createElement('p');
+                    stars.className = 'star-rating mb-2';
+                    stars.setAttribute('aria-label', `${review.rating} out of 5 stars`);
+                    stars.textContent = `${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}`;
+
+                    const comment = document.createElement('p');
+                    comment.className = 'text-gray-700';
+                    comment.textContent = review.comment;
+
+                    const createdAt = document.createElement('p');
+                    createdAt.className = 'text-xs text-gray-400 mt-2';
+                    createdAt.textContent = `Reviewed on ${new Date(review.created_at).toLocaleDateString()}`;
+
+                    card.append(property, location, stars, comment, createdAt);
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.textContent = error.message || 'Could not load your reviews. Please try again.';
             }
         });
     </script>

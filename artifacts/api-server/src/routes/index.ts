@@ -5,6 +5,7 @@ import authRouter from "./auth.js";
 import propertiesRouter from "./properties.js";
 import bookingsRouter from "./bookings.js";
 import usersRouter from "./users.js";
+import reviewsRouter from "./reviews.js";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(authRouter);
 router.use(propertiesRouter);
 router.use(bookingsRouter);
 router.use(usersRouter);
+router.use(reviewsRouter);
 
 export default router;

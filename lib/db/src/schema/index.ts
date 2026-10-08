@@ -107,6 +107,34 @@ export const paymentsTable = pgTable("payments", {
 
 export type Payment = typeof paymentsTable.$inferSelect;
 
+// ─── Reviews ───────────────────────────────────────────────────────────────────
+export const reviewsTable = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    booking_id: uuid("booking_id")
+      .notNull()
+      .references(() => bookingsTable.id, { onDelete: "cascade" }),
+    reviewer_id: uuid("reviewer_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    property_id: uuid("property_id")
+      .notNull()
+      .references(() => propertiesTable.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    comment: text("comment").notNull(),
+    created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique().on(table.booking_id)],
+);
+
+export const insertReviewSchema = createInsertSchema(reviewsTable).omit({
+  id: true,
+  created_at: true,
+});
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviewsTable.$inferSelect;
+
 // ─── Support Tickets ──────────────────────────────────────────────────────────
 export const supportTicketsTable = pgTable("support_tickets", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

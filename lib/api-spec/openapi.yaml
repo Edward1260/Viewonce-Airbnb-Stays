@@ -24,6 +24,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /reviews/property/{propertyId}:
+    parameters:
+      - name: propertyId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+    get:
+      operationId: getPropertyReviews
+      tags: [reviews]
+      summary: List reviews for a property
+      responses:
+        "200":
+          description: Property reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+  /reviews/user/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+    get:
+      operationId: getUserReviews
+      tags: [reviews]
+      summary: List reviews written by a user
+      responses:
+        "200":
+          description: User reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+  /reviews:
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Review a completed booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+  /reviews/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+    delete:
+      operationId: deleteReview
+      tags: [reviews]
+      summary: Delete a review written by the current user
+      responses:
+        "204":
+          description: Review deleted
 components:
   schemas:
     HealthStatus:
@@ -33,4 +108,63 @@ components:
           type: string
       required:
         - status
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        booking_id:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        reviewer_id:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        property_id:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        reviewer_name:
+          type: string
+        property_title:
+          type: string
+        property_location:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - booking_id
+        - reviewer_id
+        - property_id
+        - reviewer_name
+        - property_title
+        - property_location
+        - rating
+        - comment
+        - created_at
+    ReviewInput:
+      type: object
+      properties:
+        booking_id:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required:
+        - booking_id
+        - rating
+        - comment
 

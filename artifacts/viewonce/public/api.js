@@ -573,6 +573,10 @@ const api = {
     });
   }, // End createReview
 
+  getPropertyReviews: async (propertyId) => {
+    return api.request(`/reviews/property/${encodeURIComponent(propertyId)}`);
+  },
+
   deleteReview: async (reviewId) => {
     return api.request(`/reviews/${reviewId}`, {
       method: 'DELETE',

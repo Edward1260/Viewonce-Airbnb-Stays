@@ -181,7 +181,12 @@
                         <!-- Review Form -->
                         <div class="mt-8 p-4 border rounded-lg bg-gray-50">
                             <h4 class="font-semibold mb-4">Write a Review</h4>
-                            <form id="reviewForm" class="space-y-4">
+                            <p id="reviewEligibilityMessage" class="text-sm text-gray-600 mb-3">Checking completed stays…</p>
+                            <form id="reviewForm" class="space-y-4" hidden>
+                                <div>
+                                    <label for="reviewBooking" class="block text-sm font-medium mb-2">Completed stay</label>
+                                    <select id="reviewBooking" required class="w-full border rounded px-3 py-2"></select>
+                                </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-2">Rating</label>
                                     <div class="flex gap-1">
@@ -429,14 +434,11 @@
         const videos = propertyData.videos;
         const amenities = ["Kitchen", "Wifi", "Dedicated workspace", "Free parking", "Pool", "TV", "Elevator"];
         const reviews = [
-            {name: "David", rating: 5, text: "Great experience..."},
-            {name: "Berkant", rating: 5, text: "All around satisfaction..."}
-        ];
 
         // Populate data
         document.getElementById('propertyTitle').textContent = propertyData.title;
         document.getElementById('propertyMeta').textContent = `Entire property in ${propertyData.city}, Kenya · 2 guests · 1 bedroom · 1 bed · 1 bath`;
-        document.getElementById('propertyRating').textContent = `${propertyData.rating} · 142 reviews`;
+        document.getElementById('propertyRating').textContent = `${propertyData.rating.toFixed(1)} · 0 reviews`;
         document.getElementById('cardPrice').textContent = `KSh ${(propertyData.price * 2).toLocaleString()} for 2 nights`;
         document.getElementById('perNight').textContent = `KSh ${propertyData.price.toLocaleString()}`;
         document.getElementById('oldPrice').textContent = `KSh ${(propertyData.price * 2.2).toFixed(0).toLocaleString()}`;
@@ -490,23 +492,101 @@
             amenitiesList.appendChild(div);
         });
 
-        // Reviews
+        // Reviews are loaded from the API; this page never inserts sample reviews.
         const reviewsList = document.getElementById('reviewsList');
-        reviews.forEach(r => {
-            const div = document.createElement('div');
-            div.className = 'p-4 border rounded';
-            div.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <img src="/images/placeholder-property.jpg" class="w-10 h-10 rounded-full">
-                    <div>
-                        <p class="font-semibold">${r.name}</p>
-                        <div class="star-rating">${'★'.repeat(r.rating)}</div>
-                    </div>
-                </div>
-                <p class="mt-2">${r.text}</p>
-            `;
-            reviewsList.appendChild(div);
-        });
+        const propertyId = urlParams.get('propertyId') || urlParams.get('id');
+        let propertyReviewsCache = [];
+
+        async function loadPropertyReviews() {
+            if (!propertyId) {
+                reviewsList.textContent = 'Property details are unavailable.';
+                document.getElementById('reviewEligibilityMessage').textContent = 'A valid property is required to leave a review.';
+                document.getElementById('reviewForm').hidden = true;
+                document.getElementById('propertyRating').textContent = 'No rating yet';
+                return;
+            }
+
+            try {
+                const response = await api.getPropertyReviews(propertyId);
+                const propertyReviews = Array.isArray(response) ? response : [];
+                propertyReviewsCache = propertyReviews;
+                reviewsList.replaceChildren();
+                if (propertyReviews.length === 0) {
+                    reviewsList.textContent = 'No reviews yet. Reviews can be left after a completed stay.';
+                } else {
+                    propertyReviews.forEach((review) => {
+                        const card = document.createElement('article');
+                        card.className = 'p-4 border rounded';
+                        const header = document.createElement('div');
+                        header.className = 'flex items-center justify-between gap-3';
+                        const reviewer = document.createElement('p');
+                        reviewer.className = 'font-semibold';
+                        reviewer.textContent = review.reviewer_name || 'Guest';
+                        const stars = document.createElement('span');
+                        stars.className = 'star-rating';
+                        stars.setAttribute('aria-label', `${review.rating} out of 5 stars`);
+                        stars.textContent = `${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}`;
+                        const comment = document.createElement('p');
+                        comment.className = 'mt-2';
+                        comment.textContent = review.comment;
+                        const date = document.createElement('p');
+                        date.className = 'mt-2 text-sm text-gray-500';
+                        date.textContent = new Date(review.created_at).toLocaleDateString();
+                        header.append(reviewer, stars);
+                        card.append(header, comment, date);
+                        reviewsList.appendChild(card);
+                    });
+                }
+                const average = propertyReviews.length
+                    ? propertyReviews.reduce((sum, review) => sum + Number(review.rating), 0) / propertyReviews.length
+                    : 0;
+                document.getElementById('propertyRating').textContent =
+                    propertyReviews.length ? `${average.toFixed(1)} · ${propertyReviews.length} reviews` : 'No rating yet';
+            } catch (error) {
+                reviewsList.textContent = error.message || 'Could not load reviews.';
+            }
+        }
+
+        async function loadReviewEligibility() {
+            const form = document.getElementById('reviewForm');
+            const message = document.getElementById('reviewEligibilityMessage');
+            const select = document.getElementById('reviewBooking');
+            if (!localStorage.getItem('token')) {
+                form.hidden = true;
+                message.textContent = 'Sign in after a completed stay to leave a review.';
+                return;
+            }
+
+            try {
+                const bookings = await api.getBookings();
+                const completedStays = (Array.isArray(bookings) ? bookings : [])
+                    .filter((booking) =>
+                        booking.property_id === propertyId
+                        && booking.status === 'completed'
+                        && !propertyReviewsCache.some((review) => review.booking_id === booking.id)
+                    );
+                if (completedStays.length === 0) {
+                    form.hidden = true;
+                    message.textContent = 'Only guests with a completed booking can leave a review.';
+                    return;
+                }
+
+                select.replaceChildren();
+                completedStays.forEach((booking) => {
+                    const option = document.createElement('option');
+                    option.value = booking.id;
+                    option.textContent = `${booking.check_in} – ${booking.check_out}`;
+                    select.appendChild(option);
+                });
+                form.hidden = false;
+                message.textContent = 'Reviews are verified against completed stays.';
+            } catch (error) {
+                form.hidden = true;
+                message.textContent = error.message || 'Could not verify your completed stays.';
+            }
+        }
+
+        void loadPropertyReviews().then(loadReviewEligibility);
 
         // Maps
         const mapQuery = encodeURIComponent(`${propertyData.city}, Kenya`);
@@ -708,7 +788,7 @@
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        propertyId: propertyData.propertyId || urlParams.get('propertyId'),
+                        booking_id: document.getElementById('reviewBooking').value,
                         rating: parseInt(rating),
                         comment: comment
                     })
@@ -717,8 +797,8 @@
                 if (response.ok) {
                     alert('Review submitted successfully!');
                     document.getElementById('reviewComment').value = '';
-                    // Refresh reviews list
-                    location.reload();
+                    await loadPropertyReviews();
+                    await loadReviewEligibility();
                 } else {
                     const error = await response.json();
                     alert('Failed to submit review: ' + (error.message || 'Unknown error'));

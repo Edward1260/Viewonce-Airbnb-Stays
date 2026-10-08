@@ -94,97 +94,37 @@ router.get("/payments", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// ─── GET /api/payouts/stats ───────────────────────────────────────────────────
-router.get("/payouts/stats", requireAuth, async (_req, res) => {
-  try {
-    const payments = await db.select({
-      amount: paymentsTable.amount,
-      net_amount: paymentsTable.net_amount,
-      status: paymentsTable.status,
-    }).from(paymentsTable);
-    const total = payments.reduce((sum, payment) => sum + Number(payment.net_amount || 0), 0);
-    const pending = payments.filter(payment => payment.status === "pending" || payment.status === "processing")
-      .reduce((sum, payment) => sum + Number(payment.net_amount || 0), 0);
-    const completed = payments.filter(payment => payment.status === "completed")
-      .reduce((sum, payment) => sum + Number(payment.net_amount || 0), 0);
-    res.json({ total, pending, completed, currency: "USD" });
-  } catch {
-    res.status(500).json({ error: "Failed to fetch payout stats" });
-  }
+// A payment row is not proof that a host was paid. Do not present booking payment
+// records as payouts or mark them complete without a configured payout processor.
+const payoutUnavailable = {
+  error: "Host payouts are unavailable until a payout processor is connected",
+  code: "PAYOUT_PROCESSOR_NOT_CONFIGURED",
+};
+
+router.get("/payouts/stats", requireAuth, (_req, res): void => {
+  res.status(503).json(payoutUnavailable);
 });
 
-router.get("/payouts/my", requireAuth, async (req, res) => {
-  try {
-    const user = (req as any).user;
-    const payouts = await db.select({
-      id: paymentsTable.id,
-      booking_id: paymentsTable.booking_id,
-      amount: paymentsTable.amount,
-      commission: paymentsTable.commission,
-      net_amount: paymentsTable.net_amount,
-      method: paymentsTable.payment_method,
-      status: paymentsTable.status,
-      created_at: paymentsTable.created_at,
-      property_title: propertiesTable.title,
-    }).from(paymentsTable)
-      .innerJoin(bookingsTable, eq(paymentsTable.booking_id, bookingsTable.id))
-      .innerJoin(propertiesTable, eq(bookingsTable.property_id, propertiesTable.id))
-      .where(eq(propertiesTable.host_id, user.userId))
-      .orderBy(desc(paymentsTable.created_at));
-    res.json(payouts);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch payouts" });
-  }
+router.get("/payouts/my", requireAuth, (_req, res): void => {
+  res.status(503).json(payoutUnavailable);
 });
 
-router.get("/payouts", requireAuth, async (req, res) => {
-  try {
-    const user = (req as any).user;
-    if (!["admin", "support", "platform_master_hub"].includes(user.role)) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-    const payouts = await db.select({
-      id: paymentsTable.id,
-      booking_id: paymentsTable.booking_id,
-      amount: paymentsTable.amount,
-      commission: paymentsTable.commission,
-      net_amount: paymentsTable.net_amount,
-      method: paymentsTable.payment_method,
-      status: paymentsTable.status,
-      created_at: paymentsTable.created_at,
-      property_title: propertiesTable.title,
-      host_id: propertiesTable.host_id,
-    }).from(paymentsTable)
-      .innerJoin(bookingsTable, eq(paymentsTable.booking_id, bookingsTable.id))
-      .innerJoin(propertiesTable, eq(bookingsTable.property_id, propertiesTable.id))
-      .orderBy(desc(paymentsTable.created_at));
-    res.json(payouts);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch payouts" });
+router.get("/payouts", requireAuth, (req: Request, res: Response): void => {
+  const user = (req as any).user;
+  if (!["admin", "support", "platform_master_hub"].includes(user.role)) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
   }
+  res.status(503).json(payoutUnavailable);
 });
 
-router.patch("/payouts/:id/approve", requireAuth, async (req, res) => {
-  try {
-    const user = (req as any).user;
-    if (!["admin", "platform_master_hub"].includes(user.role)) {
-      res.status(403).json({ error: "Only administrators can approve payouts" });
-      return;
-    }
-    const id = String(req.params.id);
-    const [updated] = await db.update(paymentsTable)
-      .set({ status: "completed" })
-      .where(eq(paymentsTable.id, id))
-      .returning();
-    if (!updated) {
-      res.status(404).json({ error: "Payout not found" });
-      return;
-    }
-    res.json(updated);
-  } catch {
-    res.status(500).json({ error: "Failed to approve payout" });
+router.patch("/payouts/:id/approve", requireAuth, (req: Request, res: Response): void => {
+  const user = (req as any).user;
+  if (!["admin", "platform_master_hub"].includes(user.role)) {
+    res.status(403).json({ error: "Only administrators can approve payouts" });
+    return;
   }
+  res.status(503).json(payoutUnavailable);
 });
 
 export default router;

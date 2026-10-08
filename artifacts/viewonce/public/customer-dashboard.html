@@ -958,8 +958,8 @@
                     <p class="text-gray-800">Get exclusive deals & early access!</p>
                 </div>
                 <div class="text-center">
-                    <p class="text-3xl font-bold text-gray-900 mb-2">KSh 2,500<span class="text-lg">/month</span></p>
-                    <button onclick="openPremiumModal()" class="btn-premium">Subscribe Now</button>
+                    <p class="text-gray-800 mb-2">Secure checkout is being connected.</p>
+                    <button onclick="openPremiumModal()" class="btn-premium">View Premium</button>
                 </div>
             </div>
         </section>
@@ -1031,7 +1031,7 @@
                 <div class="p-3 rounded-xl bg-blue-50 mb-2 text-blue-700"><i class="fas fa-chart-line mr-2"></i>Advanced Analytics</div>
             </div>
             <div class="text-center mb-4">
-                <p class="text-4xl font-bold text-green-600">KSh 2,500<span class="text-xl text-gray-500">/month</span></p>
+                <p class="text-gray-600">Plan price will be shown at secure checkout.</p>
             </div>
             <button onclick="subscribePremium()" class="w-full btn-premium">Subscribe Now</button>
         </div>
@@ -1045,9 +1045,9 @@
                 <button onclick="closeReviewModal()" class="text-2xl"><i class="fas fa-times"></i></button>
             </div>
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-                <select id="reviewPropertyId" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white">
-                    <option value="">Loading your properties...</option>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Completed Booking</label>
+                <select id="reviewBookingId" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white">
+                    <option value="">Loading completed stays…</option>
                 </select>
             </div>
             <div class="mb-4">
@@ -1427,13 +1427,14 @@
             if (!bookings) bookings = [];
             
             const totalBookings = bookings.length;
-            const totalSpent = bookings.reduce((sum, b) => sum + (b.totalPrice || b.price || 0), 0);
+            const totalSpent = bookings.reduce((sum, b) => sum + Number(b.total_price ?? b.totalPrice ?? b.price ?? 0), 0);
             
-            // Calculate nights stayed (mock calculation)
             const nightsStayed = bookings.reduce((sum, b) => {
-                if (!b.checkIn || !b.checkOut) return sum;
-                const start = new Date(b.checkIn);
-                const end = new Date(b.checkOut);
+                const checkIn = b.check_in || b.checkIn;
+                const checkOut = b.check_out || b.checkOut;
+                if (!checkIn || !checkOut) return sum;
+                const start = new Date(checkIn);
+                const end = new Date(checkOut);
                 const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
                 return sum + (diff > 0 ? diff : 0);
             }, 0);
@@ -1441,8 +1442,7 @@
             document.getElementById('totalBookings').textContent = totalBookings;
             document.getElementById('totalSpent').textContent = 'KSh ' + totalSpent.toLocaleString();
             document.getElementById('nightsStayed').textContent = nightsStayed;
-            // Random avg rating for demo
-            document.getElementById('avgRating').textContent = totalBookings > 0 ? '4.8' : '0';
+            document.getElementById('avgRating').textContent = '—';
         }
 
         // Load Reviews
@@ -1458,6 +1458,10 @@
             try {
                 // Fetch reviews from API
                 const reviews = await api.getReviews(); // Use the new API function
+                const averageRating = reviews.length
+                    ? reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length
+                    : null;
+                document.getElementById('avgRating').textContent = averageRating === null ? '—' : averageRating.toFixed(1);
 
                 loading.classList.add('hidden');
                 container.classList.remove('hidden'); // Show container if successful
@@ -1466,28 +1470,38 @@
                     container.innerHTML = '<div class="text-center py-8 text-gray-500">No reviews yet. Share your experience!</div>'; //
                     return;
                 }
-                container.innerHTML = reviews.slice(0, 3).map(r => {
-                    const propertyTitle = r.property?.title || 'Unknown Property'; //
-                    const reviewDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A';
-                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-                    const isMyReview = currentUser.id === r.userId;
+                container.replaceChildren();
+                reviews.slice(0, 3).forEach((review) => {
+                    const card = document.createElement('article');
+                    card.className = 'glass p-3 rounded-xl mb-2';
+                    const header = document.createElement('div');
+                    header.className = 'flex justify-between items-start';
+                    const details = document.createElement('div');
+                    const title = document.createElement('p');
+                    title.className = 'text-gray-700 text-sm font-semibold mb-1';
+                    title.textContent = review.property_title || 'Property';
+                    const stars = document.createElement('p');
+                    stars.className = 'text-yellow-500 mb-1';
+                    stars.setAttribute('aria-label', `${review.rating} out of 5 stars`);
+                    stars.textContent = `${'⭐'.repeat(Number(review.rating))}${'☆'.repeat(5 - Number(review.rating))}`;
+                    details.append(title, stars);
 
-                    return `<div class="glass p-3 rounded-xl mb-2">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <p class="text-gray-700 text-sm font-semibold mb-1">${propertyTitle}</p>
-                                        <div class="text-yellow-500 mb-1">${'⭐'.repeat(r.rating)}</div>
-                                    </div>
-                                    ${isMyReview ? `
-                                        <button onclick="deleteUserReview('${r.id}')" class="text-red-500 hover:text-red-700 text-sm ml-4">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    ` : ''}
-                                </div>
-                                <p class="text-gray-700 text-sm">${r.text}</p>
-                                <p class="text-gray-500 text-xs mt-1">${reviewDate}</p>
-                            </div>`;
-                }).join('');
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'text-red-500 hover:text-red-700 text-sm ml-4';
+                    deleteButton.type = 'button';
+                    deleteButton.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i> Delete';
+                    deleteButton.addEventListener('click', () => deleteUserReview(review.id));
+                    header.append(details, deleteButton);
+
+                    const comment = document.createElement('p');
+                    comment.className = 'text-gray-700 text-sm';
+                    comment.textContent = review.comment;
+                    const date = document.createElement('p');
+                    date.className = 'text-gray-500 text-xs mt-1';
+                    date.textContent = review.created_at ? new Date(review.created_at).toLocaleDateString() : '';
+                    card.append(header, comment, date);
+                    container.appendChild(card);
+                });
             } catch (error) {
                 console.error('Error loading user reviews:', error);
                 loading.classList.add('hidden');
@@ -1497,7 +1511,10 @@
             }
         }
 
-        function viewProperty(id) { window.location.href = `/property/${id}`; } // Use router for detailed view
+        function viewProperty(id) {
+            const query = new URLSearchParams({ propertyId: id });
+            window.location.href = `property-listing.html?${query.toString()}`;
+        }
 
         // Modal Functions
         function openPremiumModal() {
@@ -1522,7 +1539,7 @@
         
         async function openReviewModal() {
             const modal = document.getElementById('reviewModal');
-            const select = document.getElementById('reviewPropertyId');
+            const select = document.getElementById('reviewBookingId');
             
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -1530,23 +1547,31 @@
             document.getElementById('reviewText').value = '';
             document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
 
-            // Populate select from real user bookings
+            // Only completed stays can be reviewed.
             try {
-                const bookings = await api.getBookings();
-                const bookingList = Array.isArray(bookings) ? bookings : (bookings.data || []);
-                
-                if (bookingList.length > 0) {
-                    // Filter unique properties from past bookings
-                    const properties = bookingList.map(b => ({
-                        id: b.property?.id || b.propertyId,
-                        title: b.property?.title || 'Property'
-                    })).filter((v, i, a) => v.id && a.findIndex(t => t.id === v.id) === i);
+                const [bookings, existingReviews] = await Promise.all([
+                    api.getBookings(),
+                    api.getReviews(),
+                ]);
+                const bookingList = Array.isArray(bookings) ? bookings : [];
+                const reviewedBookingIds = new Set((Array.isArray(existingReviews) ? existingReviews : []).map((review) => review.booking_id));
+                const eligibleBookings = bookingList.filter((booking) =>
+                    booking.status === 'completed' && !reviewedBookingIds.has(booking.id)
+                );
 
-                    select.innerHTML = '<option value="">Choose a property you stayed at</option>' + 
-                        properties.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
-                } else {
-                    select.innerHTML = '<option value="">No bookings found to review</option>';
-                }
+                select.replaceChildren();
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = eligibleBookings.length
+                    ? 'Choose a completed booking'
+                    : 'No eligible completed stays';
+                select.appendChild(placeholder);
+                eligibleBookings.forEach((booking) => {
+                    const option = document.createElement('option');
+                    option.value = booking.id;
+                    option.textContent = `${booking.check_in} – ${booking.check_out} · ${String(booking.property_id).slice(0, 8)}`;
+                    select.appendChild(option);
+                });
             } catch (err) {
                 console.error('Failed to load bookings for review:', err);
                 select.innerHTML = '<option value="">Error loading properties</option>';
@@ -1570,9 +1595,9 @@
         }
         
         async function submitReview() {
-            const propertyId = document.getElementById('reviewPropertyId').value;
-            if (!propertyId) {
-                showToast('Please select a property to review', 'warning');
+            const bookingId = document.getElementById('reviewBookingId').value;
+            if (!bookingId) {
+                showToast('Choose a completed booking to review', 'warning');
                 return;
             }
             if (currentRating === 0) {
@@ -1592,9 +1617,9 @@
                 btn.textContent = 'Submitting...';
 
                 await api.createReview({
-                    propertyId,
+                    booking_id: bookingId,
                     rating: currentRating,
-                    text: reviewText
+                    comment: reviewText
                 });
                 
                 showToast('Thank you for your review!', 'success');
@@ -1791,48 +1816,6 @@
         }
         
         function subscribePremium() {
-            // Show payment options in the modal
-            const modalContent = `
-                <div class="mb-4">
-                    <p class="text-lg font-semibold mb-3 text-center">Choose Payment Method:</p>
-                    <div class="flex flex-col gap-3">
-                        <button onclick="processMpesaPayment()" class="flex items-center justify-center gap-2 p-4 rounded-xl bg-green-500 text-white hover:bg-green-600 transition w-full">
-                            <i class="fas fa-mobile-alt text-xl"></i> 
-                            <div class="text-left">
-                                <div class="font-bold">M-Pesa</div>
-                                <div class="text-xs opacity-80">Pay with STK Push</div>
-                            </div>
-                        </button>
-                        <button onclick="processCardPayment()" class="flex items-center justify-center gap-2 p-4 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition w-full">
-                            <i class="fas fa-credit-card text-xl"></i>
-                            <div class="text-left">
-                                <div class="font-bold">Credit/Debit Card</div>
-                                <div class="text-xs opacity-80">Visa, Mastercard, Amex</div>
-                            </div>
-                        </button>
-                        <button onclick="processPaypalPayment()" class="flex items-center justify-center gap-2 p-4 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition w-full">
-                            <i class="fab fa-paypal text-xl"></i>
-                            <div class="text-left">
-                                <div class="font-bold">PayPal</div>
-                                <div class="text-xs opacity-80">Pay with your PayPal account</div>
-                            </div>
-                        </button>
-                        <button onclick="processBankPayment()" class="flex items-center justify-center gap-2 p-4 rounded-xl bg-gray-600 text-white hover:bg-gray-700 transition w-full">
-                            <i class="fas fa-university text-xl"></i>
-                            <div class="text-left">
-                                <div class="font-bold">Bank Transfer</div>
-                                <div class="text-xs opacity-80">Direct bank transfer</div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-                <div class="text-center text-sm text-gray-500 mt-4">
-                    <p>Secure payment powered by ViewOnce Airbnb</p>
-                    <p class="mt-1">KSh 2,500/month</p>
-                </div>
-            `;
-            
-            // Replace modal content with payment options
             const modalBody = document.querySelector('#premiumModal .modal-glass');
             if (modalBody) {
                 modalBody.innerHTML = `
@@ -1840,68 +1823,10 @@
                         <h2 class="text-2xl font-bold text-green-600"><i class="fas fa-crown mr-2"></i>Premium</h2>
                         <button onclick="closePremiumModal()" class="text-2xl"><i class="fas fa-times"></i></button>
                     </div>
-                    <div class="mb-4">
-                        <div class="p-3 rounded-xl bg-green-50 mb-2 text-green-700"><i class="fas fa-microphone mr-2"></i>Voice Assistant</div>
-                        <div class="p-3 rounded-xl bg-yellow-50 mb-2 text-yellow-700"><i class="fas fa-bolt mr-2"></i>Automation</div>
-                        <div class="p-3 rounded-xl bg-blue-50 mb-2 text-blue-700"><i class="fas fa-chart-line mr-2"></i>Advanced Analytics</div>
-                    </div>
-                    ${modalContent}
-                    <button onclick="closePremiumModal()" class="w-full mt-4 bg-gray-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-600 transition">Cancel</button>
+                    <p class="text-gray-700 mb-4">Premium checkout is not available yet. No payment has been taken, and Premium will only activate after the payment provider confirms it.</p>
+                    <button onclick="closePremiumModal()" class="w-full mt-4 bg-gray-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-600 transition">Close</button>
                 `;
             }
-        }
-        
-        function processMpesaPayment() {
-            // Simulate M-Pesa STK Push
-            const phone = prompt('Enter your M-Pesa phone number (e.g., 254712345678):');
-            if (phone) {
-                alert('📱 STK Push sent to ' + phone + '\n\nPlease check your phone and enter your M-Pesa PIN to complete payment of KSh 2,500.\n\nThis is a demo - in production, this would initiate M-Pesa STK Push.');
-                
-                // Simulate successful payment
-                setTimeout(() => {
-                    activatePremium('M-Pesa');
-                }, 2000);
-            }
-        }
-        
-        function processCardPayment() {
-            alert('💳 Credit/Debit Card Payment\n\nYou will be redirected to our secure payment gateway.\n\nAmount: KSh 2,500/month\n\nThis is a demo - in production, this would integrate with Stripe/Paystack.');
-            
-            // Simulate successful payment
-            setTimeout(() => {
-                activatePremium('Credit Card');
-            }, 2000);
-        }
-        
-        function processPaypalPayment() {
-            alert('🅰️ PayPal Payment\n\nYou will be redirected to PayPal to complete payment.\n\nAmount: KSh 2,500/month\n\nThis is a demo - in production, this would integrate with PayPal.');
-            
-            // Simulate successful payment
-            setTimeout(() => {
-                activatePremium('PayPal');
-            }, 2000);
-        }
-        
-        function processBankPayment() {
-            alert('🏦 Bank Transfer\n\nBank Details:\n\nAccount Name: ViewOnce Airbnb\nAccount Number: 1234567890\nBank: Kenya Commercial Bank\nBranch: Nairobi\n\nReference: PREMIUM[YourPhone]\n\nPlease make payment and upload receipt.\n\nThis is a demo - in production, this would show bank details and allow receipt upload.');
-            
-            // Simulate successful payment
-            setTimeout(() => {
-                activatePremium('Bank Transfer');
-            }, 2000);
-        }
-        
-        function activatePremium(paymentMethod) {
-            // Save premium status
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            user.isPremium = true;
-            user.premiumPaymentMethod = paymentMethod;
-            user.premiumActivated = new Date().toISOString();
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('isPremium', 'true');
-            
-            alert('🎉 Congratulations! Premium activated successfully!\n\nPayment Method: ' + paymentMethod + '\n\nYou now have access to:\n• Voice Assistant\n• Automation features\n• Advanced analytics\n\nThank you for subscribing!');
-            closePremiumModal();
         }
     </script>
 </body>
