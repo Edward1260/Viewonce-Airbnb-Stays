@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Platform Master Hub</title>
-    <script src="api.js"></script>
-    <script src="router.js"></script>
-    <script src="store.js"></script>
-    <script src="admin-functions.js"></script>
+    <script src="../api.js"></script>
     <style>
         /* Loading styles */
         :root {
@@ -133,15 +130,11 @@
                 
                 // Check if user is super_admin
                 if (!['platform_master_hub', 'super_admin', 'platform_master'].includes(user.role)) {
-                    // Not authorized, show error
-                    app.innerHTML = `
-                        <div class="error-container">
-                            <div class="error-icon">🚫</div>
-                            <div class="error-title">Access Denied</div>
-                            <div class="error-message">You don't have permission to access this dashboard. Only super admins can access this page.</div>
-                            <a href="login.html" class="btn">Login as Platform Master</a>
-                        </div>
-                    `;
+                    sessionStorage.removeItem('platformMasterToken');
+                    sessionStorage.removeItem('platformMasterRefreshToken');
+                    sessionStorage.removeItem('platformMasterUser');
+                    sessionStorage.removeItem('platformMasterIsLoggedIn');
+                    window.location.href = 'login.html?message=' + encodeURIComponent('Platform Master access is required.');
                     return;
                 }
                 
@@ -162,48 +155,9 @@
             }
         }
 
-        // Load dashboard content
-        async function loadDashboard() {
-            const app = document.getElementById('app');
-            
-            app.innerHTML = `
-                <div class="loading-container">
-                    <div class="spinner"></div>
-                    <div class="loading-text">Loading dashboard...</div>
-                </div>
-            `;
-            
-            try {
-                // Fetch the main dashboard HTML
-                const response = await fetch('../platform-master-hub-fixed.html');
-                const html = await response.text();
-                
-                // Create a container for the dashboard
-                const container = document.createElement('div');
-                container.style.width = '100%';
-                container.style.minHeight = '100vh';
-                container.innerHTML = html;
-                
-                // Replace the app content
-                app.innerHTML = '';
-                app.appendChild(container);
-                
-                // Initialize dashboard scripts if needed
-                if (typeof window.initDashboard === 'function') {
-                    window.initDashboard();
-                }
-                
-            } catch (e) {
-                console.error('Error loading dashboard:', e);
-                app.innerHTML = `
-                    <div class="error-container">
-                        <div class="error-icon">⚠️</div>
-                        <div class="error-title">Error Loading Dashboard</div>
-                        <div class="error-message">There was an error loading the dashboard. Please try again.</div>
-                        <button onclick="loadDashboard()" class="btn">Retry</button>
-                    </div>
-                `;
-            }
+        // Load the actual dashboard as a document so its scripts initialize normally.
+        function loadDashboard() {
+            window.location.replace('platform-master-hub-fixed.html');
         }
 
         // Check authentication on page load

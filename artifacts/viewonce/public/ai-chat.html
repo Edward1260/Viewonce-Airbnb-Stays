@@ -395,7 +395,7 @@
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             
             if (!isLoggedIn) {
-                window.location.href = 'login-signup.html';
+                window.location.href = 'auth.html';
                 return;
             }
             
@@ -589,7 +589,7 @@ Just ask me anything or use the quick action buttons below!`;
             const actions = {
                 'newChart': newChat,
                 'chartHistory': () => window.location.href = 'ai-recommendations.js',
-                'analyzer': () => window.location.href = 'analytics.html',
+                'analyzer': () => window.location.href = 'admin-dashboard.html',
                 'budgetPlanner': () => {
                     // Show budget planner in chat
                     addMessage('💰 Opening Budget Planner...', 'ai');

@@ -2,3 +2,4 @@
 - [Vite API proxy](vite-api-proxy.md) — match `/api/` rather than `/api` so the proxy does not swallow static files such as `api.js`.
 - [Browser API script format](browser-api-script.md) — static pages load `api.js` as a classic script, so it must not contain unconditional ES module exports.
 - [Platform Master session isolation](platform-master-auth.md) — keep Platform Master auth session-only and separate from customer credentials.
+- [Service worker cache versioning](service-worker-cache-versioning.md) — bump cache names when changing offline assets or routing so clients do not keep stale pages.

@@ -6,6 +6,7 @@
     <title>Welcome to ViewOnce | Luxury Stays</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
+    <script src="pwa.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
     <meta name="theme-color" content="#0f172a">
@@ -477,6 +478,9 @@
                     <a href="#contact" class="text-white/80 nav-link font-medium">Concierge</a>
                 </div>
                 <div class="hidden md:flex space-x-4 items-center">
+                    <button data-install-app hidden onclick="window.ViewOncePWA.install()" class="px-4 py-2.5 border border-white/30 rounded-full font-medium hover:bg-white/10 transition" style="color:#f4e4bc" aria-label="Install ViewOnce">
+                        <i class="fas fa-download mr-2"></i>Install
+                    </button>
                     <button onclick="navigateTo('/auth.html')" class="px-5 py-2.5 text-white/80 font-medium hover:text-neon-blue transition nav-link">Sign In</button>
                     <button onclick="navigateTo('/auth.html?form=signup')" class="btn-neon px-6 py-2.5 rounded-full font-semibold text-sm">
                         Join Now
@@ -513,6 +517,7 @@
                 <a href="#contact" class="text-white font-medium hover:text-neon-blue transition">Concierge</a>
             </div>
             <div class="mt-auto flex flex-col gap-4">
+                <button data-install-app onclick="window.ViewOncePWA.install()" class="w-full py-4 font-medium border border-white/30 rounded-2xl hover:bg-white/5 transition" style="color:#f4e4bc"><i class="fas fa-download mr-2"></i>Install ViewOnce</button>
                 <button onclick="navigateTo('/auth.html')" class="w-full py-4 text-white font-medium border border-white/20 rounded-2xl hover:bg-white/5 transition">Sign In</button>
                 <button onclick="navigateTo('/auth.html?form=signup')" class="w-full btn-neon py-4 rounded-2xl font-bold">Join Now</button>
             </div>
@@ -586,18 +591,18 @@
                     <!-- Trust -->
                     <div class="flex items-center justify-center lg:justify-start gap-8 mt-12">
                         <div class="text-center">
-                            <p class="text-3xl font-bold text-gold">15K+</p>
-                            <p class="text-white/50 text-sm">Properties</p>
+                            <p class="text-lg font-bold text-gold">Discover</p>
+                            <p class="text-white/50 text-sm">Stays</p>
                         </div>
                         <div class="w-px h-12 bg-white/10"></div>
                         <div class="text-center">
-                            <p class="text-3xl font-bold text-neon-blue">50K+</p>
-                            <p class="text-white/50 text-sm">Guests</p>
+                            <p class="text-lg font-bold text-neon-blue">Reserve</p>
+                            <p class="text-white/50 text-sm">With ease</p>
                         </div>
                         <div class="w-px h-12 bg-white/10"></div>
                         <div class="text-center">
-                            <p class="text-3xl font-bold text-neon-purple">4.9</p>
-                            <p class="text-white/50 text-sm">Rating</p>
+                            <p class="text-lg font-bold text-neon-purple">Connect</p>
+                            <p class="text-white/50 text-sm">With your host</p>
                         </div>
                     </div>
                 </div>
@@ -607,20 +612,20 @@
                     <div class="relative">
                         <!-- Main Floating Card -->
                         <div class="glass-card float neon-glow p-4" style="transform: rotate(-5deg);">
-                            <img src="welcome page images/image 1.jpg" alt="Luxury" class="w-full h-72 object-cover rounded-xl pulse-effect">
+                            <img src="images/image 1.jpg" alt="ViewOnce luxury stays" class="w-full h-72 object-cover rounded-xl pulse-effect">
                             <div class="p-5">
                                 <div class="flex items-center justify-between mb-2">
-                                    <h3 class="font-playfair text-xl font-bold text-white">Oceanfront Villa</h3>
-                                    <span class="text-gold">★ 4.9</span>
+                                    <h3 class="font-playfair text-xl font-bold text-white">Find your next retreat</h3>
+                                    <span class="text-gold">ViewOnce</span>
                                 </div>
-                                <p class="text-white/50 text-sm">Maldives • 6 Bedrooms</p>
-                                <p class="text-gold font-semibold mt-2">From $2,500/night</p>
+                                <p class="text-white/50 text-sm">Explore the collection of stays</p>
+                                <p class="text-gold font-semibold mt-2">Made for memorable journeys</p>
                             </div>
                         </div>
                         
                         <!-- Floating Card 1 -->
                         <div class="absolute -top-10 -right-10 glass-card float-reverse neon-glow-purple p-2">
-                            <img src="welcome page images/image 2.jpg" alt="View" class="w-36 h-36 object-cover rounded-xl pulse-effect">
+                            <img src="images/image 2.jpg" alt="A welcoming stay" class="w-36 h-36 object-cover rounded-xl pulse-effect">
                         </div>
                         
                         <!-- Floating Card 2 -->
@@ -628,8 +633,8 @@
                             <div class="flex items-center gap-3">
                                 <span class="text-3xl">✓</span>
                                 <div>
-                                    <p class="text-white font-bold text-lg">Verified</p>
-                                    <p class="text-white/60 text-sm">Properties</p>
+                                    <p class="text-white font-bold text-lg">Curated</p>
+                                    <p class="text-white/60 text-sm">Stays</p>
                                 </div>
                             </div>
                         </div>
@@ -725,9 +730,9 @@
                         <div class="w-14 h-14 bg-neon-blue/20 rounded-xl flex items-center justify-center">
                             <span class="text-2xl">🏠</span>
                         </div>
-                        <span class="text-4xl font-bold text-white stat-number" data-target="1250">0</span>
+                        <span class="text-xl font-bold text-white">Discover</span>
                     </div>
-                    <p class="text-white/60 font-medium">Properties</p>
+                    <p class="text-white/60 font-medium">Exceptional stays</p>
                 </div>
 
                 <div class="glass-card p-6 float-reverse neon-glow-purple">
@@ -735,9 +740,9 @@
                         <div class="w-14 h-14 bg-neon-purple/20 rounded-xl flex items-center justify-center">
                             <span class="text-2xl">📅</span>
                         </div>
-                        <span class="text-4xl font-bold text-white stat-number" data-target="8500">0</span>
+                        <span class="text-xl font-bold text-white">Reserve</span>
                     </div>
-                    <p class="text-white/60 font-medium">Bookings</p>
+                    <p class="text-white/60 font-medium">Simple booking</p>
                 </div>
 
                 <div class="glass-card p-6 float-slow neon-glow-pink">
@@ -745,9 +750,9 @@
                         <div class="w-14 h-14 bg-pink-500/20 rounded-xl flex items-center justify-center">
                             <span class="text-2xl">👥</span>
                         </div>
-                        <span class="text-4xl font-bold text-white stat-number" data-target="15000">0</span>
+                        <span class="text-xl font-bold text-white">Connect</span>
                     </div>
-                    <p class="text-white/60 font-medium">Guests</p>
+                    <p class="text-white/60 font-medium">Guest support</p>
                 </div>
 
                 <div class="glass-card p-6 float neon-glow-gold">
@@ -756,11 +761,10 @@
                             <span class="text-2xl">⭐</span>
                         </div>
                         <div class="flex items-baseline">
-                            <span class="text-4xl font-bold text-white stat-number" data-target="98">0</span>
-                            <span class="text-2xl text-gold">%</span>
+                            <span class="text-xl font-bold text-white">Enjoy</span>
                         </div>
                     </div>
-                    <p class="text-white/60 font-medium">Satisfaction</p>
+                    <p class="text-white/60 font-medium">Memorable journeys</p>
                 </div>
             </div>
 
@@ -814,10 +818,10 @@
                 <div class="shape-container-new animate-slide-up delay-100">
                     <div class="shape-wrapper circle-shape">
                         <div class="slideshow-new" id="slideshow1">
-                            <img src="welcome page images/image 1.jpg" alt="1" class="slide-new active shape-image">
-                            <img src="welcome page images/image 2.jpg" alt="2" class="slide-new shape-image">
-                            <img src="welcome page images/images 3.jpg" alt="3" class="slide-new shape-image">
-                            <img src="welcome page images/image 4.jpg" alt="4" class="slide-new shape-image">
+                            <img src="images/image 1.jpg" alt="1" class="slide-new active shape-image">
+                            <img src="images/image 2.jpg" alt="2" class="slide-new shape-image">
+                            <img src="images/images 3.jpg" alt="3" class="slide-new shape-image">
+                            <img src="images/image 4.jpg" alt="4" class="slide-new shape-image">
                         </div>
                         <div class="shape-label">Residences</div>
                     </div>
@@ -827,10 +831,10 @@
                 <div class="shape-container-new animate-slide-up delay-200">
                     <div class="shape-wrapper rounded-2xl">
                         <div class="slideshow-new" id="slideshow2">
-                            <img src="welcome page images/image 2.jpg" alt="2" class="slide-new active shape-image">
-                            <img src="welcome page images/image 4.jpg" alt="4" class="slide-new shape-image">
-                            <img src="welcome page images/image 5.jpg" alt="5" class="slide-new shape-image">
-                            <img src="welcome page images/image 6.jpg" alt="6" class="slide-new shape-image">
+                            <img src="images/image 2.jpg" alt="2" class="slide-new active shape-image">
+                            <img src="images/image 4.jpg" alt="4" class="slide-new shape-image">
+                            <img src="images/image 5.jpg" alt="5" class="slide-new shape-image">
+                            <img src="images/image 6.jpg" alt="6" class="slide-new shape-image">
                         </div>
                         <div class="shape-label">Estates</div>
                     </div>
@@ -840,10 +844,10 @@
                 <div class="shape-container-new animate-slide-up delay-300">
                     <div class="shape-wrapper hexagon">
                         <div class="slideshow-new" id="slideshow3">
-                            <img src="welcome page images/images 3.jpg" alt="3" class="slide-new active shape-image">
-                            <img src="welcome page images/image 5.jpg" alt="5" class="slide-new shape-image">
-                            <img src="welcome page images/image 1.jpg" alt="1" class="slide-new shape-image">
-                            <img src="welcome page images/image 2.jpg" alt="2" class="slide-new shape-image">
+                            <img src="images/images 3.jpg" alt="3" class="slide-new active shape-image">
+                            <img src="images/image 5.jpg" alt="5" class="slide-new shape-image">
+                            <img src="images/image 1.jpg" alt="1" class="slide-new shape-image">
+                            <img src="images/image 2.jpg" alt="2" class="slide-new shape-image">
                         </div>
                         <div class="shape-label">Villas</div>
                     </div>
@@ -853,10 +857,10 @@
                 <div class="shape-container-new animate-slide-up delay-400">
                     <div class="shape-wrapper rounded-3xl">
                         <div class="slideshow-new" id="slideshow4">
-                            <img src="welcome page images/image 4.jpg" alt="4" class="slide-new active shape-image">
-                            <img src="welcome page images/image 6.jpg" alt="6" class="slide-new shape-image">
-                            <img src="welcome page images/image 1.jpg" alt="1" class="slide-new shape-image">
-                            <img src="welcome page images/images 3.jpg" alt="3" class="slide-new shape-image">
+                            <img src="images/image 4.jpg" alt="4" class="slide-new active shape-image">
+                            <img src="images/image 6.jpg" alt="6" class="slide-new shape-image">
+                            <img src="images/image 1.jpg" alt="1" class="slide-new shape-image">
+                            <img src="images/images 3.jpg" alt="3" class="slide-new shape-image">
                         </div>
                         <div class="shape-label">Penthouses</div>
                     </div>

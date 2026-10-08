@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airbnb Customer Dashboard</title>
+    <title>ViewOnce Stays | Customer Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="config-fixed.js"></script>
     <script src="store.js"></script>
     <script src="api.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="router.js"></script>
+    <script src="pwa.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#CC9AA1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ViewOnce">
     <link rel="apple-touch-icon" href="images/icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -671,6 +674,7 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
+            <button data-install-app onclick="window.ViewOncePWA.install()" class="bg-white/10 px-4 py-2 rounded-xl text-white" aria-label="Install ViewOnce"><i class="fas fa-download mr-1"></i><span class="hidden sm:inline">Install</span></button>
             <button onclick="window.location.href='bookings.html'" class="bg-white/80 px-4 py-2 rounded-xl text-white"><i class="fas fa-calendar-alt mr-1"></i> Bookings</button>
             <button onclick="window.location.href='messages.html'" class="bg-white/80 px-4 py-2 rounded-xl text-white"><i class="fas fa-comments"></i></button>
             <button onclick="openNotificationsModal()" class="bg-white/80 px-4 py-2 rounded-xl text-white"><i class="fas fa-bell"></i></button>
@@ -697,7 +701,6 @@
             <button onclick="window.location.href='help.html'" class="sidebar-item"><i class="fas fa-question-circle mr-2 w-6"></i>Help</button>
             <div class="h-px bg-white/20 my-4"></div>
             <button onclick="openPremiumModal()" class="sidebar-item" style="background: var(--gold-green-gradient); color: #1a1a1a;"><i class="fas fa-crown mr-2"></i>Premium</button>
-            <button onclick="window.location.href='platform-master-hub/login.html'" class="sidebar-item" style="background: rgba(212,175,55,0.18); color: #f4e4bc;"><i class="fas fa-shield-halved mr-2 w-6"></i>Platform Master Hub</button>
             <div class="h-px bg-white/20 my-4"></div>
             <button onclick="logout()" class="sidebar-item" style="background: rgba(239,68,68,0.3);"><i class="fas fa-sign-out-alt mr-2 w-6"></i>Logout</button>
         </div>

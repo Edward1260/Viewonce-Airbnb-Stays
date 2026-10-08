@@ -249,11 +249,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const isLoggedIn = localStorage.getItem('isLoggedIn');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   if (!isLoggedIn) {
-    window.location.href = 'login.html';
+    window.location.href = 'auth.html';
     return;
   }
   if (user.role !== 'host' && user.role !== 'admin') {
-    window.location.href = 'login.html';
+    window.location.href = 'auth.html';
     return;
   }
 });
@@ -462,7 +462,7 @@ document.getElementById('savePropertyBtn').addEventListener('click', async funct
         alert('Your session has expired. Please log in again.');
         // Clear local storage and redirect to login
         localStorage.clear();
-        window.location.href = 'login-signup.html';
+        window.location.href = 'auth.html';
         return;
       }
 
@@ -553,7 +553,7 @@ function showPropertyPreview(property) {
         </div>
 
         <div class="flex gap-4 mt-6">
-          <button onclick="this.closest('.fixed').remove(); window.location.href='host-dashboard.html'"
+          <button onclick="this.closest('.fixed').remove(); window.location.href='host-dashboard-upgraded.html'"
                   class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
             Go to Host Dashboard
           </button>
