@@ -2,6 +2,13 @@
 
 const isBrowser = typeof window !== 'undefined';
 
+if (isBrowser && document.head && !document.querySelector('[data-viewonce-theme-loader]')) {
+  const themeLoader = document.createElement('script');
+  themeLoader.src = new URL('theme-loader.js?v=4', document.currentScript?.src || window.location.href).href;
+  themeLoader.dataset.viewonceThemeLoader = 'true';
+  document.head.appendChild(themeLoader);
+}
+
 // Expose API functions globally via window.api
 const api = {
   // Internal state for caching and real-time updates

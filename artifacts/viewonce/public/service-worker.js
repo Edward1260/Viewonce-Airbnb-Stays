@@ -1,6 +1,6 @@
 const APP_BASE = new URL('./', self.location.href).pathname;
-const STATIC_CACHE = 'viewonce-static-v3';
-const DYNAMIC_CACHE = 'viewonce-dynamic-v3';
+const STATIC_CACHE = 'viewonce-static-v4';
+const DYNAMIC_CACHE = 'viewonce-dynamic-v4';
 const STATIC_FILES = [
   APP_BASE,
   `${APP_BASE}welcome.html`,
@@ -9,6 +9,8 @@ const STATIC_FILES = [
   `${APP_BASE}router.js`,
   `${APP_BASE}store.js`,
   `${APP_BASE}api.js`,
+  `${APP_BASE}theme-loader.js?v=4`,
+  `${APP_BASE}luxury-theme.css?v=4`,
   `${APP_BASE}pwa.js`,
   `${APP_BASE}manifest.json`,
   `${APP_BASE}offline.html`,
