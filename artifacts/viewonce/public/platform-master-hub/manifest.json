@@ -1,0 +1,28 @@
+{
+  "id": "/platform-master-hub/",
+  "name": "ViewOnce Platform Master Hub",
+  "short_name": "Master Hub",
+  "description": "Private ViewOnce platform operations",
+  "start_url": "/platform-master-hub/login.html",
+  "scope": "/platform-master-hub/",
+  "display": "standalone",
+  "background_color": "#FAF6EF",
+  "theme_color": "#063B32",
+  "orientation": "portrait",
+  "lang": "en",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
