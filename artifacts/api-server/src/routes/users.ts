@@ -2,13 +2,13 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable, notificationsTable, supportTicketsTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
-import { requireAuth } from "../lib/auth.js";
+import { normalizeRole, requireAuth, requireRole } from "../lib/auth.js";
 import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
 
 // ─── GET /api/users ───────────────────────────────────────────────────────────
-router.get("/users", requireAuth, async (req: Request, res: Response) => {
+router.get("/users", requireAuth, requireRole("admin", "platform_master_hub"), async (req: Request, res: Response) => {
   try {
     const { role } = req.query;
     let query = db.select({
@@ -32,16 +32,21 @@ router.get("/users", requireAuth, async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/users ──────────────────────────────────────────────────────────
-router.post("/users", requireAuth, async (req: Request, res: Response) => {
+router.post("/users", requireAuth, requireRole("admin", "platform_master_hub"), async (req: Request, res: Response) => {
   try {
-    const caller = (req as any).user;
-    if (!["admin", "platform_master_hub"].includes(caller.role)) {
-      res.status(403).json({ error: "Forbidden" }); return;
+    const { email, password, full_name = "", role = "customer", phone = "" } = req.body ?? {};
+    const normalizedEmail = String(email || "").toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || typeof password !== "string" || password.length < 8) {
+      res.status(400).json({ error: "A valid email and password of at least 8 characters are required" });
+      return;
     }
-    const { email, password = "TempPass123!", full_name = "", role = "customer", phone = "" } = req.body;
+    if (normalizeRole(role) !== "customer") {
+      res.status(403).json({ error: "Privileged accounts must be created through a scoped invitation" });
+      return;
+    }
     const password_hash = await bcrypt.hash(String(password), 12);
     const [user] = await db.insert(usersTable).values({
-      email: String(email).toLowerCase().trim(), password_hash, full_name: String(full_name), role: String(role), phone: String(phone),
+      email: normalizedEmail, password_hash, full_name: String(full_name), role: "customer", phone: String(phone),
     }).returning({ id: usersTable.id, email: usersTable.email, full_name: usersTable.full_name, role: usersTable.role });
     res.status(201).json(user);
   } catch (err: any) {
@@ -54,6 +59,11 @@ router.post("/users", requireAuth, async (req: Request, res: Response) => {
 router.get("/users/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
+    const caller = (req as any).user;
+    if (caller.userId !== id && !["admin", "platform_master_hub"].includes(caller.role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
     const [user] = await db.select({
       id: usersTable.id, email: usersTable.email, full_name: usersTable.full_name,
       role: usersTable.role, phone: usersTable.phone, is_active: usersTable.is_active, created_at: usersTable.created_at,
@@ -90,8 +100,11 @@ router.patch("/users/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // ─── Host assignment ──────────────────────────────────────────────────────────
-router.post("/users/hosts/:hostId/assign", requireAuth, async (req: Request, res: Response) => {
-  res.json({ message: "Host assigned successfully" });
+router.post("/users/hosts/:hostId/assign", requireAuth, requireRole("admin", "platform_master_hub"), async (req: Request, res: Response) => {
+  res.status(501).json({
+    error: "Host assignment is unavailable because the current database schema has no host-assignment field",
+    code: "HOST_ASSIGNMENT_NOT_CONFIGURED",
+  });
 });
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -111,7 +124,11 @@ router.get("/notifications", requireAuth, async (req: Request, res: Response) =>
 router.patch("/notifications/:id/read", requireAuth, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    await db.update(notificationsTable).set({ is_read: true }).where(eq(notificationsTable.id, id));
+    const user = (req as any).user;
+    const [updated] = await db.update(notificationsTable).set({ is_read: true })
+      .where(and(eq(notificationsTable.id, id), eq(notificationsTable.user_id, user.userId)))
+      .returning({ id: notificationsTable.id });
+    if (!updated) { res.status(404).json({ error: "Notification not found" }); return; }
     res.json({ message: "Marked as read" });
   } catch {
     res.status(500).json({ error: "Failed to update notification" });
@@ -122,16 +139,25 @@ router.patch("/notifications/:id/read", requireAuth, async (req: Request, res: R
 router.get("/support/tickets", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const tickets = ["admin", "support"].includes(user.role)
-      ? await db.select().from(supportTicketsTable).orderBy(desc(supportTicketsTable.created_at))
-      : await db.select().from(supportTicketsTable).where(eq(supportTicketsTable.customer_id, user.userId)).orderBy(desc(supportTicketsTable.created_at));
+    const selectTickets = () => db.select({
+      ticket: supportTicketsTable,
+      customer: {
+        id: usersTable.id,
+        full_name: usersTable.full_name,
+        email: usersTable.email,
+      },
+    }).from(supportTicketsTable).leftJoin(usersTable, eq(supportTicketsTable.customer_id, usersTable.id));
+    const rows = ["admin", "support", "platform_master_hub"].includes(user.role)
+      ? await selectTickets().orderBy(desc(supportTicketsTable.created_at))
+      : await selectTickets().where(eq(supportTicketsTable.customer_id, user.userId)).orderBy(desc(supportTicketsTable.created_at));
+    const tickets = rows.map(({ ticket, customer }) => ({ ...ticket, customer }));
     res.json(tickets);
   } catch {
     res.status(500).json({ error: "Failed to fetch tickets" });
   }
 });
 
-router.get("/support/tickets/stats", requireAuth, async (_req, res) => {
+router.get("/support/tickets/stats", requireAuth, requireRole("support", "admin", "platform_master_hub"), async (_req, res) => {
   try {
     const tickets = await db.select().from(supportTicketsTable);
     res.json({
@@ -143,6 +169,40 @@ router.get("/support/tickets/stats", requireAuth, async (_req, res) => {
     res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
+
+router.get("/support/tickets/:id", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const [row] = await db.select({
+      ticket: supportTicketsTable,
+      customer: {
+        id: usersTable.id,
+        full_name: usersTable.full_name,
+        email: usersTable.email,
+      },
+    }).from(supportTicketsTable)
+      .leftJoin(usersTable, eq(supportTicketsTable.customer_id, usersTable.id))
+      .where(eq(supportTicketsTable.id, String(req.params.id)))
+      .limit(1);
+    if (!row) { res.status(404).json({ error: "Ticket not found" }); return; }
+    if (row.ticket.customer_id !== user.userId && !["admin", "support", "platform_master_hub"].includes(user.role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    res.json({ ...row.ticket, customer: row.customer });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch ticket" });
+  }
+});
+
+router.get("/support/tickets/:id/comments", requireAuth, (_req, res) => res.status(503).json({
+  error: "Support comments are not configured for this deployment",
+  code: "SUPPORT_COMMENTS_NOT_CONFIGURED",
+}));
+router.post("/support/comments", requireAuth, (_req, res) => res.status(503).json({
+  error: "Support comments are not configured for this deployment",
+  code: "SUPPORT_COMMENTS_NOT_CONFIGURED",
+}));
 
 router.post("/support/tickets", requireAuth, async (req: Request, res: Response) => {
   try {
@@ -187,15 +247,23 @@ router.patch("/support/tickets/:id", requireAuth, async (req: Request, res: Resp
 });
 
 // ─── Knowledge base ───────────────────────────────────────────────────────────
-router.get("/knowledge-base", requireAuth, async (_req, res) => res.json([]));
-router.post("/knowledge-base", requireAuth, async (req: Request, res: Response) => res.status(201).json({ id: "stub", ...req.body }));
-router.put("/knowledge-base/:id", requireAuth, async (req: Request, res: Response) => res.json({ id: req.params.id, ...req.body }));
-router.delete("/knowledge-base/:id", requireAuth, async (_req, res) => res.json({ message: "Deleted" }));
-router.get("/knowledge-base/search", requireAuth, async (_req, res) => res.json([]));
+const knowledgeBaseUnavailable = {
+  error: "Knowledge base storage is not configured for this deployment",
+  code: "KNOWLEDGE_BASE_NOT_CONFIGURED",
+};
+router.get("/knowledge-base", requireAuth, requireRole("support", "admin", "platform_master_hub"), (_req, res) => res.status(503).json(knowledgeBaseUnavailable));
+router.post("/knowledge-base", requireAuth, requireRole("support", "admin", "platform_master_hub"), (_req, res) => res.status(503).json(knowledgeBaseUnavailable));
+router.put("/knowledge-base/:id", requireAuth, requireRole("support", "admin", "platform_master_hub"), (_req, res) => res.status(503).json(knowledgeBaseUnavailable));
+router.delete("/knowledge-base/:id", requireAuth, requireRole("support", "admin", "platform_master_hub"), (_req, res) => res.status(503).json(knowledgeBaseUnavailable));
+router.get("/knowledge-base/search", requireAuth, requireRole("support", "admin", "platform_master_hub"), (_req, res) => res.status(503).json(knowledgeBaseUnavailable));
 
 // ─── Refunds ──────────────────────────────────────────────────────────────────
-router.get("/refunds", requireAuth, async (_req, res) => res.json([]));
-router.patch("/refunds/:id/:action", requireAuth, async (req: Request, res: Response) => res.json({ id: req.params.id, action: req.params.action }));
+const refundsUnavailable = {
+  error: "Refund management is not configured for this deployment",
+  code: "REFUNDS_NOT_CONFIGURED",
+};
+router.get("/refunds", requireAuth, requireRole("admin", "platform_master_hub"), (_req, res) => res.status(503).json(refundsUnavailable));
+router.patch("/refunds/:id/:action", requireAuth, requireRole("admin", "platform_master_hub"), (_req, res) => res.status(503).json(refundsUnavailable));
 
 // ─── AI chat ──────────────────────────────────────────────────────────────────
 const AI_MODEL = process.env["OPENAI_MODEL"] || "gpt-4o-mini";
@@ -328,19 +396,19 @@ router.get("/payments/mpesa/status/:txId", requireAuth, (_req: Request, res: Res
   });
 });
 
-// ─── Stub endpoints for dashboard widgets ────────────────────────────────────
-router.get("/security/stats", requireAuth, async (_req, res) => res.json({ threats: 0, events: 0, score: 98 }));
-router.get("/security/threats/active", requireAuth, async (_req, res) => res.json([]));
-router.get("/security/events", requireAuth, async (_req, res) => res.json([]));
-router.get("/system/errors", requireAuth, async (_req, res) => res.json([]));
-router.get("/system/performance", requireAuth, async (_req, res) => res.json({ cpu: 12, memory: 34, latency: 45 }));
-router.get("/system/audit-logs", requireAuth, async (_req, res) => res.json([]));
-router.get("/ai/analytics/insights", requireAuth, async (_req, res) => res.json({ insights: [] }));
-router.get("/refunds/stats", requireAuth, async (_req, res) => res.json({ total: 0, pending: 0 }));
-router.get("/host-onboarding/status", requireAuth, async (_req, res) => res.json({ complete: false, steps: [] }));
-router.get("/auth/verify-master", requireAuth, async (req: Request, res) => {
-  const user = (req as any).user;
-  res.json({ valid: user.role === "platform_master_hub", role: user.role });
-});
-
+// Unimplemented data-backed widgets return an explicit status instead of
+// reporting invented zeros, empty records, or fabricated system metrics.
+const dashboardDataUnavailable = {
+  error: "This dashboard data source is not configured for this deployment",
+  code: "DASHBOARD_DATA_NOT_CONFIGURED",
+};
+router.get("/security/stats", requireAuth, requireRole("platform_master_hub"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
+router.get("/security/threats/active", requireAuth, requireRole("platform_master_hub"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
+router.get("/security/events", requireAuth, requireRole("platform_master_hub"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
+router.get("/system/errors", requireAuth, requireRole("platform_master_hub"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
+router.get("/system/performance", requireAuth, requireRole("platform_master_hub"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
+router.get("/system/audit-logs", requireAuth, requireRole("platform_master_hub"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
+router.get("/ai/analytics/insights", requireAuth, requireRole("platform_master_hub"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
+router.get("/refunds/stats", requireAuth, requireRole("admin", "platform_master_hub"), (_req, res) => res.status(503).json(refundsUnavailable));
+router.get("/host-onboarding/status", requireAuth, requireRole("host"), (_req, res) => res.status(503).json(dashboardDataUnavailable));
 export default router;

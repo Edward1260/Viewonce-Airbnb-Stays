@@ -1586,28 +1586,7 @@
                             </tr>
                         </thead>
                         <tbody id="pendingTableBody">
-                            <tr>
-                                <td><span class="text-purple-400"><i class="fas fa-home"></i> Host</span></td>
-                                <td>John Doe</td>
-                                <td>john@example.com</td>
-                                <td>2024-01-15</td>
-                                <td><span class="status-badge pending">Pending</span></td>
-                                <td>
-                                    <button class="btn-gradient py-2 px-4 text-xs" onclick="approveItem('host', '1')">Approve</button>
-                                    <button class="btn-neon py-2 px-4 text-xs ml-2" onclick="rejectItem('host', '1')">Reject</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><span class="text-cyan-400"><i class="fas fa-building"></i> Property</span></td>
-                                <td>Luxury Villa</td>
-                                <td>host@example.com</td>
-                                <td>2024-01-14</td>
-                                <td><span class="status-badge pending-approval">Pending</span></td>
-                                <td>
-                                    <button class="btn-gradient py-2 px-4 text-xs" onclick="approveItem('property', '1')">Approve</button>
-                                    <button class="btn-neon py-2 px-4 text-xs ml-2" onclick="rejectItem('property', '1')">Reject</button>
-                                </td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center py-8 text-white/50">Loading approvals…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -2446,18 +2425,17 @@
     
     // Initialize on load
     document.addEventListener('DOMContentLoaded', async function() {
-        // Enhanced Admin Authentication Guard
         try {
             const profile = await window.api.getProfile();
-            if (!profile || !['admin', 'superadmin'].includes(profile.role)) { // Allow superadmin to access
-                localStorage.clear();
-                showToast('Admin access required. Redirecting to login...', 'warning');
-                // Ensure a smooth redirect if unauthorized
-                const redirectPath = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                    ? 'index.html' : '/index.html';
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
+            if (!profile) throw new Error('Authentication required');
+            if (profile.role !== 'admin') {
+                const roleDestinations = {
+                    customer: 'customer-dashboard.html',
+                    host: 'host-dashboard-upgraded.html',
+                    support: 'support-dashboard-upgraded.html',
+                    platform_master_hub: 'platform-master-hub/login.html'
+                };
+                window.location.replace(roleDestinations[profile.role] || 'auth.html');
                 return;
             }
             
@@ -2483,10 +2461,10 @@
             
         } catch (error) {
             console.error('Auth check failed:', error);
-            localStorage.clear();
+            window.api.clearAuth();
             showToast('Authentication failed. Please login again.', 'error');
             setTimeout(() => {
-                window.location.href = 'index.html';
+                window.location.href = 'auth.html';
             }, 2000);
             return;
         }
@@ -2867,13 +2845,14 @@
             if (window.api) {
                 try { const h = await api.getUsers('host'); hosts = h.data || h || []; } catch(e) { hosts = []; }
                 try { const c = await api.getUsers('customer'); customers = c.data || c || []; } catch(e) { customers = []; }
-                try { const p = await api.getProperties(); properties = p.data || p || []; } catch(e) { properties = []; }
+                try { const p = await api.getManageProperties(); properties = p.data || p || []; } catch(e) { properties = []; }
                 try { const b = await api.getBookings(); bookings = b.data || b || []; } catch(e) { bookings = []; } // Assuming getBookings returns all bookings for admin
             }
             
             document.getElementById('totalHosts').textContent = hosts.length;
             document.getElementById('totalCustomers').textContent = customers.length;
             document.getElementById('totalProperties').textContent = properties.length;
+            renderPendingApprovals(properties);
             
             const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
             const revEl = document.getElementById('totalRevenue');
@@ -2942,7 +2921,7 @@
                     renderCustomersTable(tbody, Array.isArray(custRes) ? custRes : (custRes.data || []));
                     break;
                 case 'properties':
-                    const propRes = await api.getProperties();
+                    const propRes = await api.getManageProperties();
                     renderPropertiesTable(tbody, Array.isArray(propRes) ? propRes : (propRes.data || []));
                     break;
                 case 'bookings':
@@ -3395,24 +3374,58 @@
         }, 5000);
     }
     
-    // Approve Item
-    function approveItem(type, id) {
-        if (confirm(`Are you sure you want to approve this ${type}?`)) {
-            // In a real app, call API to approve item
-            showToast(`${type} ${id} approved successfully!`, 'success');
-            // Reload data for the current page
-            loadPageData(currentPage);
+    function renderPendingApprovals(properties) {
+        const tbody = document.getElementById('pendingTableBody');
+        if (!tbody) return;
+        const pending = (properties || []).filter(property => property.status === 'pending');
+        if (!pending.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-white/50">No properties awaiting approval</td></tr>';
+            return;
+        }
+        const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[char]);
+        tbody.innerHTML = pending.map(property => {
+            const title = escapeHtml(property.title || 'Untitled property');
+            const hostRef = escapeHtml(String(property.host_id || '').slice(0, 8));
+            const createdAt = property.created_at ? new Date(property.created_at).toLocaleDateString() : '—';
+            return `<tr>
+                <td><span class="text-cyan-400"><i class="fas fa-building"></i> Property</span></td>
+                <td>${title}</td>
+                <td>Host ${hostRef || 'account'}</td>
+                <td>${createdAt}</td>
+                <td><span class="status-badge pending">Pending</span></td>
+                <td>
+                    <button class="btn-gradient py-2 px-4 text-xs" onclick="approveItem('property','${property.id}')">Approve</button>
+                    <button class="btn-neon py-2 px-4 text-xs ml-2" onclick="rejectItem('property','${property.id}')">Reject</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function reviewProperty(type, id, status) {
+        if (type !== 'property') {
+            showToast('Host approval is not configured in the current user schema.', 'warning');
+            return;
+        }
+        try {
+            await api.reviewProperty(id, status);
+            showToast(`Property ${status === 'active' ? 'approved' : 'rejected'}.`, 'success');
+            const properties = await api.getManageProperties();
+            renderPendingApprovals(properties);
+            if (currentPage === 'properties') await loadPageData('properties');
+            await loadDashboardData();
+        } catch (error) {
+            showToast(error.message || 'Could not update property approval.', 'error');
         }
     }
+
+    function approveItem(type, id) {
+        if (confirm(`Approve this ${type}?`)) void reviewProperty(type, id, 'active');
+    }
     
-    // Reject Item
     function rejectItem(type, id) {
-        if (confirm(`Are you sure you want to reject this ${type}?`)) {
-            // In a real app, call API to reject item
-            showToast(`${type} ${id} rejected`, 'error');
-            // Reload data for the current page
-            loadPageData(currentPage);
-        }
+        if (confirm(`Reject this ${type}?`)) void reviewProperty(type, id, 'rejected');
     }
     
     // Handle Logout

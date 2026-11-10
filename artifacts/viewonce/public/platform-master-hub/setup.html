@@ -338,6 +338,11 @@
                 <label for="email">Email Address</label>
                 <input type="email" id="email" placeholder="Enter your email address" required>
             </div>
+
+            <div class="form-group">
+                <label for="setupToken">One-time setup token</label>
+                <input type="password" id="setupToken" autocomplete="off" placeholder="Enter the token configured by the owner" required>
+            </div>
             
             <div class="form-group">
                 <label for="phone">Phone Number (Optional)</label>
@@ -346,11 +351,11 @@
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Create a strong password" required minlength="8">
+                <input type="password" id="password" placeholder="Create a strong password" required minlength="12">
                 <div class="password-strength">
                     <div class="password-strength-bar" id="strengthBar"></div>
                 </div>
-                <div class="password-hint">Minimum 8 characters. Use uppercase, lowercase, numbers, and symbols.</div>
+                <div class="password-hint">Minimum 12 characters. Use uppercase, lowercase, numbers, and symbols.</div>
             </div>
             
             <div class="form-group">
@@ -399,6 +404,13 @@
                 
                 const data = await response.json();
                 
+                if (!data.setupEnabled) {
+                    const errorAlert = document.getElementById('errorAlert');
+                    errorAlert.textContent = data.message || 'Platform setup is disabled until the owner configures a one-time setup token.';
+                    errorAlert.style.display = 'block';
+                    document.getElementById('setupBtn').disabled = true;
+                    return;
+                }
                 if (!data.required) {
                     // Setup already complete, redirect to login
                     window.location.href = 'login.html?message=' + encodeURIComponent(data.message);
@@ -442,6 +454,7 @@
             const phone = document.getElementById('phone').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            const setupToken = document.getElementById('setupToken').value;
             
             const errorAlert = document.getElementById('errorAlert');
             const successAlert = document.getElementById('successAlert');
@@ -454,14 +467,14 @@
             successAlert.style.display = 'none';
             
             // Validate fields
-            if (!firstName || !lastName || !email || !password || !confirmPassword) {
+            if (!firstName || !lastName || !email || !setupToken || !password || !confirmPassword) {
                 errorAlert.textContent = 'Please fill in all required fields';
                 errorAlert.style.display = 'block';
                 return;
             }
             
-            if (password.length < 8) {
-                errorAlert.textContent = 'Password must be at least 8 characters long';
+            if (password.length < 12) {
+                errorAlert.textContent = 'Password must be at least 12 characters long';
                 errorAlert.style.display = 'block';
                 return;
             }
@@ -495,7 +508,8 @@
                         lastName,
                         email,
                         phone,
-                        password
+                        password,
+                        setupToken
                     })
                 });
                 
@@ -507,9 +521,10 @@
                     successAlert.style.display = 'block';
                     
                     // Store tokens
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('refreshToken', data.refreshToken);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    sessionStorage.setItem('platformMasterToken', data.token);
+                    sessionStorage.setItem('platformMasterRefreshToken', data.refreshToken || '');
+                    sessionStorage.setItem('platformMasterUser', JSON.stringify(data.user));
+                    sessionStorage.setItem('platformMasterIsLoggedIn', 'true');
                     
                     // Redirect to dashboard after short delay
                     setTimeout(() => {
@@ -517,7 +532,7 @@
                     }, 1500);
                 } else {
                     // Setup failed
-                    errorAlert.textContent = data.message || 'Setup failed. Please try again.';
+                    errorAlert.textContent = data.error || data.message || 'Setup failed. Please try again.';
                     errorAlert.style.display = 'block';
                     setupBtn.disabled = false;
                     setupBtn.textContent = 'Create Super Admin Account';

@@ -342,7 +342,7 @@
             'host': 'host-dashboard-upgraded.html',
             'admin': 'admin-dashboard.html',
             'support': 'support-dashboard-upgraded.html',
-            'platform_master_hub': 'platform-master-hub-fixed.html'
+            'platform_master_hub': 'platform-master-hub/login.html'
         };
         
         function getDashboardByRole(role) {
@@ -415,7 +415,7 @@
                 const { outcome } = await deferredInstallPrompt.userChoice;
                 deferredInstallPrompt = null;
             }
-        })();
+        }
         
         // Handle Host Signup
         async function handleHostSignup(event) {
