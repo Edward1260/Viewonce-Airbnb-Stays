@@ -247,7 +247,7 @@
         window.addEventListener('load', async () => {
             const user = store.getUser();
             if (!user || user.role !== 'host') {
-                window.location.href = 'login.html';
+                window.location.href = 'auth.html';
                 return;
             }
 
@@ -486,7 +486,7 @@
             try {
                 await api.makeRequest('/host-onboarding/submit', 'POST');
                 alert('Your application has been submitted for review! You will be notified once approved.');
-                window.location.href = 'host-dashboard.html';
+                window.location.href = 'host-dashboard-upgraded.html';
             } catch (error) {
                 alert('Error submitting application: ' + error.message);
             }
@@ -494,7 +494,7 @@
 
         function logout() {
             store.clear();
-            window.location.href = 'login.html';
+            window.location.href = 'auth.html';
         }
     </script>
 </body>

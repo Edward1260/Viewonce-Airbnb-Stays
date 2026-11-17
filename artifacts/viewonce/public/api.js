@@ -2,6 +2,13 @@
 
 const isBrowser = typeof window !== 'undefined';
 
+if (isBrowser && document.head && !document.querySelector('[data-viewonce-theme-loader]')) {
+  const themeLoader = document.createElement('script');
+  themeLoader.src = new URL('theme-loader.js?v=4', document.currentScript?.src || window.location.href).href;
+  themeLoader.dataset.viewonceThemeLoader = 'true';
+  document.head.appendChild(themeLoader);
+}
+
 // Expose API functions globally via window.api
 const api = {
   // Internal state for caching and real-time updates
@@ -58,6 +65,13 @@ const api = {
 
   clearAuth: () => {
     if (!isBrowser) return;
+    if (window.location.pathname.includes('/platform-master-hub/')) {
+      sessionStorage.removeItem('platformMasterToken');
+      sessionStorage.removeItem('platformMasterRefreshToken');
+      sessionStorage.removeItem('platformMasterUser');
+      sessionStorage.removeItem('platformMasterIsLoggedIn');
+      return;
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
@@ -98,13 +112,16 @@ const api = {
           host: 'host-dashboard-upgraded.html',
           admin: 'admin-dashboard.html',
           support: 'support-dashboard-upgraded.html',
-          platform_master_hub: 'platform-master-hub/dashboard.html',
-          platform_master: 'platform-master-hub/dashboard.html',
-          super_admin: 'platform-master-hub/dashboard.html'
+          platform_master_hub: 'platform-master-hub/login.html',
+          platform_master: 'platform-master-hub/login.html',
+          super_admin: 'platform-master-hub/login.html',
+          superadmin: 'admin-dashboard.html'
         };
         const destination = dashboards[user?.role];
         if (destination && typeof window.navigateTo === 'function') {
           window.navigateTo(destination);
+        } else if (destination) {
+          window.location.replace(destination);
         } else {
           api.redirectToAuth();
         }
@@ -241,6 +258,21 @@ const api = {
     return api.request('/properties');
   },
 
+  getManageProperties: async () => {
+    return api.request('/properties/manage');
+  },
+
+  reviewProperty: async (id, status) => {
+    const result = await api.request(`/properties/${encodeURIComponent(id)}/approval`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    api._propertyCache = null;
+    if (api.notifyPropertyRefresh) api.notifyPropertyRefresh();
+    return result;
+  },
+
   createProperty: async (propData, token = null) => {
     const result = await api.request('/properties', {
       method: 'POST',
@@ -311,7 +343,7 @@ const api = {
     const params = new URLSearchParams(filters);
     if (params.toString()) endpoint += `?${params.toString()}`;
     const data = await api.request(endpoint, { headers: api._getAuthHeaders(token) });
-    return data.map(t => ({ ...t, customer: t.customer?.full_name || 'Guest' })); // Assuming backend joins customer data
+    return data.map(t => ({ ...t, customer: t.customer?.full_name || 'Unknown customer' }));
   },
 
   createSupportTicket: async (ticketData, token = null) => {
@@ -393,11 +425,7 @@ const api = {
   },
 
   getKnowledgeBaseArticles: async () => {
-    try {
-      return await api.request('/knowledge-base');
-    } catch {
-      return [];
-    }
+    return api.request('/knowledge-base');
   },
 
   createKnowledgeBaseArticle: async (articleData) => {
@@ -572,6 +600,10 @@ const api = {
       body: JSON.stringify(reviewData)
     });
   }, // End createReview
+
+  getPropertyReviews: async (propertyId) => {
+    return api.request(`/reviews/property/${encodeURIComponent(propertyId)}`);
+  },
 
   deleteReview: async (reviewId) => {
     return api.request(`/reviews/${reviewId}`, {

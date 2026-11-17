@@ -957,7 +957,7 @@
     <div class="auth-container">
         <!-- Left Section - Auth Image with Welcoming Messages -->
         <div class="left-section">
-            <img src="authentication image/auth image.png" alt="Welcome" class="auth-image-bg">
+            <img src="images/auth image.png" alt="Welcome" class="auth-image-bg">
             <div class="auth-image-overlay"></div>
             <div class="welcome-messages">
                 <div class="welcome-message" id="msg1">Welcome Back!</div>
@@ -1125,8 +1125,11 @@
             'customer': 'customer-dashboard.html',
             'host': 'host-dashboard-upgraded.html',
             'admin': 'admin-dashboard.html',
+            'superadmin': 'admin-dashboard.html',
             'support': 'support-dashboard-upgraded.html',
-            'platform_master_hub': 'platform-master-hub-fixed.html'
+            'platform_master_hub': 'platform-master-hub/dashboard.html',
+            'platform_master': 'platform-master-hub/dashboard.html',
+            'super_admin': 'platform-master-hub/dashboard.html'
         };
         
         // Get redirect URL based on role
@@ -1234,7 +1237,7 @@
         }
         
         // Check for invitation params on page load
-        (function() {
+        (async function() {
             if (handleInvitationParams()) {
                 return; // Redirecting to signup page
             }
@@ -1248,12 +1251,20 @@
             
             if (token && isLoggedIn) {
                 try {
-                    const user = JSON.parse(localStorage.getItem('user') || '{}');
-                    if (user.role && roleDashboardMap[user.role]) {
-                        window.location.href = getDashboardByRole(user.role);
+                    const user = await authApi.getProfile(token);
+                    const masterRoles = ['platform_master_hub', 'platform_master', 'super_admin'];
+                    if (masterRoles.includes(user.role)) {
+                        // A legacy shared-storage owner session must authenticate
+                        // again through the Hub's session-only login.
+                        authApi.clearAuth();
+                        window.location.href = 'platform-master-hub/login.html';
+                        return;
                     }
+                    localStorage.setItem('user', JSON.stringify(user));
+                    window.location.href = getDashboardByRole(user.role);
                 } catch (e) {
                     console.error('Error parsing user data:', e);
+                    authApi.clearAuth();
                 }
             }
             
@@ -1426,11 +1437,6 @@
                 
                 console.log('Login response:', response);
                 
-                // Store auth data
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('token', response.token || response.accessToken);
-                localStorage.setItem('refreshToken', response.refreshToken);
-                
                 // Create user object with role from API
                 const user = response.user || {
                     id: response.userId || response.id,
@@ -1444,8 +1450,19 @@
                     const profile = await authApi.getProfile();
                     Object.assign(user, profile);
                 }
-                
-                localStorage.setItem('user', JSON.stringify(user));
+                const token = response.token || response.accessToken;
+                const masterRoles = ['platform_master_hub', 'platform_master', 'super_admin'];
+                if (masterRoles.includes(user.role)) {
+                    sessionStorage.setItem('platformMasterIsLoggedIn', 'true');
+                    sessionStorage.setItem('platformMasterToken', token);
+                    sessionStorage.setItem('platformMasterRefreshToken', response.refreshToken || '');
+                    sessionStorage.setItem('platformMasterUser', JSON.stringify(user));
+                } else {
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('refreshToken', response.refreshToken || '');
+                    localStorage.setItem('user', JSON.stringify(user));
+                }
                 
                 // Redirect to appropriate dashboard based on role
                 const dashboardUrl = getDashboardByRole(user.role);

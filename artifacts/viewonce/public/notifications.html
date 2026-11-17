@@ -98,7 +98,7 @@
             const isLoggedIn = localStorage.getItem('isLoggedIn');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (!isLoggedIn || user.role !== 'customer') {
-                window.location.href = 'login-signup.html';
+                window.location.href = 'auth.html';
             }
         });
 

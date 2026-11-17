@@ -153,8 +153,8 @@
                     </button>
                 </div>
                 <div>
-                    <h3 class="text-2xl font-semibold text-white" id="userName">John Doe</h3>
-                    <p class="text-white/70" id="userEmail">john.doe@example.com</p>
+                    <h3 class="text-2xl font-semibold text-white" id="userName">Loading profile…</h3>
+                    <p class="text-white/70" id="userEmail"></p>
                     <p class="text-white/60 text-sm"><i class="fas fa-calendar-alt mr-1"></i> Customer since 2023</p>
                 </div>
             </div>
@@ -171,7 +171,7 @@
                 </div>
                 <div>
                     <label class="block text-white mb-2 font-medium"><i class="fas fa-envelope mr-2"></i>Email</label>
-                    <input type="email" id="email" class="input-field w-full" value="john.doe@example.com">
+                    <input type="email" id="email" class="input-field w-full" value="">
                 </div>
                 <div>
                     <label class="block text-white mb-2 font-medium"><i class="fas fa-phone mr-2"></i>Phone</label>
@@ -242,11 +242,13 @@
             const user = await api.requireCustomerSession();
             if (!user) return;
 
-            document.getElementById('userName').textContent = (user.firstName || 'John') + ' ' + (user.lastName || 'Doe');
-            document.getElementById('userEmail').textContent = user.email || 'john.doe@example.com';
-            document.getElementById('firstName').value = user.firstName || 'John';
-            document.getElementById('lastName').value = user.lastName || 'Doe';
-            document.getElementById('email').value = user.email || 'john.doe@example.com';
+            const fullName = user.name || user.full_name || '';
+            const nameParts = fullName.trim().split(/\s+/);
+            document.getElementById('userName').textContent = fullName || 'Account holder';
+            document.getElementById('userEmail').textContent = user.email || '';
+            document.getElementById('firstName').value = nameParts[0] || '';
+            document.getElementById('lastName').value = nameParts.slice(1).join(' ');
+            document.getElementById('email').value = user.email || '';
             document.getElementById('phone').value = user.phone || '';
             if (user.profileImage) document.getElementById('profileImage').src = user.profileImage;
         });

@@ -508,12 +508,7 @@
                 <div class="p-3 rounded-xl bg-blue-50 mb-2 text-blue-700"><i class="fas fa-chart-line mr-2"></i>Advanced Analytics</div>
             </div>
             <div class="text-center mb-4">
-                <p class="text-4xl font-bold text-yellow-600">KSh 2,500<span class="text-xl text-gray-500">/month</span></p>
-            </div>
-            <div class="space-y-3">
-                <button onclick="processMpesaPayment()" class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-green-500 text-white hover:bg-green-600"><i class="fas fa-mobile-alt text-xl"></i> M-Pesa (STK Push)</button>
-                <button onclick="processCardPayment()" class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-blue-500 text-white hover:bg-blue-600"><i class="fas fa-credit-card text-xl"></i> Credit/Debit Card</button>
-                <button onclick="processBankPayment()" class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-gray-600 text-white hover:bg-gray-700"><i class="fas fa-university text-xl"></i> Bank Transfer</button>
+                <p class="text-gray-600">Secure checkout is not connected yet. No charge will be taken.</p>
             </div>
             <button onclick="closePremiumModal()" class="w-full mt-4 bg-gray-300 py-3 rounded-xl font-bold">Cancel</button>
         </div>
@@ -615,6 +610,7 @@
     </footer>
 <script>
     let currentHostId = null;
+    let hostProperties = [];
     let isDarkMode = false;
     let isAIChatOpen = false;
     let isListening = false;
@@ -622,16 +618,33 @@
     let connectionCheckInterval = null;
     let currentPage = 'Dashboard';
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (!isLoggedIn) { window.location.href = 'auth.html'; return; }
-        if (user.role === 'customer') { window.location.href = 'customer-dashboard.html'; return; }
-        if (user.role === 'admin') { window.location.href = 'admin-dashboard.html'; return; }
-        if (user.role !== 'host') { window.location.href = 'login-signup.html'; return; }
+    document.addEventListener('DOMContentLoaded', async function() {
+        let user;
+        try {
+            user = await api.getProfile();
+        } catch (error) {
+            api.clearAuth();
+            window.location.replace('auth.html');
+            return;
+        }
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('isLoggedIn', 'true');
+        const roleDestinations = {
+            customer: 'customer-dashboard.html',
+            admin: 'admin-dashboard.html',
+            superadmin: 'admin-dashboard.html',
+            support: 'support-dashboard-upgraded.html',
+            platform_master_hub: 'platform-master-hub/login.html',
+            platform_master: 'platform-master-hub/login.html',
+            super_admin: 'platform-master-hub/login.html'
+        };
+        if (user.role !== 'host') {
+            window.location.replace(roleDestinations[user.role] || 'auth.html');
+            return;
+        }
         currentHostId = user.id;
         const welcomeHeader = document.getElementById('welcome-header');
-        if (welcomeHeader && user.name) welcomeHeader.textContent = `Welcome back, ${user.name}!`;
+        if (welcomeHeader && (user.name || user.full_name)) welcomeHeader.textContent = `Welcome back, ${user.name || user.full_name}!`;
         animateSections();
         initializeHostDashboard().catch(console.error);
         checkTheme();
@@ -682,13 +695,6 @@
 
     async function initializeHostDashboard() {
         try {
-            // Check onboarding status first
-            const status = await api.getOnboardingStatus();
-            if (!status.complete) {
-                window.location.href = 'host-onboarding.html';
-                return;
-            }
-            
             await loadHostProperties(); 
             await loadStats(); 
         }
@@ -702,9 +708,9 @@
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             let properties = [], bookings = [];
-            try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); } catch(e) {}
-            try { const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []); const propertyIds = properties.map(p => p.id); bookings = bookings.filter(b => propertyIds.includes(b.propertyId)); } catch(e) {}
-            const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0);
+            try { const propsRes = await api.getMyProperties(); properties = propsRes.data || propsRes || []; } catch(e) {}
+            try { const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []); const propertyIds = properties.map(p => p.id); bookings = bookings.filter(b => propertyIds.includes(b.propertyId || b.property_id)); } catch(e) {}
+            const totalRevenue = bookings.reduce((sum, b) => sum + Number(b.totalPrice ?? b.total_price ?? 0), 0);
             const avgRating = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.rating||0), 0) / properties.length : 0;
             document.getElementById('statProperties').textContent = properties.length;
             document.getElementById('statBookings').textContent = bookings.length;
@@ -738,6 +744,7 @@
             const response = await api.getMyProperties();
             let properties = response || [];
             if (!Array.isArray(properties)) properties = [];
+            hostProperties = properties;
             if (properties.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-8"><div class="text-6xl mb-4">🏠</div><h3 class="text-xl font-bold mb-2">No Properties</h3><button onclick="addNewProperty()" class="btn-gradient">Add Property</button></div>'; return; }
             grid.innerHTML = '';
             properties.forEach((prop, index) => { const card = createPropertyCard(prop, index); grid.appendChild(card); });
@@ -749,9 +756,11 @@
         card.className = 'card-3d cursor-pointer';
         const images = (prop.images && prop.images.length > 0) ? prop.images : ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800'];
         const rating = prop.rating || 0;
-        const price = prop.price || 0;
+        const price = Number(prop.price || 0);
         const status = prop.status === 'active';
-        card.innerHTML = `<div class="card-3d-inner bg-white rounded-2xl overflow-hidden"><div class="relative h-48">${images.map((img, i) => `<img src="${img}" class="carousel-img ${i===0?'active':''}" alt="${prop.title}">`).join('')}<div class="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded text-xs font-bold">⭐ ${rating}</div><div class="absolute top-2 left-2 ${status?'bg-green-500':'bg-yellow-500'} text-white px-2 py-1 rounded text-xs font-bold">${status?'Active':'Paused'}</div></div><div class="p-4"><h3 class="font-bold text-lg mb-1">${prop.title}</h3><p class="text-gray-500 text-sm mb-2">📍 ${prop.location || 'Location'}</p><p class="text-purple-600 font-bold mb-3">KSh ${price.toLocaleString()}/night</p><div class="flex gap-2 flex-wrap"><button class="btn-gradient text-xs px-2 py-1 rounded" onclick="editProperty('${prop.id}')"><i class="fas fa-edit"></i> Edit</button><button class="btn-cyan text-xs px-2 py-1 rounded" onclick="viewBookings('${prop.id}')"><i class="fas fa-calendar"></i></button><button class="glass text-xs px-2 py-1 rounded ${status?'text-yellow-600':'text-green-600'}" onclick="toggleListingStatus('${prop.id}','${prop.status}')">${status?'⏸':'▶'}</button><button class="glass text-xs px-2 py-1 rounded text-red-500" onclick="deleteProperty('${prop.id}')"><i class="fas fa-trash"></i></button></div></div></div>`;
+        const statusLabel = prop.status === 'pending' ? 'Pending Review' : prop.status === 'rejected' ? 'Rejected' : status ? 'Active' : 'Paused';
+        const canToggle = ['active', 'inactive'].includes(prop.status);
+        card.innerHTML = `<div class="card-3d-inner bg-white rounded-2xl overflow-hidden"><div class="relative h-48">${images.map((img, i) => `<img src="${img}" class="carousel-img ${i===0?'active':''}" alt="${prop.title}">`).join('')}<div class="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded text-xs font-bold">⭐ ${rating}</div><div class="absolute top-2 left-2 ${status?'bg-green-500':prop.status==='rejected'?'bg-red-500':'bg-yellow-500'} text-white px-2 py-1 rounded text-xs font-bold">${statusLabel}</div></div><div class="p-4"><h3 class="font-bold text-lg mb-1">${prop.title}</h3><p class="text-gray-500 text-sm mb-2">📍 ${prop.location || 'Location'}</p><p class="text-purple-600 font-bold mb-3">KSh ${price.toLocaleString()}/night</p><div class="flex gap-2 flex-wrap"><button class="btn-gradient text-xs px-2 py-1 rounded" onclick="editProperty('${prop.id}')"><i class="fas fa-edit"></i> Edit</button><button class="btn-cyan text-xs px-2 py-1 rounded" onclick="viewBookings('${prop.id}')"><i class="fas fa-calendar"></i></button>${canToggle ? `<button class="glass text-xs px-2 py-1 rounded ${status?'text-yellow-600':'text-green-600'}" onclick="toggleListingStatus('${prop.id}','${prop.status}')">${status?'⏸':'▶'}</button>` : ''}${prop.status === 'rejected' ? `<button class="glass text-xs px-2 py-1 rounded text-green-600" onclick="resubmitProperty('${prop.id}')">Resubmit</button>` : ''}<button class="glass text-xs px-2 py-1 rounded text-red-500" onclick="deleteProperty('${prop.id}')"><i class="fas fa-trash"></i></button></div></div></div>`;
         let currentImg = 0;
         const imgs = card.querySelectorAll('.carousel-img');
         if (imgs.length > 1) { setInterval(() => { imgs[currentImg].classList.remove('active'); currentImg = (currentImg + 1) % imgs.length; imgs[currentImg].classList.add('active'); }, 3000); }
@@ -786,7 +795,7 @@
     }
 
     function editProperty(propertyId) {
-        const properties = store.state.properties;
+        const properties = hostProperties;
         const property = properties.find(p => p.id === propertyId);
         if (!property) { alert('Property not found!'); return; }
         const modal = document.getElementById('editModal');
@@ -800,6 +809,16 @@
         const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
         try { await api.updateProperty(propertyId, { status: newStatus }); showToast(`Listing ${newStatus==='active'?'activated':'paused'}!`, 'success'); loadHostProperties(); }
         catch (error) { showToast('Error updating status', 'error'); }
+    }
+
+    async function resubmitProperty(propertyId) {
+        try {
+            await api.updateProperty(propertyId, { status: 'pending' });
+            showToast('Property resubmitted for review.', 'success');
+            await loadHostProperties();
+        } catch (error) {
+            showToast(error.message || 'Could not resubmit property.', 'error');
+        }
     }
 
     async function deleteProperty(propertyId) {
@@ -1756,7 +1775,7 @@
     async function renderAnalyticsView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0); const avgRating = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.rating||0), 0) / properties.length : 0; container.innerHTML = `<div class="space-y-6"><div class="text-center"><div class="text-5xl mb-4">📊</div><h2 class="text-2xl font-bold">Analytics Dashboard</h2></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><div class="analytics-card"><p class="text-white/80 text-sm">Properties</p><p class="stat-value">${properties.length}</p></div><div class="analytics-card green"><p class="text-white/80 text-sm">Bookings</p><p class="stat-value">${bookings.length}</p></div><div class="analytics-card orange"><p class="text-white/80 text-sm">Revenue</p><p class="stat-value">KSh ${totalRevenue.toLocaleString()}</p></div><div class="analytics-card red"><p class="text-white/80 text-sm">Rating</p><p class="stat-value">${avgRating.toFixed(1)}</p></div></div></div>`; }
     function renderMessagesView(container) { container.innerHTML = `<div class="h-[calc(100vh-140px)] flex gap-4"><div class="w-1/3 glass rounded-2xl overflow-hidden"><div class="p-4 border-b"><h3 class="font-bold">Messages</h3></div><div class="overflow-y-auto h-full p-2"><div class="text-center py-8 text-gray-500">No messages yet</div></div></div><div class="w-2/3 glass rounded-2xl flex items-center justify-center"><div class="text-center text-gray-500"><div class="text-6xl mb-4">💬</div><p>Select a conversation</p></div></div></div>`; }
     function renderContactAdminView(container) { container.innerHTML = `<div class="text-center py-12"><div class="text-6xl mb-4">📞</div><h2 class="text-2xl font-bold mb-4">Contact Admin</h2><div class="max-w-md mx-auto glass p-6 rounded-xl"><div class="space-y-4"><div class="flex justify-between"><span>📧 Email</span><a href="mailto:support@airbnb-stays.com" class="text-blue-600">support@airbnb-stays.com</a></div><div class="flex justify-between"><span>📱 Phone</span><span>+254 700 123 456</span></div><div class="flex justify-between"><span>💬 Live Chat</span><span class="text-green-600">Available 24/7</span></div></div></div></div>`; }
-    function renderProfileView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); container.innerHTML = `<div class="max-w-2xl mx-auto py-12"><div class="glass p-8 rounded-3xl text-center"><div class="w-24 h-24 bg-gray-300 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">${user.name?.charAt(0)||'👤'}</div><h2 class="text-2xl font-bold mb-1">${user.name||'Host'}</h2><p class="text-gray-600 mb-6">${user.email||'host@example.com'}</p><div class="grid grid-cols-2 gap-4 text-left mb-8"><div class="bg-white/50 p-4 rounded-xl"><span class="text-xs text-gray-500">Role</span><span class="font-bold">Host</span></div><div class="bg-white/50 p-4 rounded-xl"><span class="text-xs text-gray-500">Member Since</span><span class="font-bold">Jan 2024</span></div></div><button class="bg-blue-500 text-white px-6 py-2 rounded-xl">Edit Profile</button></div></div>`; }
+    function renderProfileView(container) { const user = JSON.parse(localStorage.getItem('user') || '{}'); const name = user.name || user.full_name || 'Host account'; const joined = user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'; container.innerHTML = `<div class="max-w-2xl mx-auto py-12"><div class="glass p-8 rounded-3xl text-center"><div class="w-24 h-24 bg-gray-300 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">${name.charAt(0)||'👤'}</div><h2 class="text-2xl font-bold mb-1">${name}</h2><p class="text-gray-600 mb-6">${user.email||''}</p><div class="grid grid-cols-2 gap-4 text-left mb-8"><div class="bg-white/50 p-4 rounded-xl"><span class="text-xs text-gray-500">Role</span><span class="font-bold">Host</span></div><div class="bg-white/50 p-4 rounded-xl"><span class="text-xs text-gray-500">Member Since</span><span class="font-bold">${joined}</span></div></div><button class="bg-blue-500 text-white px-6 py-2 rounded-xl">Edit Profile</button></div></div>`; }
     function renderSettingsView(container) { container.innerHTML = `<div class="max-w-2xl mx-auto py-12"><h2 class="text-2xl font-bold mb-6">Settings</h2><div class="glass p-6 rounded-3xl space-y-6"><div class="flex items-center justify-between"><div><h4 class="font-bold">Notifications</h4><p class="text-sm text-gray-600">Receive email updates</p></div><input type="checkbox" checked class="w-5 h-5"></div><div class="flex items-center justify-between"><div><h4 class="font-bold">SMS Alerts</h4><p class="text-sm text-gray-600">Receive SMS for bookings</p></div><input type="checkbox" class="w-5 h-5"></div><div class="pt-4 border-t"><button class="text-red-500 font-bold">Delete Account</button></div></div></div>`; }
     function addNewProperty() { handleSidebarAction('Add Property'); }
     function viewBookings() { handleSidebarAction('Bookings'); }
@@ -1825,10 +1844,6 @@
     function removeAITyping() { const typing = document.getElementById('aiTyping'); if (typing) typing.remove(); }
     async function getSmartHostResponse(message) { const lower = message.toLowerCase(); const user = JSON.parse(localStorage.getItem('user') || '{}'); let properties = [], bookings = []; try { const propsRes = await api.getProperties(); properties = (propsRes.data || propsRes || []).filter(p => p.hostId === user.id); const bookRes = await api.getBookings(); bookings = (bookRes.data || bookRes || []).filter(b => properties.find(p => p.id === b.propertyId)); } catch(e) {} const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice||0), 0); const avgRating = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.rating||0), 0) / properties.length : 0; if (lower.includes('revenue') || lower.includes('earning')) return `Your total revenue is <strong>KSh ${totalRevenue.toLocaleString()}</strong> from ${bookings.length} bookings.`; if (lower.includes('booking')) return `You have ${bookings.length} booking(s) across your ${properties.length} properties.`; if (lower.includes('rating') || lower.includes('review')) return `Your average rating is <strong>${avgRating.toFixed(1)} stars</strong> across ${properties.length} properties.`; if (lower.includes('property') || lower.includes('listing')) return `You have ${properties.length} active property listing(s).`; return `I can help you with:\n\n📊 Analytics - View your revenue\n💰 Pricing - Optimize rates\n📅 Bookings - Manage reservations\n\nWhat would you like to know?`; }
 
-    function processMpesaPayment() { const phone = prompt('Enter M-Pesa phone (e.g., 254712345678):'); if (phone) { showToast('STK Push sent to ' + phone, 'info'); setTimeout(() => activatePremium('M-Pesa'), 2000); } }
-    function processCardPayment() { showToast('Card payment coming soon', 'info'); setTimeout(() => activatePremium('Card'), 2000); }
-    function processBankPayment() { showToast('Bank transfer details sent', 'info'); setTimeout(() => activatePremium('Bank'), 2000); }
-    function activatePremium(method) { const user = JSON.parse(localStorage.getItem('user') || '{}'); user.isPremium = true; user.premiumMethod = method; localStorage.setItem('user', JSON.stringify(user)); localStorage.setItem('isPremium', 'true'); closePremiumModal(); showToast('🎉 Premium activated!', 'success'); }
     function openPremiumModal() { document.getElementById('premiumModal').classList.remove('hidden'); }
     function toggleTheme() { isDarkMode = !isDarkMode; document.body.style.background = isDarkMode ? 'linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)' : 'linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #667eea, #764ba2, #f093fb, #f5576c)'; localStorage.setItem('theme', isDarkMode ? 'dark' : 'light'); showToast(isDarkMode ? 'Dark mode' : 'Light mode', 'info'); }
     function checkTheme() { if (localStorage.getItem('theme') === 'dark') { isDarkMode = true; document.body.style.background = 'linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)'; } }

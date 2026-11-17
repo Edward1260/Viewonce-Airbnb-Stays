@@ -1847,12 +1847,9 @@
         let activeTicketId = null; // Track active ticket for AI context
 
         // Initialize on load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Check authentication
-            if (!checkAuth()) {
-                window.location.href = 'auth.html';
-                return;
-            }
+            if (!(await checkAuth())) return;
 
             // Initialize components
             initializeNavigation();
@@ -1913,37 +1910,32 @@
         }
 
         // Authentication check - FIXED: Real validation
-        function checkAuth() {
+        async function checkAuth() {
             try {
                 const token = localStorage.getItem('token');
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                
-                if (!token || !user?.id) {
+                if (!token) {
                     showToast('Authentication required', 'error');
-                    window.location.href = 'auth.html';
+                    window.location.replace('auth.html');
                     return false;
                 }
-                
-                // Role-based access for support dashboard (ensure user.role is set)
-                if (!['support', 'admin', 'superadmin'].includes(user.role)) {
+                const user = await window.api.getProfile(token);
+                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('isLoggedIn', 'true');
+                if (!['support', 'admin'].includes(user.role)) {
                     showToast('Access denied. Contact administrator.', 'error');
-                    window.location.href = 'customer-dashboard.html';
+                    const roleDestinations = {
+                        customer: 'customer-dashboard.html',
+                        host: 'host-dashboard-upgraded.html',
+                        platform_master_hub: 'platform-master-hub/login.html'
+                    };
+                    window.location.replace(roleDestinations[user.role] || 'auth.html');
                     return false;
                 }
-                
-                // Token expiration check (simple 24h)
-                const tokenTime = localStorage.getItem('tokenTime');
-                if (tokenTime && (Date.now() - parseInt(tokenTime) > 24 * 60 * 60 * 1000)) {
-                    showToast('Session expired. Please log in again.', 'warning');
-                    localStorage.clear();
-                    window.location.href = 'auth.html';
-                    return false;
-                }
-                
                 return true;
             } catch (error) {
-                console.error('Auth check failed:', error); // Log the actual error
-                showToast('Authentication error', 'error');
+                console.error('Auth check failed:', error);
+                window.api.clearAuth();
+                window.location.replace('auth.html');
                 return false;
             }
         }
@@ -2244,58 +2236,28 @@
         // Load chat sessions
         async function loadChatSessions() {
             const container = document.getElementById('chatSessionsList');
-            container.innerHTML = `
-                <div class="text-center py-4">
-                    <div class="loading-spinner"></div>
-                </div>
-            `;
-
-            // Mock chat sessions for demo
-            const sessions = [
-                { id: '1', customer: 'John Doe', lastMessage: 'Need help with booking', time: '2 min ago', unread: true },
-                { id: '2', customer: 'Jane Smith', lastMessage: 'Payment issue', time: '5 min ago', unread: false }
-            ];
-
-            document.getElementById('activeChats').textContent = sessions.length + ' active';
-
-            container.innerHTML = sessions.map(session => `
-                <div class="p-3 rounded-lg bg-white/5 cursor-pointer hover:bg-white/10 transition-all ${session.unread ? 'border-l-2 border-purple-500' : ''}" onclick="selectChat('${session.id}')">
-                    <div class="flex items-center justify-between">
-                        <span class="font-medium text-white">${session.customer}</span>
-                        <span class="text-xs text-gray-400">${session.time}</span>
-                    </div>
-                    <p class="text-sm text-gray-400 truncate">${session.lastMessage}</p>
-                </div>
-            `).join('');
+            document.getElementById('activeChats').textContent = '0 active';
+            container.innerHTML = '<div class="text-center py-6 text-gray-400">Live chat is not connected to a data source yet.</div>';
         }
 
         // Load knowledge base
         async function loadKnowledgeBase() {
             const container = document.getElementById('knowledgeArticles');
-            
-            // Mock articles
-            const articles = [
-                { title: 'How to handle booking cancellations', category: 'Bookings', views: 245 },
-                { title: 'Refund policy guidelines', category: 'Payments', views: 189 },
-                { title: 'Property verification process', category: 'Properties', views: 156 },
-                { title: 'Account security best practices', category: 'Account', views: 134 }
-            ];
-
-            container.innerHTML = articles.map(article => `
-                <div class="frosted-glass p-4 cursor-pointer hover:scale-105 transition-all">
-                    <h4 class="font-semibold text-white mb-2">${article.title}</h4>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-purple-400">${article.category}</span>
-                        <span class="text-gray-400">${article.views} views</span>
-                    </div>
-                </div>
-            `).join('');
+            try {
+                const articles = await api.getKnowledgeBaseArticles();
+                container.innerHTML = Array.isArray(articles) && articles.length
+                    ? articles.map(article => `<div class="frosted-glass p-4"><h4 class="font-semibold text-white mb-2">${article.title}</h4><span class="text-purple-400">${article.category || 'General'}</span></div>`).join('')
+                    : '<div class="text-center py-6 text-gray-400">No knowledge base articles have been added.</div>';
+            } catch (error) {
+                container.innerHTML = '<div class="text-center py-6 text-amber-300">Knowledge base storage is not configured yet.</div>';
+            }
         }
 
         // Load analytics
         async function loadAnalytics() {
+            let tickets = [];
             try {
-                const tickets = await api.getSupportTickets();
+                tickets = await api.getSupportTickets();
                 const counts = tickets.reduce((result, ticket) => {
                     const category = String(ticket.category || 'general').toLowerCase();
                     result[category] = (result[category] || 0) + 1;
@@ -2310,21 +2272,32 @@
             }
 
             // Initialize charts
-            initializeCharts();
+            initializeCharts(tickets);
         }
 
         // Initialize charts
-        function initializeCharts() {
+        function initializeCharts(tickets = []) {
+            const days = Array.from({ length: 7 }, (_, index) => {
+                const day = new Date();
+                day.setHours(0, 0, 0, 0);
+                day.setDate(day.getDate() - (6 - index));
+                return day;
+            });
+            const chartLabels = days.map(day => day.toLocaleDateString(undefined, { weekday: 'short' }));
+            const ticketCounts = days.map(day => {
+                const dateKey = day.toISOString().slice(0, 10);
+                return tickets.filter(ticket => ticket.created_at && new Date(ticket.created_at).toISOString().slice(0, 10) === dateKey).length;
+            });
             // Ticket Volume Chart
             const volumeCtx = document.getElementById('ticketVolumeChart');
             if (volumeCtx && !charts.ticketVolume) {
                 charts.ticketVolume = new Chart(volumeCtx, {
                     type: 'line',
                     data: {
-                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        labels: chartLabels,
                         datasets: [{
                             label: 'Tickets',
-                            data: [12, 19, 15, 25, 22, 18, 14],
+                            data: ticketCounts,
                             borderColor: '#667eea',
                             backgroundColor: 'rgba(102, 126, 234, 0.2)',
                             fill: true,
@@ -2349,10 +2322,10 @@
                 charts.resolutionTime = new Chart(resolutionCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        labels: chartLabels,
                         datasets: [{
                             label: 'Avg Resolution (hrs)',
-                            data: [4, 3.5, 5, 2.5, 3, 4.5, 3.5],
+                            data: [],
                             backgroundColor: 'rgba(16, 185, 129, 0.8)',
                             borderRadius: 8
                         }]

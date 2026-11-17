@@ -6,6 +6,17 @@
 (function () {
   'use strict';
 
+  function loadViewOnceTheme() {
+    if (typeof document === 'undefined' || !document.head || document.querySelector('[data-viewonce-theme-loader]')) return;
+    var currentScript = document.currentScript;
+    var loader = document.createElement('script');
+    loader.src = new URL('theme-loader.js?v=4', currentScript ? currentScript.src : window.location.href).href;
+    loader.dataset.viewonceThemeLoader = 'true';
+    document.head.appendChild(loader);
+  }
+
+  loadViewOnceTheme();
+
   var host = typeof window !== 'undefined' ? window.location.hostname : '';
   var isLocalhost = host === 'localhost' || host === '127.0.0.1';
 

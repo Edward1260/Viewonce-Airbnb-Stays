@@ -202,7 +202,7 @@ function redirectToDashboard(role) {
         'super_admin': '/platform-master-hub/dashboard.html',
         'platform_master': '/platform-master-hub/dashboard.html',
         'admin': '/admin-dashboard.html',
-        'host': '/host-dashboard.html',
+        'host': '/host-dashboard-upgraded.html',
         'support': '/support-dashboard.html',
         'customer': 'customer-dashboard.html'
     };

@@ -5,8 +5,8 @@ import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 import { invitationTokensTable } from "@workspace/db";
-import { and, gt, isNull } from "drizzle-orm";
-import { signToken, signRefreshToken, verifyToken, type JwtPayload } from "../lib/auth.js";
+import { and, gt, inArray, isNull, sql } from "drizzle-orm";
+import { isPlatformMasterRole, normalizeRole, requireAuth, signToken, signRefreshToken, verifyToken, type JwtPayload } from "../lib/auth.js";
 
 const router: IRouter = Router();
 
@@ -135,7 +135,12 @@ router.post("/auth/login", async (req: Request, res: Response) => {
       return;
     }
 
-    const payload: JwtPayload = { userId: user.id, email: user.email, role: user.role };
+    const role = normalizeRole(user.role);
+    if (!["customer", "host", "admin", "support", "platform_master_hub"].includes(role)) {
+      res.status(403).json({ error: "This account has no supported dashboard role" });
+      return;
+    }
+    const payload: JwtPayload = { userId: user.id, email: user.email, role };
     const token = signToken(payload);
     const refreshToken = signRefreshToken(payload);
 
@@ -149,7 +154,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         name: user.full_name,
-        role: user.role,
+        role: normalizeRole(user.role),
         phone: user.phone,
         avatar_url: user.avatar_url,
       },
@@ -183,52 +188,83 @@ router.post("/auth/signup/request-otp", async (req: Request, res: Response) => {
 // First-run bootstrap is deliberately one-time: once a platform master exists,
 // this endpoint can never create another one.
 router.get("/auth/setup-status", async (_req, res) => {
+  const setupToken = process.env["PLATFORM_MASTER_SETUP_TOKEN"];
+  const setupEnabled = Boolean(setupToken && setupToken.length >= 32);
   const [master] = await db
     .select({ id: usersTable.id })
     .from(usersTable)
-    .where(eq(usersTable.role, "platform_master_hub"))
+    .where(inArray(usersTable.role, ["platform_master_hub", "platform_master", "super_admin"]))
     .limit(1);
   res.json({
-    required: !master,
-    message: master ? "Platform Master setup is already complete" : "Create the first Platform Master account",
+    required: !master && setupEnabled,
+    setupEnabled,
+    message: master
+      ? "Platform Master setup is already complete"
+      : setupEnabled
+        ? "Create the first Platform Master account"
+        : "Platform Master setup is disabled until the owner configures its one-time setup token",
   });
 });
 
 router.post("/auth/setup", async (req: Request, res: Response) => {
   try {
-    const [master] = await db
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(eq(usersTable.role, "platform_master_hub"))
-      .limit(1);
-    if (master) {
-      res.status(409).json({ error: "Platform Master setup is already complete" });
+    const setupToken = process.env["PLATFORM_MASTER_SETUP_TOKEN"];
+    if (!setupToken || setupToken.length < 32) {
+      res.status(503).json({ error: "Platform Master setup is not enabled on this deployment" });
+      return;
+    }
+    if (!process.env["SESSION_SECRET"] || process.env["SESSION_SECRET"]!.length < 32) {
+      res.status(503).json({ error: "Authentication signing is not configured on this deployment" });
+      return;
+    }
+
+    const suppliedToken = typeof req.body?.setupToken === "string" ? req.body.setupToken : "";
+    const expected = Buffer.from(setupToken);
+    const supplied = Buffer.from(suppliedToken);
+    if (expected.length !== supplied.length || !crypto.timingSafeEqual(expected, supplied)) {
+      res.status(403).json({ error: "Invalid Platform Master setup token" });
       return;
     }
 
     const { email, password, firstName = "", lastName = "", phone = "" } = req.body ?? {};
     const resolvedEmail = String(email || "").toLowerCase().trim();
-    if (!resolvedEmail || String(password || "").length < 8 || !firstName || !lastName) {
-      res.status(400).json({ error: "First name, last name, email, and an 8-character password are required" });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail) || String(password || "").length < 12 || !firstName || !lastName) {
+      res.status(400).json({ error: "First name, last name, email, and a password of at least 12 characters are required" });
       return;
     }
     const password_hash = await bcrypt.hash(String(password), 12);
-    const [user] = await db.insert(usersTable).values({
-      email: resolvedEmail,
-      password_hash,
-      full_name: `${firstName} ${lastName}`.trim(),
-      role: "platform_master_hub",
-      phone: String(phone),
-    }).returning();
+    const user = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('viewonce-platform-master-setup'))`);
+      const [master] = await tx.select({ id: usersTable.id }).from(usersTable)
+        .where(inArray(usersTable.role, ["platform_master_hub", "platform_master", "super_admin"]))
+        .limit(1);
+      if (master) {
+        const error = new Error("Platform Master setup is already complete");
+        (error as Error & { status?: number }).status = 409;
+        throw error;
+      }
+      const [created] = await tx.insert(usersTable).values({
+        email: resolvedEmail,
+        password_hash,
+        full_name: `${firstName} ${lastName}`.trim(),
+        role: "platform_master_hub",
+        phone: String(phone),
+      }).returning();
+      return created;
+    });
     const payload: JwtPayload = { userId: user.id, email: user.email, role: user.role };
     const token = signToken(payload);
     res.status(201).json({
       token,
       accessToken: token,
       refreshToken: signRefreshToken(payload),
-      user: { id: user.id, email: user.email, name: user.full_name, role: user.role },
+      user: { id: user.id, email: user.email, name: user.full_name, role: normalizeRole(user.role) },
     });
   } catch (err: any) {
+    if (err?.status === 409) {
+      res.status(409).json({ error: err.message });
+      return;
+    }
     if (err?.code === "23505") {
       res.status(409).json({ error: "An account with this email already exists" });
       return;
@@ -269,35 +305,25 @@ router.post("/auth/logout", (_req, res) => {
 });
 
 // ─── GET /api/users/me ────────────────────────────────────────────────────────
-router.get("/users/me", async (req: Request, res: Response) => {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Unauthorized" }); return;
-  }
+router.get("/users/me", requireAuth, async (req: Request, res: Response) => {
   try {
-    const payload = verifyToken(authHeader.slice(7)) as JwtPayload;
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
+    const authUser = (req as Request & { user: JwtPayload }).user;
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, authUser.userId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     res.json({
       id: user.id, email: user.email, name: user.full_name, full_name: user.full_name,
-      role: user.role, phone: user.phone, avatar_url: user.avatar_url,
+      role: normalizeRole(user.role), phone: user.phone, avatar_url: user.avatar_url,
       is_active: user.is_active, created_at: user.created_at,
     });
   } catch {
-    res.status(401).json({ error: "Invalid token" });
+    res.status(500).json({ error: "Failed to fetch profile" });
   }
 });
 
 // ─── GET /api/auth/verify-master ─────────────────────────────────────────────
-router.get("/auth/verify-master", async (req: Request, res: Response) => {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ valid: false }); return; }
-  try {
-    const payload = verifyToken(authHeader.slice(7)) as JwtPayload;
-    res.json({ valid: payload.role === "platform_master_hub", role: payload.role });
-  } catch {
-    res.status(401).json({ valid: false });
-  }
+router.get("/auth/verify-master", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as Request & { user: JwtPayload }).user;
+  res.json({ valid: isPlatformMasterRole(user.role), role: user.role });
 });
 
 export default router;

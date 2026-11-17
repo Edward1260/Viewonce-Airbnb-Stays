@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="theme-loader.js?v=4"></script>
     <title>ViewOnce Stays - Host Signup</title>
     <link rel="icon" href="images/icon-192.png" type="image/png" sizes="192x192">
     <link rel="manifest" href="manifest.json">
@@ -261,7 +262,7 @@
 <body>
     <div class="auth-container">
         <div class="left-section">
-            <img src="authentication image/auth image.png" alt="Welcome" class="auth-image-bg">
+            <img src="images/auth image.png" alt="Welcome" class="auth-image-bg">
             <div class="auth-image-overlay"></div>
             <div class="welcome-messages">
                 <div class="welcome-message" id="msg1">Become a Host!</div>
@@ -341,7 +342,7 @@
             'host': 'host-dashboard-upgraded.html',
             'admin': 'admin-dashboard.html',
             'support': 'support-dashboard-upgraded.html',
-            'platform_master_hub': 'platform-master-hub-fixed.html'
+            'platform_master_hub': 'platform-master-hub/login.html'
         };
         
         function getDashboardByRole(role) {
@@ -414,7 +415,7 @@
                 const { outcome } = await deferredInstallPrompt.userChoice;
                 deferredInstallPrompt = null;
             }
-        })();
+        }
         
         // Handle Host Signup
         async function handleHostSignup(event) {
